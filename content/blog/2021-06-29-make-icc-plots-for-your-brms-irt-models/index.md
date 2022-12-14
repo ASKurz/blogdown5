@@ -635,7 +635,7 @@ One thing that’s super lame about conventional ICC/IIC plots is there’s no e
 
 I’m no IRT jock and may have goofed some of the steps or equations. To report mistakes or provide any other constructive criticism, just chime in on this Twitter thread:
 
-{{% tweet "1409951540228628482" %}}
+{{% tweet user="SolomonKurz" id="1409951540228628482" %}}
 
 ## Session info
 

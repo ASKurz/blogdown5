@@ -153,11 +153,11 @@ fit2 <- with(imp, lm(scale(chl) ~ 1 + scale(bmi)))
 
 I should note it was Mattan S. Ben-Shachar who came up with the `scale()` insight for our `with()` implementation.
 
-{{% tweet "1578447175998373893" %}}
+{{% tweet user="mattansb" id="1578447175998373893" %}}
 
 While I’m at it, it was Isabella R. Ghement who directed me to the van Ginkel paper.
 
-{{% tweet "1578557862733045760" %}}
+{{% tweet user="IsabellaGhement" id="1578557862733045760" %}}
 
 Anyway, now we’ve fit the standardized model, we can pool as normal.
 

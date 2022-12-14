@@ -40,7 +40,7 @@ Edited on December 12, 2022, to use the new `as_draws_df()` workflow.
 One of [Tristan Mahr](https://twitter.com/tjmahr)'s recent Twitter threads almost broke my brain.
 
 ```{r echo = FALSE}
-blogdown::shortcode('tweet', '1413186646783242242')
+blogdown::shortcode('tweet', user = "SolomonKurz", id = '1413186646783242242')
 ```
 
 It turns out that you can use random effects on cross-sectional count data. Yes, that's right. Each count gets its own random effect. Some people call this observation-level random effects and it can be a tricky way to handle overdispersion. The purpose of this post is to show how to do this and to try to make sense of what it even means.

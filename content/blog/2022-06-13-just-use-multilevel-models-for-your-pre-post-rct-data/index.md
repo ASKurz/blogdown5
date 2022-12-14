@@ -49,7 +49,7 @@ Spoiler alert: The multilevel variant of the ANCOVA model is the winner.
 
 I’m not going to dive deeply into the pre/post RCT methods literature, here. This post is an outgrowth of the many helpful exchanges in this twitter thread:
 
-{{% tweet "1533905226519937024" %}}
+{{% tweet user="SolomonKurz" id="1533905226519937024" %}}
 
 For your own deep dive into the topic, you could spiderweb out from any of the great resources listed in the thread. For me, the most influential papers on my thinking, and thus on this post, were by van Breukelen ([2013](#ref-vanBreukelen2013ancova)) and Bodner & Bliese ([2018](#ref-bodner2018Detecting)).
 

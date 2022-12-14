@@ -410,7 +410,7 @@ To my knowledge, the introductory material on applied missing data analysis seem
 
 If you are aware of any other applied text books covering one-step Bayesian imputation, please drop a comment on this tweet.
 
-{{% tweet "1420434272142434304" %}}
+{{% tweet user="SolomonKurz" id="1420434272142434304" %}}
 
 ## Session info
 

@@ -2074,7 +2074,7 @@ rbind(ranef(fit8)$item[, , "Intercept"],
 
 I still haven’t figured out how to make item-characteristic curves for an ordinal model. If you know how, please chime in on twitter. And that last plot’s going to wrap this little blog post up. If you have any concerns about my equations or the workflows, herein, do chime in to twitter. This is a resource for us all and I’d hate to spread incorrect methods.
 
-{{% tweet "1476641792263131143" %}}
+{{% tweet user="SolomonKurz" id="1476641792263131143" %}}
 
 Happy modeling, friends.
 

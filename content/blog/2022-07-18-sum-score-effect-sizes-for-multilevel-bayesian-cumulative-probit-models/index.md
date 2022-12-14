@@ -595,7 +595,7 @@ Okay friends, in this post we
 
 This topic is pushing the edges of my competence. If you have insights to add, chime in on twitter.
 
-{{% tweet "1549458168937385986" %}}
+{{% tweet user="SolomonKurz" id="1549458168937385986" %}}
 
 Happy modeling, friends.
 

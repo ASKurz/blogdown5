@@ -29,13 +29,13 @@ codefolding_nobutton: false
 In one of my recent Twitter posts, I got pissy and complained about a vague power-analysis statement I saw while reviewing a manuscript submitted to a scientific journal.
 
 ```{r echo = FALSE}
-blogdown::shortcode('tweet', '1409626961161371648')
+blogdown::shortcode('tweet', user = "SolomonKurz", id ='1409626961161371648')
 ```
 
 It wasn't my best moment and I ended up apologizing for my tone.
 
 ```{r echo = FALSE}
-blogdown::shortcode('tweet', '1409634560485199876')
+blogdown::shortcode('tweet', user = "SolomonKurz", id = '1409634560485199876')
 ```
 
 However, the broader issue remains. If you plan to analyze your data with anything more complicated than a $t$-test, the power analysis phase gets tricky. The manuscript I was complaining about used a complicated multilevel model as its primary analysis. I'm willing to bet that most applied researchers (including the authors of that manuscript) have never done a power analysis for a multilevel model and probably have never seen what one might look like, either. The purpose of this post is to give a real-world example of just such an analysis.
