@@ -73,7 +73,7 @@ buildFuture = true
   headingFontFamily = "sans-serif"
 
   # Specify use of utterances, giscus or disqus
-  comments = "utterances"
+  comments = "giscus"
 
   # Configuration of https://giscus.app/ for comments
   [params.giscus]
