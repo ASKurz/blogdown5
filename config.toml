@@ -72,13 +72,27 @@ buildFuture = true
   textFontFamily = "sans-serif"
   headingFontFamily = "sans-serif"
 
-  # Configuration of https://utteranc.es/ for comments
-  [params.utterances]
-    use_utterances = true
+  # Configuration of https://giscus.app/ for comments
+  [params.giscus]
+    use_giscus = true
     repo_name = "ASKurz/blogdown5"  # default was "apreshill/apero"
-    issue_term = "pathname" # url, pathname, or title
-    theme = "boxy-light"
-    label = "comments :crystal_ball:"
+#    repo = "gadenbuie/garrickadenbuie-com"
+#    repo_id = "MDEwOlJlcG9zaXRvcnkxMjE5NjYxNzQ"
+    category = "Comments"
+#    category_id = "DIC_kwDOB0UOXs4CAIFZ"
+    mapping = "pathname"
+    reactions_enabled = "1"
+    emit_metadata = "0"
+    theme = "preferred_color_scheme"
+    lang = "en"
+
+  # Configuration of https://utteranc.es/ for comments
+#  [params.utterances]
+#    use_utterances = true
+#    repo_name = "ASKurz/blogdown5"  # default was "apreshill/apero"
+#    issue_term = "pathname" # url, pathname, or title
+#    theme = "boxy-light"
+#    label = "comments :crystal_ball:"
 
   # Configuration of math rendering
   [params.math]
