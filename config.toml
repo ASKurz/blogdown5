@@ -143,6 +143,12 @@ buildFuture = true
     title = "Courses"
     url = "/course/"
     weight = 6
+  [[menu.header]]
+    name = "Support"
+    title = "Support"
+    url = "/support/"
+    weight = 7
+
 
   # Configure footer
 # all deleted
