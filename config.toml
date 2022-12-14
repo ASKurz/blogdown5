@@ -75,11 +75,10 @@ buildFuture = true
   # Configuration of https://giscus.app/ for comments
   [params.giscus]
     use_giscus = true
-    repo_name = "ASKurz/blogdown5"  # default was "apreshill/apero"
-#    repo = "gadenbuie/garrickadenbuie-com"
-#    repo_id = "MDEwOlJlcG9zaXRvcnkxMjE5NjYxNzQ"
+    repo = "ASKurz/blogdown5"
+    repo_id = "R_kgDOInfFgA"
     category = "Comments"
-#    category_id = "DIC_kwDOB0UOXs4CAIFZ"
+    category_id = "DIC_kwDOInfFgM4CTFGy"
     mapping = "pathname"
     reactions_enabled = "1"
     emit_metadata = "0"
