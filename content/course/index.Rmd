@@ -6,7 +6,7 @@ output:
   html_document:
     df_print: paged
 # layout: single
-layout: wide-body # standard or wide-body
+layout: standard # standard or wide-body
 show_title_as_headline: true
 ---
 
