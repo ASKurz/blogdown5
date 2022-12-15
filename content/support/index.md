@@ -1,12 +1,16 @@
 ---
 title: "Support"
 author: "A. Solomon Kurz"
-date: "2022-12-14"
+date: "2022-12-15"
 output:
   html_document:
     df_print: paged
-layout: single
+# layout: single
+layout: standard # standard or wide-body
+show_title_as_headline: false
 ---
+
+# Support
 
 ## Yes, you can support me
 
