@@ -7,6 +7,7 @@ output:
     df_print: paged
 # layout: single
 layout: wide-body # standard or wide-body
+show_title_as_headline: true
 ---
 
 ## 2022
