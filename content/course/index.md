@@ -7,8 +7,10 @@ output:
     df_print: paged
 # layout: single
 layout: standard # standard or wide-body
-show_title_as_headline: true
+show_title_as_headline: false
 ---
+
+# Courses
 
 ## 2022
 
