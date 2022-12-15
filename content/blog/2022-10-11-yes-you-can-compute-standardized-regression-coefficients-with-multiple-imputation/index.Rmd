@@ -231,15 +231,18 @@ sessionInfo()
 [^1]: Be warned that "full-luxury Bayesian ..." isn't a real term. It's just a playful term Richard McElreath coined a while back. To hear him use it in action, check out his [nifty talk](https://youtu.be/KNPYUVmY3NM) on causal inference. One-step Bayesian imputation is a real thing, though. McElreath covered it in both editions of his text and I've even blogged about it [here](https://solomonkurz.netlify.app/post/2021-07-27-one-step-bayesian-imputation-when-you-have-dropout-in-your-rct/).
 
 ```{r, eval = F, echo = F}
+# make a custom function
 pull_tidy <- function(k = 1) {
   tidy(fit2$analyses[[k]], conf.int = T)
 }
 
+# use the function to extract the MI draws
 tibble(k = 1:100) %>% 
   mutate(tidy = map(k, pull_tidy)) %>% 
   unnest(tidy) %>% 
   filter(term == "scale(bmi)") %>% 
   
+  # plot!
   ggplot(aes(x = estimate, xmin = conf.low, xmax = conf.high, y = k)) +
   geom_pointrange(linewidth = 1/4, fatten = 1/4) +
   scale_y_continuous(NULL, breaks = NULL) +
