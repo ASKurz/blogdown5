@@ -1,11 +1,12 @@
 ---
 title: "Courses"
 author: "A. Solomon Kurz"
-date: "2022-12-14"
+date: "2022-12-15"
 output:
   html_document:
     df_print: paged
-layout: single
+# layout: single
+layout: wide-body # standard or wide-body
 ---
 
 ## 2022

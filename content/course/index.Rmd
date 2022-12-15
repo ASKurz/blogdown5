@@ -5,7 +5,8 @@ date: "`r format(Sys.Date())`"
 output:
   html_document:
     df_print: paged
-layout: single
+# layout: single
+layout: wide-body # standard or wide-body
 ---
 
 ## 2022

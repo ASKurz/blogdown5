@@ -1,11 +1,12 @@
 ---
 title: "Books"
 author: "A. Solomon Kurz"
-date: "2022-12-14"
+date: "2022-12-15"
 output:
   html_document:
     df_print: paged
-layout: single
+# layout: single
+layout: standard # standard or wide-body
 ---
 
 At present, all of my books share a similar format and goal. I am a fan of applied Bayesian statistics. In recent years, scholars have released user-friendly Bayesian software packages and have published reasonably-accessible introductory books on applied Bayesian analysis. These have been boons for us all.
