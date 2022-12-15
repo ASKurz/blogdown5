@@ -7,8 +7,10 @@ output:
     df_print: paged
 # layout: single
 layout: standard # standard or wide-body
-show_title_as_headline: true
+show_title_as_headline: false
 ---
+
+# Books
 
 At present, all of my books share a similar format and goal. I am a fan of applied Bayesian statistics. In recent years, scholars have released user-friendly Bayesian software packages and have published reasonably-accessible introductory books on applied Bayesian analysis. These have been boons for us all.
 
