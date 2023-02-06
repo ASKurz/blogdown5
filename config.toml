@@ -139,36 +139,7 @@ buildFuture = true
     title = "Blog"
     url = "/blog/"
     weight = 2
-  [[menu.header]]
-    name = "Pubs"
-    title = "Pubs"
-    url = "/pubs/"
-    weight = 3
-  [[menu.header]]
-    name = "Books"
-    title = "Books"
-    url = "/book/"
-    weight = 4
-  [[menu.header]]
-    name = "Workshops"
-    title = "Workshops"
-    url = "/workshop/"
-    weight = 5
-  [[menu.header]]
-    name = "Courses"
-    title = "Courses"
-    url = "/course/"
-    weight = 6
-  [[menu.header]]
-    name = "Support"
-    title = "Support"
-    url = "/support/"
-    weight = 7
-  [[menu.header]]
-    name = "CV"
-    title = "CV"
-    url = "/cv/Kurz_CV.pdf"
-    weight = 8
+
 
   # Configure footer
 # all deleted
