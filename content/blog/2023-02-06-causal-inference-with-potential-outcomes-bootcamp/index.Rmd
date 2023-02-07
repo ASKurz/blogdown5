@@ -114,7 +114,7 @@ Say you have some population of interest, such as overweight female university s
 
 $$\tau_i = y_i^1 - y_i^0.$$
 
-In the case of our `horan1971` data, the causal effect of the experimental treatment for each woman is her post-treatment weight for the experimental treatment minus her post-treatment weight for the waitlist condition. The problem, however, is that each woman was only randomized into one of the two conditions. And thus, each woman has, at best, only 50% of the data required to compute her individual causal effect, $\tau_i$. This is the so-called *fundamental problem of causal inference* [@holland1986statistics]; we are always missing at least half of the data. To help illustrate this, take a look at a random subset of the `horan1971`.
+In the case of our `horan1971` data, the causal effect of the experimental treatment for each woman is her post-treatment weight for the experimental treatment minus her post-treatment weight for the waitlist condition. The problem, however, is that each woman was only randomized into one of the two conditions. And thus, each woman has, at best, only 50% of the data required to compute her individual causal effect, $\tau_i$. This is the so-called *fundamental problem of causal inference* [@holland1986statistics]; we are always missing at least half of the data. To help illustrate this, take a look at a random subset of the `horan1971` data.
 
 ```{r}
 set.seed(2)
@@ -130,11 +130,13 @@ Within the `mutate()` function, I computed each participants' `y1` and `y0` scor
 
 $$\tau_\text{ATE} = \mathbb E (y_i^1 - y_i^0),$$
 
-which, in words, just means that the average treatment effect in the population is the same as the average of each person's individual treatment effect. In the equation, I'm using the expectation operator $\mathbb E()$ to emphasize we're working within a likelihoodist framework. At first glance, it might appear[^1] this equation doesn't solve the problem that we cannot compute $y_i^1 - y_i^0$ from the data of any of our participants, because half of the required values are missing. However, it's also the case that when we're working with a simple OLS-type model[^2], 
+which, in words, just means that the average treatment effect in the population is the same as the average of each person's individual treatment effect. In the equation, I'm using the expectation operator $\mathbb E()$ to emphasize we're working within a likelihoodist framework. At first glance, it might appear[^1] this equation doesn't solve the problem that we cannot compute $y_i^1 - y_i^0$ from the data of any of our participants, because half of the required values are still missing. However, it's also the case that when we're working with a simple OLS-type model[^2], 
 
 $$\tau_\text{ATE} = \mathbb E (y_i^1 - y_i^0) = {\color{blueviolet}{\mathbb E (y^1) - \mathbb E (y^0)}},$$
 
-where $\mathbb E (y^1)$ is the population average of our $y_i^1$ values, and $\mathbb E (y^0)$ is the population average of our $y_i^0$ values. Sometimes causal inference scholars differentiate between the *sample* average treatment effect (SATE) and the *population* average treatment effect (PATE). In this blog post and in the rest of this series, I'm presuming researchers are analyzing their data with regression models to make population-level inferences. Thus, I'm always equating the ATE with the PATE. While I'm at it, there are other technical caveats which have to do with proper randomization and whether participants are truly independent of one another and so on. For the sake of this series, I'm presuming a clean simple randomization with no further complications. If you want more complications, check out @imbensCausalInferenceStatistics2015 and any of the other texts on causal inference. Trust me, we already have enough complications on our hands.
+where $\mathbb E (y^1)$ is the population average of our $y_i^1$ values, and $\mathbb E (y^0)$ is the population average of our $y_i^0$ values. Even if if 50% of the values are missing, we can still compute $\mathbb E (y^1)$, $\mathbb E (y^0)$, and their difference.
+
+Sometimes causal inference scholars differentiate between the *sample* average treatment effect (SATE) and the *population* average treatment effect (PATE). In this blog post and in the rest of this series, I'm presuming y'all researchers are analyzing your data with regression models to make population-level inferences. Thus, I'm always equating the ATE with the PATE. While I'm at it, there are other technical caveats which have to do with proper randomization and whether participants are truly independent of one another and so on. For the sake of this series, I'm presuming a clean simple randomization with no further complications. If you want more complications, check out @imbensCausalInferenceStatistics2015 and any of the other texts on causal inference. Trust me, we already have enough complications on our hands.
 
 ### Estimands, estimators, and estimates.
 
@@ -152,9 +154,9 @@ blogdown::shortcode('tweet', user = "rlmcelreath", id = '1582368904529137672')
 
 Anyway, next we'll learn how to actually compute $\tau_\text{ATE}$ within the context of our OLS models. This will be the be the estimate of our estimand.
 
-#### $\mathbb E (y^1) - \mathbb E (y^0)$ from `fit1`.
+#### Compute $\mathbb E (y^1) - \mathbb E (y^0)$ from `fit1`.
 
-Sometimes the authors of introductory causal inference textbooks have readers practice computing these values by hand, which can have its pedagogical value. But in your role as a professional scientist, you'll be computing $\tau_\text{ATE}$ within the context of a regression model, so you can properly express the uncertainty of your estimand with 95% intervals, as standard error, or some other measure of uncertainty. With our simple `fit1` model, we can compute $\mathbb E (y^1)$ and $\mathbb E (y^0)$ with the base **R** `predict()` function.
+Sometimes the authors of introductory causal inference textbooks have readers practice computing these values by hand, which can have its pedagogical value. But in your role as a professional scientist, you'll be computing $\tau_\text{ATE}$ within the context of a regression model, so you can properly express the uncertainty of your estimand with 95% intervals, as standard error, or some other measure of uncertainty. With our `fit1` model, we can compute $\mathbb E (y^1)$ and $\mathbb E (y^0)$ with the base **R** `predict()` function.
 
 ```{r}
 nd <- tibble(experimental = 0:1)
@@ -173,13 +175,13 @@ The `fit.fit` column shows the point estimates, and the `fit.lwr` and `fit.upr` 
 predictions(fit1, newdata = nd, by = "experimental")
 ```
 
-The **marginaleffects** package offers a few ways to contrast the to mean values. With our current `predictions()` workflow, we can just add in `hypothesis = "revpairwise"`.
+The **marginaleffects** package offers a few ways to contrast the to mean values. With the `predictions()` approach, we can just add in `hypothesis = "revpairwise"`.
 
 ```{r}
 predictions(fit1, newdata = nd, by = "experimental", hypothesis = "revpairwise")
 ```
 
-Now we have a nice standard error and 95% interval range for the estiamte of our estimand, $\tau_\text{ATE}$. Thus, the average causal effect of the experimental condition relative to the waitlist control is a reduction of about 2 and a half pounds, with with a very wide 95% confidence interval range spanning from a reduction of 13 pounds to an *increase* of 8 pounds. With that all in mind, look back at the parameter summary for `fit1`.
+Now we have a nice standard error and 95% interval range for the estiamte of our estimand, $\tau_\text{ATE}$. Thus, the average causal effect of the experimental condition relative to the waitlist control is a reduction of about 2 and a half pounds, with with a very wide 95% confidence interval range spanning from a reduction of 13 pounds to an *increase* of 8 pounds. Now look back at the parameter summary for `fit1`.
 
 ```{r}
 summary(fit1)
@@ -187,7 +189,7 @@ summary(fit1)
 
 Notice that the summary for our $\beta_1$ parameter is the same as the $\tau_\text{ATE}$ from above. When you have a simple OLS-type Gaussian model without a fancy link function, the $\tau_\text{ATE}$ will be the same as the $\beta$ coefficient for the treatment dummy.
 
-#### $\mathbb E (y_i^1 - y_i^0)$ from `fit1`.
+#### Compute $\mathbb E (y_i^1 - y_i^0)$ from `fit1`.
 
 It's time for me to confess my rhetoric above was a little misleading. As it turns out, you can in fact compute $\mathbb E (y_i^1 - y_i^0)$ from your regression models, even with 50% of the values missing. The key is to compute *counterfactual* values for $y_i^1$ and $y_i^0$ from the model. Before we can do that, we'll first need to redefine our `nd` predictor data.
 
@@ -244,23 +246,23 @@ are all the same thing. They're all estimators of our estimand $\tau_\text{ATE}$
 
 ### Counterfactual interventions, with covariates.
 
-Much like we can use baseline covariates when we analyze RCT data to boost the power, we can use baseline covariates when we make causal inferences, too. We just have to expand the framework a bit. If we let $c_i$ stand for the $i$th person's value on continuous covariate $c$, we can define the ATE, conditional on covariates $c$, with the formula:
+Much like we can use baseline covariates when we analyze RCT data to boost the power, we can use baseline covariates when we make causal inferences, too. We just have to expand the framework a bit. If we let $c_i$ stand for the $i$th person's value on continuous covariate $c$, we can estimate the ATE with help from covariates $c$ with the formula:
 
-$$\tau_{\text{ATE}|c} = \mathbb E (y_i^1 - y_i^0 | c_i),$$
+$$\tau_\text{ATE} = \mathbb E (y_i^1 - y_i^0 | c_i),$$
 
-which, in words, means that the average treatment effect in the population, computed conditional on $c$, is the same as the average of each person's individual treatment effect, computed conditional on their values of $c$. We can generalize this equation so that $\mathbf C_i$ is a vector of covariates, continuous or otherwise, the values for which vary across the participants, to the following:
+which, in words, means that the average treatment effect in the population is the same as the average of each person's individual treatment effect, computed conditional on their values of $c$. We can generalize this equation so that $\mathbf C_i$ is a vector of covariates, continuous or otherwise, the values for which vary across the participants, to the following:
 
-$$\tau_{\text{ATE}|\mathbf C} = \mathbb E (y_i^1 - y_i^0 | \mathbf C_i).$$
+$$\tau_\text{ATE} = \mathbb E (y_i^1 - y_i^0 | \mathbf C_i).$$
 
 Though we won't consider more complex data examples in this blog post, we will want to keep the $\mathbf C$ vector insights in the backs of our minds for the blog posts to come. In the literature, this method is often called *standardization* or *g-computation*. To my knowledge, these terms have their origins in different parts of the literature, but they're really the same thing when used in the ways I'll be highlighting in this blog series. For a way into this literature, you might check out @snowden2011implementation, @muller2014estimating, or @wang2017gcomputation.
 
 Anyway, an alternative approach is to use the mean[^3] value of the covariate, $\bar c$, to compute the conditional predicted values for the two levels of treatment, and then take their difference:
 
-$$\tau_{\text{ATE}| \bar c} = \mathbb E (y^1 | \bar c) - \mathbb E (y^0 | \bar c).$$
+$$\tau_\text{ATE} = \mathbb E (y^1 | \bar c) - \mathbb E (y^0 | \bar c).$$
 
-As above, we can generalize this equation so that $\mathbf C_i$ is a vector of covariates, and define the equation for the ATE conditional on $\mathbf{\bar C}$ to
+As above, we can generalize this equation so that $\mathbf C_i$ is a vector of covariates, and update the equation for the ATE to account for our $\mathbf{\bar C}$ vector to
 
-$$\tau_{\text{ATE}| \mathbf{\bar C}} = \mathbb E \left (y^1 | \mathbf{\bar C} \right) - \mathbb E \left (y^0 | \mathbf{\bar C} \right).$$
+$$\tau_\text{ATE} = \mathbb E \left (y^1 | \mathbf{\bar C} \right) - \mathbb E \left (y^0 | \mathbf{\bar C} \right).$$
 
 As we will see, when working with a continuous outcome variable within the conventional OLS-type paradigm, 
 
@@ -270,9 +272,9 @@ and
 
 $$\mathbb E (y_i^1 - y_i^0 | \mathbf C_i) = \mathbb E \left (y^1 | \mathbf{\bar C} \right) - \mathbb E \left (y^0 | \mathbf{\bar C} \right).$$
 
-Here's what this looks like in action:
+In the next couple sections we'll see what this looks like in action.
 
-#### $\mathbb E (y^1 | \bar c) - \mathbb E (y^0 | \bar c)$ from `fit2`.
+#### Compute $\mathbb E (y^1 | \bar c) - \mathbb E (y^0 | \bar c)$ from `fit2`.
 
 With our ANCOVA-type `fit2` model, we can compute $\mathbb E (y^1 | \bar c)$ and $\mathbb E (y^0 | \bar c)$ with the base **R** `predict()` function. As a first step, we'll define our prediction grid with the sample means for our covariate `prec`, and then expand the grid to include both values of the `experimental` dummy.
 
@@ -308,15 +310,15 @@ To get the contrast, just add in `hypothesis = "revpairwise"`.
 predictions(fit2, newdata = nd, by = "experimental", hypothesis = "revpairwise")
 ```
 
-And also like with the ANOVA-type `fit1`, this method for computing the $\tau_{\text{ATE}| \bar c}$ from `fit2` returns the same estimate and uncertainty statistics as returned by the `summary()` information for the $\beta_1$ parameter.
+And also like with the ANOVA-type `fit1`, this method for computing the $\tau_\text{ATE}$ from `fit2` returns the same estimate and uncertainty statistics as returned by the `summary()` information for the $\beta_1$ parameter.
 
 ```{r}
 summary(fit2)
 ```
 
-When you fit an OLS-type ANCOVA model with the conventional identity link, $\mathbb{E}(y^1 | \bar c) - \mathbb{E}(y^0 | \bar c)$ will be the same as the $\beta$ coefficient for the treatment dummy. They're both estimators of the estimand $\tau_{\text{ATE}| \bar c}$.
+When you fit an OLS-type ANCOVA model with the conventional identity link, $\mathbb{E}(y^1 | \bar c) - \mathbb{E}(y^0 | \bar c)$ will be the same as the $\beta$ coefficient for the treatment dummy. They're both estimators of the estimand $\tau_\text{ATE}$.
 
-#### $\mathbb E (y_i^1 - y_i^0 | c_i)$ from `fit2`.
+#### Compute $\mathbb E (y_i^1 - y_i^0 | c_i)$ from `fit2`.
 
 Before we compute our counterfactual $\mathbb{E}(y_i^1 - y_i^0 | c_i)$ estimates from our ANCOVA-type `fit2`, we'll first need to redefine our `nd` predictor data. This time, we'll retain each participants' `prec` value (i.e., $c_i$).
 
@@ -371,7 +373,7 @@ comparisons(fit2, variables = list(experimental = 0:1)) %>%
 ```
 
 
-Here we see the $(y_i^1 - y_i^0 | c_i)$ for the first six participants in the data set, each with its own standard errors and so on. But recall our estimand $\tau_{\text{ATE}|c}$ is estimated via $\mathbb E (y_i^1 - y_i^0 | c_i)$, which means we need to compute the average of those contrasts in a way that produces a standard error. As with the simpler ANOVA-type workflow we used with `fit1`, we can simply tack on a `summary()` line, which will compute delta-method based standard errors.
+Here we see the $(y_i^1 - y_i^0 | c_i)$ for the first six participants in the data set, each with its own standard errors and so on. But recall our estimand $\tau_\text{ATE}$ is estimated via $\mathbb E (y_i^1 - y_i^0 | c_i)$, which means we need to compute the average of those contrasts in a way that produces a standard error. As with the simpler ANOVA-type workflow we used with `fit1`, we can simply tack on a `summary()` line, which will compute delta-method based standard errors.
 
 ```{r}
 comparisons(fit2, variables = list(experimental = 0:1)) %>% 
@@ -384,7 +386,7 @@ When our goal is just to compute $\mathbb E (y_i^1 - y_i^0 | c_i)$, we can also 
 avg_comparisons(fit2, variables = list(experimental = 0:1))
 ```
 
-As Arel-Bundock pointed out his [-@arelBundock2023CausalInference] vignette, [*Causal inference with the parametric g-formula*](https://vincentarelbundock.github.io/marginaleffects/articles/gformula.html), the `avg_comparisons()` function is a compact way to compute $\mathbb E (y_i^1 - y_i^0 | c_i)$ with the parametric g-formula method. Again in this case our estimate for $\tau_{\text{ATE}|c}$ via $\mathbb E (y_i^1 - y_i^0 | c_i)$ is the same as the $\beta_1$ coefficient and its standard error from `fit2`, and they're both the same as $\tau_{\text{ATE}| \bar c}$ via $\mathbb E (y^1 | \bar c) - \mathbb E (y^0 | \bar c)$. We might further say that, in the case of an OLS-based ANCOVA-type model of a randomized experiment,
+As Arel-Bundock pointed out his [-@arelBundock2023CausalInference] vignette, [*Causal inference with the parametric g-formula*](https://vincentarelbundock.github.io/marginaleffects/articles/gformula.html), the `avg_comparisons()` function is a compact way to compute $\mathbb E (y_i^1 - y_i^0 | c_i)$ with the parametric g-formula method. Again in this case our estimate for $\tau_\text{ATE}$ via $\mathbb E (y_i^1 - y_i^0 | c_i)$ is the same as the $\beta_1$ coefficient and its standard error from `fit2`, and they're both the same as $\tau_\text{ATE}$ via $\mathbb E (y^1 | \bar c) - \mathbb E (y^0 | \bar c)$. We might further say that, in the case of an OLS-based ANCOVA-type model of a randomized experiment,
 
 * $\beta_1$,
 * $\mathbb{E}(y_i^1 - y_i^0 | c_i)$, and
@@ -426,7 +428,7 @@ tibble(x = 0, y = 0, label = "tau[ATE]") %>%
   ggplot(aes(x = x, y = y, label = label)) +
   geom_text(parse = T, family = "serif", size = 20) +
   theme_void() +
-  theme(plot.background = element_rect(color = "white", fill = "#fff7cc"))
+  theme(plot.background = element_rect(color = "white", fill = see::okabeito_colors("orange"))) # "#fff7cc"
 
 ggsave("tau-ate-featured.jpg", width = 3.5, height = 3.5, units = "in")
 ```
