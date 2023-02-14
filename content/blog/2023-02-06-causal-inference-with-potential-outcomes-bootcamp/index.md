@@ -674,7 +674,7 @@ In this post, some of the main points we covered were:
 - With an ANCOVA-type regression model with a single baseline covariate, we can estimate `\(\tau_\text{ATE}\)` with either the `\(\mathbb E (y_i^1 - y_i^0 | c_i)\)` or the `\(\mathbb{E}(y_i^1 | \bar c) - \mathbb{E}(y_i^0 | \bar c)\)` method, and the results will be exactly the same, granted we use the same covariate `\(c\)`.
 - We can generalize the two ANCOVA-type methods to models with multiple baseline covariates.
 
-At this point, some readers might wonder why we have so many methods that produce the identical results. As we will soon see, this pattern will not generalize to models with other likelihoods and link functions. Speaking of which, in the next post we’ll see what this framework looks like for logistic regression.
+At this point, some readers might wonder why we have so many methods that produce the identical results. As we will soon see, this pattern will not generalize to models with other likelihoods and link functions. Speaking of which, in the [next post](https://timely-flan-2986f4.netlify.app/blog/2023-02-13-causal-inference-with-logistic-regression/) we’ll see what this framework looks like for logistic regression.
 
 See you in the next one, friends!
 
