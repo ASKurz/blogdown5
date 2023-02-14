@@ -89,7 +89,7 @@ Those of you who aren't in clinical psychology might wonder how we can call an i
 
 Anyway, the focal variable of this intervention is body weight, measured in pounds. The `pre` column has each woman's pre-intervention body weight and the `post` column has their post-intervention weights. As is typical in a weigh-loss study, the goal is to have one or more active interventions show lower average weights at the end of the study (i.e., lower values for `post`). 
 
-```{r, evall = F, echo = F}
+```{r, eval = F, echo = F}
 save(horan1971, file = "data/horan1971.rda")
 ```
 
