@@ -71,9 +71,9 @@ wilson2017 %>%
   mutate(percent_by_group = round(100 * n / sum(n), digits = 1))
 ```
 
-As is often the case with real-world data, we have missing values. That problem could be fun to focus on [see @bartlett2023gformla], but that's a task for another day. Walking out causal inference methods for a logistic regression paradigm is will be sufficient challenge, for now.
+As is often the case with real-world data, we have missing values. That problem could be fun to focus on [see @bartlett2023gformla], but that's a task for another day. Walking out causal inference methods for a logistic regression paradigm will be a sufficient challenge, for now.
 
-### Subset. 
+### Subset.
 
 The methods we'll be exploring in this post will work perfectly fine with the full data set. But it'll actually be easier for me to make some of my points if we reduce the sample size. Here we'll take a random subset of $n = 400$ of the cases with no missing data on the primary outcome variable `anytest`, and a few covariates of interest.
 
@@ -116,7 +116,7 @@ We've already introduced our binary outcome variable `anytest` and the experimen
 
 > for gender (male, female, transgender), age (16–19, 20–24, 25–30 years), number of sexual partners in last 12 months (1, 2+), and sexual orientation (MSM, all other groups). All factors had equal weight in determining marginal imbalance. (p. 4)
  
-Further down in the Method (p. 7), we learn all these variables were used as covariates in the primary analysis, in addition to ethnicity.
+Further down in the Method (p. 7), we learn all these variables were used as covariates in the primary analysis, in addition to ethnicity[^3].
 
 To get a sense of these covariates, here we use **flextable** [@R-flextable; @gohelUsingFlextable2023] to make a Table 1 type table of the categorical variables for our randomized subset.
 
@@ -211,7 +211,7 @@ tidy(glm1, conf.int = T) %>%
   mutate_all(exp)
 ```
 
-Odds ratios range from 0 to positive infinity, and have an inflection point at 1. Though I don't care for them, odds ratios seem to be popular effect sizes among medical researchers[^3]. To each their own. But if you're like me, you want to convert the results of the model to the metric of a difference in probability[^4]. A naïve data analyst might try to convert $\beta_1$ out of the log-odds metric into the probability metric with the base **R** `plogis()`.
+Odds ratios range from 0 to positive infinity, and have an inflection point at 1. Though I don't care for them, odds ratios seem to be popular effect sizes among medical researchers[^4]. To each their own. But if you're like me, you want to convert the results of the model to the metric of a difference in probability[^5]. A naïve data analyst might try to convert $\beta_1$ out of the log-odds metric into the probability metric with the base **R** `plogis()`.
 
 ```{r}
 tidy(glm1, conf.int = T) %>% 
@@ -425,7 +425,7 @@ nd %>%
             sd = sd(ate_iteration))
 ```
 
-The mean[^5] of our random process is a pretty good approximation of $\tau_\text{ATE}$ computed from the `avg_comparisons()` function, above.
+The mean[^6] of our random process is a pretty good approximation of $\tau_\text{ATE}$ computed from the `avg_comparisons()` function, above.
 
 So in the case of an ANOVA-type logistic regression model of a randomized experiment,
 
@@ -449,7 +449,7 @@ $$
 
 where $p_i^1$ and $p_i^0$ are the counterfactual probabilities for each of the $i$ cases, estimated in light of their covariate values. 
 
-Whether we have continuous covariates, discrete covariates, or a combination of both, the standardization method works the same. This is no longer the case when using the difference in population means approach, the covariate-adjusted version of $\mathbb E (y_i^1) - \mathbb E (y_i^0)$. One complication is me might not be able to mean-center the discrete covariates in our $\mathbf D$ vector. Sometimes people will mean center dummy variables, which can lead to awkward interpretive issues[^6]. But even this approach will not generalize well to multi-categorical nominal variables, like ethnicity. Another solution is to set discrete covariates at their modes [see @muller2014estimating], which we'll denote $\mathbf D^m$. This gives us a new estimand:
+Whether we have continuous covariates, discrete covariates, or a combination of both, the standardization method works the same. This is no longer the case when using the difference in population means approach, the covariate-adjusted version of $\mathbb E (y_i^1) - \mathbb E (y_i^0)$. One complication is me might not be able to mean-center the discrete covariates in our $\mathbf D$ vector. Sometimes people will mean center dummy variables, which can lead to awkward interpretive issues[^7]. But even this approach will not generalize well to multi-categorical nominal variables, like ethnicity. Another solution is to set discrete covariates at their modes [see @muller2014estimating], which we'll denote $\mathbf D^m$. This gives us a new estimand:
 
 $$\tau_\text{TEMM} = \operatorname{\mathbb{E}} \left (y_i^1 | \mathbf{\bar C}, \mathbf D^m \right) - \operatorname{\mathbb{E}} \left (y_i^0 | \mathbf{\bar C}, \mathbf D^m \right),$$
 
@@ -711,13 +711,15 @@ sessionInfo()
 
 [^2]: I suppose you could even argue it's a censored count. But since we'll be using it as a predictor, I'm not sure that argument would be of much help.
 
-[^3]: There are numerous effect sizes one could compute from a logistic regression model. For a more exhaustive list, as applied within our causal inference framework, see Section 3.3 in @brumback2022Fundamentals.
+[^3]: As it turns out, statisticians and quanty researchers are not in total agreement on whether or how one must condition on covariates, when those covariates were used to balance during the randomization process. For a lively twitter discussion on this very data set, see the replies to [this twitter poll](https://twitter.com/SolomonKurz/status/1623349977786228736).
 
-[^4]: In some parts of the literature, probabilities are called "risks" and differences in probabilities are called "risk differences" [e.g., @morris2022planning]. We will not be using the jargon of "risk" in this blog series.
+[^4]: There are numerous effect sizes one could compute from a logistic regression model. For a more exhaustive list, as applied within our causal inference framework, see Section 3.3 in @brumback2022Fundamentals.
 
-[^5]: Note that the standard deviation, here, isn't quite the same thing as a standard error. We'd need to do something more akin to bootstrapping, for that. However, this kind of a workflow does have some things in common with the Monte-Carlo-based Bayesian methods we'll be practicing later in this series.
+[^5]: In some parts of the literature, probabilities are called "risks" and differences in probabilities are called "risk differences" [e.g., @morris2022planning]. We will not be using the jargon of "risk" in this blog series.
 
-[^6]: For example, say you have a dummy variable called `male`, which is a zero for women and a one for men. One way to interpret a model using the centered version of `male` is it returns the contrast weighted by the proportion of women/men in the sample or population. Another interpretation is this returns the contrast for someone who is in the middle of the female-male spectrum--which is what? Intersex? Non-binary? Transgender? It might be possible to interpret such a computation with skill and care, but such an approach might also leave one's audience confused or offended.
+[^6]: Note that the standard deviation, here, isn't quite the same thing as a standard error. We'd need to do something more akin to bootstrapping, for that. However, this kind of a workflow does have some things in common with the Monte-Carlo-based Bayesian methods we'll be practicing later in this series.
+
+[^7]: For example, say you have a dummy variable called `male`, which is a zero for women and a one for men. One way to interpret a model using the centered version of `male` is it returns the contrast weighted by the proportion of women/men in the sample or population. Another interpretation is this returns the contrast for someone who is in the middle of the female-male spectrum--which is what? Intersex? Non-binary? Transgender? It might be possible to interpret such a computation with skill and care, but such an approach might also leave one's audience confused or offended.
 
 ```{r, fig.width = 4, fig.height = 4, echo = F, eval = F}
 comparisons(glm2, newdata = nd, variables = "tx") %>% 
