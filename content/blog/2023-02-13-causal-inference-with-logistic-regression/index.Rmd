@@ -110,6 +110,10 @@ wilson2017 <- wilson2017 %>%
 glimpse(wilson2017)
 ```
 
+```{r, eval = F, echo = F}
+save(wilson2017, file = "data/wilson2017.rda")
+```
+
 ### Descriptive statistics
 
 We've already introduced our binary outcome variable `anytest` and the experimental treatment dummy `tx`. In the Method section, we further learned the randomization algorithm balanced
