@@ -3,7 +3,7 @@ title: Causal inference with  Bayesian models
 subtitle: 'Part 4 of the GLM and causal inference series.'
 author: A. Solomon Kurz
 date: '2023-02-15'
-excerpt: "In this post, we refit the models from the previous posts with Bayesian software, and show how to compute our primary estimates when working with posterior draws. The content will be very light on theory, and heavy on methods. So if you don't love that Bayes, you can feel free to skip this one."
+excerpt: "In this fourth post, we refit the models from the previous posts with Bayesian software, and show how to compute our primary estimates when working with posterior draws. The content will be very light on theory, and heavy on methods. So if you don't love that Bayes, you can feel free to skip this one."
 tags:
   - ANCOVA
   - ANOVA
