@@ -28,9 +28,18 @@ link-citations: yes
 
 This is the first post in a series on causal inference. Our ultimate goal is to learn how to analyze data from true experiments, such as RCT’s, with various likelihoods from the generalized linear model (GLM), and with techniques from the contemporary causal inference literature. We’ll do so both as frequentists and as Bayesians.
 
-I’m writing this series because, even though I learned a lot about data analysis and research design during my PhD, I did not receive training in the contemporary causal inference literature. Some of my recent data-analysis projects have made it very clear that I need to better understand this framework, and how it works within the broader GLM paradigm. As it turns out, there are some tricky twists and turns, and my hope is this series will help me better clarify this framework for myself, and help bring it to some of y’all’s attention, too.
+I’m writing this series because, even though I learned a lot about data analysis and research design during my PhD, I did not receive training in the contemporary causal inference literature. Some of my recent data-analysis projects have made it very clear that I need to better understand this framework, and how it works within the broader GLM paradigm. As it turns out, there are some tricky twists and turns, and my hope is this series will help me better clarify this framework for myself, and help bring it to some of y’all’s attention, too. Parts of this blog series will also make their way into my forthcoming book on experimental design and the GLMM (see [here](https://github.com/ASKurz/Experimental-design-and-the-GLMM)).
 
-In this first installment, we’ll review a long-established insight from the RCT literature: baseline covariates help us compare our experimental conditions.
+Here’s the running table of table of contents for this series:
+
+1.  Boost your power with baseline covariates
+2.  Causal inference with potential outcomes bootcamp ([link](https://timely-flan-2986f4.netlify.app/blog/2023-02-06-causal-inference-with-potential-outcomes-bootcamp/))
+3.  Causal inference with logistic regression ([link](https://timely-flan-2986f4.netlify.app/blog/2023-02-13-causal-inference-with-logistic-regression/))
+4.  Causal inference with Bayesian models ([link](https://timely-flan-2986f4.netlify.app/blog/2023-02-15-causal-inference-with-bayesian-models/))
+5.  Causal inference with gamma regression (in preparation)
+6.  Causal inference with distributional models (in preparation)
+
+In this first installment, we’ll review a long-established insight from the RCT literature: Baseline covariates help us compare our experimental conditions.
 
 ### I make assumptions.
 
@@ -418,7 +427,7 @@ In this post, some of the main points we covered were:
 - Both approach are unbiased estimators of the population parameters.
 - The ANCOVA approach is often more efficient, which is to say it often results is smaller standard errors and narrower confidence intervals.
 
-For many of my readers, I imagine most of the material in this post was a review. But this material is designed to set the stage for the posts to come, and I hope at least some of the subsequent material will be more informative. Speaking of which, in the next post we’ll analyze this data from a more causal inference perspective.
+For many of my readers, I imagine most of the material in this post was a review. But this material is designed to set the stage for the posts to come, and I hope at least some of the subsequent material will be more informative. Speaking of which, in the [next post](https://timely-flan-2986f4.netlify.app/blog/2023-02-06-causal-inference-with-potential-outcomes-bootcamp/) we’ll analyze this data from a more causal inference perspective.
 
 See you in the next one, friends!
 
