@@ -3,7 +3,7 @@ title: Causal inference with potential outcomes bootcamp
 subtitle: 'Part 2 of the GLM and causal inference series.'
 author: A. Solomon Kurz
 date: '2023-02-06'
-excerpt: "In this post, we learn how the potential outcomes framework can help us connect our regression models to estimands from the contemporary causal inference literature. We start with simple OLS-based models. In future posts, we'll expand to other models from the GLM."
+excerpt: "In this second post, we learn how the potential outcomes framework can help us connect our regression models to estimands from the contemporary causal inference literature. We start with simple OLS-based models. In future posts, we'll expand to other models from the GLM."
 tags:
   - ANCOVA
   - ANOVA
