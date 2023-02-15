@@ -1,8 +1,8 @@
 ---
 author: A. Solomon Kurz
-title: Welcome to my blog
+title: Welcome to the draft of my blog
 thumbnail_left: true
-description: "I mainly post about data analysis and applied statistics stuff, usually in [**R**](https://cran.r-project.org/). Frequent topics include Bayesian statistics, multilevel models, and statistical power."
+description: "This is not my real blog. It’s a place where I can post drafts of my posts, and possibly get feedback when needed. Please do not share the links to any of these posts with others."
 layout: list-grid # default was list-sidebar
 show_author_byline: true
 show_button_links: false
