@@ -659,6 +659,7 @@ comparisons(glm2, newdata = nd, variables = "tx") %>%
   scale_y_continuous(NULL, breaks = NULL) +
   labs(title = "Behold the diversity among the individual treatment effect estimates.",
        x = expression(hat(tau)[italic(i)]~("i.e., "*hat(italic(p))[italic(i)]^1-hat(italic(p))[italic(i)]^0))) +
+  coord_cartesian(xlim = c(-0.1, 0.4)) +
   theme_gray(base_size = 13) +
   theme(panel.grid = element_blank())
 ```
