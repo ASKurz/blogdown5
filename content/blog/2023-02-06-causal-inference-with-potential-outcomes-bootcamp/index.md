@@ -71,8 +71,8 @@ In the last post, we explored how to fit an ANOVA- and ANCOVA-type model to the 
 
 $$
 `\begin{align*}
-\text{post}_i & \sim \operatorname{Gaussian}(\mu_i, \sigma) \\
-\mu_i & = \beta_0 + \beta_1 \text{experimental}_i,
+\text{post}_i & = \beta_0 + \beta_1 \text{experimental}_i + \epsilon_i \\
+\epsilon_i & \sim \operatorname{Normal}(0, \sigma),
 \end{align*}`
 $$
 
@@ -80,13 +80,13 @@ where the two experimental conditions in play are captured by the dummy variable
 
 ``` r
 # fit the ANOVA model
-fit1 <- lm(
+ols1 <- lm(
   data = horan1971,
   post ~ experimental
 )
 
 # summarize the results
-summary(fit1)
+summary(ols1)
 ```
 
     ## 
@@ -112,8 +112,8 @@ We also learned the ANCOVA model for these data follows the form
 
 $$
 `\begin{align*}
-\text{post}_i & \sim \operatorname{Gaussian}(\mu_i, \sigma) \\
-\mu_i & = \beta_0 + \beta_1 \text{experimental}_i + {\color{blueviolet}{\beta_2 \text{prec}_i}},
+\text{post}_i & = \beta_0 + \beta_1 \text{experimental}_i + {\color{blueviolet}{\beta_2 \text{prec}_i}} + \epsilon_i \\
+\epsilon_i & \sim \operatorname{Normal}(0, \sigma),
 \end{align*}`
 $$
 
@@ -121,13 +121,13 @@ where `\(\beta_2\)` is the coefficient for our baseline covariate `prec`, which 
 
 ``` r
 # fit the ANCOVA model
-fit2 <- lm(
+ols2 <- lm(
   data = horan1971,
   post ~ 1 + experimental + prec
 )
 
 # summarize the results
-summary(fit2)
+summary(ols2)
 ```
 
     ## 
@@ -216,14 +216,14 @@ If you prefer your education in the form of silly social media memes, maybe this
 
 Anyway, next we’ll learn how to actually compute `\(\tau_\text{ATE}\)` within the context of our OLS models. This will be the be the estimate of our estimand.
 
-#### Compute `\(\mathbb E (y_i^1) - \mathbb E (y_i^0)\)` from `fit1`.
+#### Compute `\(\mathbb E (y_i^1) - \mathbb E (y_i^0)\)` from `ols1`.
 
-Sometimes the authors of introductory causal inference textbooks have readers practice computing these values by hand, which can have its pedagogical value. But in your role as a professional scientist, you’ll be computing `\(\tau_\text{ATE}\)` within the context of a regression model, so you can properly express the uncertainty of your estimand with 95% intervals, as standard error, or some other measure of uncertainty. With our `fit1` model, we can compute `\(\mathbb E (y_i^1)\)` and `\(\mathbb E (y_i^0)\)` with the base **R** `predict()` function.
+Sometimes the authors of introductory causal inference textbooks have readers practice computing these values by hand, which can have its pedagogical value. But in your role as a professional scientist, you’ll be computing `\(\tau_\text{ATE}\)` within the context of a regression model, so you can properly express the uncertainty of your estimand with 95% intervals, as standard error, or some other measure of uncertainty. With our `ols1` model, we can compute `\(\mathbb E (y_i^1)\)` and `\(\mathbb E (y_i^0)\)` with the base **R** `predict()` function.
 
 ``` r
 nd <- tibble(experimental = 0:1)
 
-predict(fit1, 
+predict(ols1, 
         newdata = nd,
         se.fit = TRUE,
         interval = "confidence") %>% 
@@ -238,7 +238,7 @@ predict(fit1,
 The `fit.fit` column shows the point estimates, and the `fit.lwr` and `fit.upr` columns show the 95% intervals, and the `se.fit` columns shows the standard errors. Though the `predict()` method is great for computing `\(\mathbb{E}(y_i^1)\)` and `\(\mathbb{E}(y_i^0)\)`, it doesn’t give us a good way to compute the difference of those values with a measure of uncertainty, such as a standard error. Happily, we can rely on functions from the handy **marginaleffects** package ([Arel-Bundock, 2022](#ref-R-marginaleffects)) for that. First, notice how the `predictions()` function works in a similar way to the `predict()` function from above, but with nicer default behavior.
 
 ``` r
-predictions(fit1, newdata = nd, by = "experimental")
+predictions(ols1, newdata = nd, by = "experimental")
 ```
 
     ## 
@@ -252,7 +252,7 @@ predictions(fit1, newdata = nd, by = "experimental")
 The **marginaleffects** package offers a few ways to contrast the to mean values. With the `predictions()` approach, we can just add in `hypothesis = "revpairwise"`.
 
 ``` r
-predictions(fit1, newdata = nd, by = "experimental", hypothesis = "revpairwise")
+predictions(ols1, newdata = nd, by = "experimental", hypothesis = "revpairwise")
 ```
 
     ## 
@@ -262,10 +262,10 @@ predictions(fit1, newdata = nd, by = "experimental", hypothesis = "revpairwise")
     ## Prediction type:  response 
     ## Columns: type, term, estimate, std.error, statistic, p.value, conf.low, conf.high
 
-Now we have a nice standard error and 95% interval range for the estiamte of our estimand, `\(\tau_\text{ATE}\)`. Thus, the average causal effect of the experimental condition relative to the waitlist control is a reduction of about 2 and a half pounds, with with a very wide 95% confidence interval range spanning from a reduction of 13 pounds to an *increase* of 8 pounds. Now look back at the parameter summary for `fit1`.
+Now we have a nice standard error and 95% interval range for the estiamte of our estimand, `\(\tau_\text{ATE}\)`. Thus, the average causal effect of the experimental condition relative to the waitlist control is a reduction of about 2 and a half pounds, with with a very wide 95% confidence interval range spanning from a reduction of 13 pounds to an *increase* of 8 pounds. Now look back at the parameter summary for `ols1`.
 
 ``` r
-summary(fit1)
+summary(ols1)
 ```
 
     ## 
@@ -289,7 +289,7 @@ summary(fit1)
 
 Notice that the summary for our `\(\beta_1\)` parameter is the same as the `\(\tau_\text{ATE}\)` from above. When you have a simple OLS-type Gaussian model without a fancy link function, the `\(\tau_\text{ATE}\)` will be the same as the `\(\beta\)` coefficient for the treatment dummy.
 
-#### Compute `\(\mathbb E (y_i^1 - y_i^0)\)` from `fit1`.
+#### Compute `\(\mathbb E (y_i^1 - y_i^0)\)` from `ols1`.
 
 It’s time for me to confess my rhetoric above was a little misleading. As it turns out, you can in fact compute `\(\mathbb E (y_i^1 - y_i^0)\)` from your regression models, even with 50% of the values missing. The key is to compute *counterfactual* values for `\(y_i^1\)` and `\(y_i^0\)` from the model. Before we can do that, we’ll first need to redefine our `nd` predictor data.
 
@@ -310,7 +310,7 @@ glimpse(nd)
 What we’ve done is taken each unique case in the original `horan1971` data, as indexed by `sn`, and assigned them both values for the `experimental` dummy, `0` and `1`. As a consequence, we took our 41-row data frame and doubled it in length. Now we can insert our updated counterfactual `nd` into the base **R** `predict()` to compute all those `\(y_i^1\)` and `\(y_i^0\)` estimates.
 
 ``` r
-predict(fit1, 
+predict(ols1, 
         newdata = nd,
         se.fit = TRUE,
         interval = "confidence") %>% 
@@ -331,7 +331,7 @@ predict(fit1,
 Now each case (`sn`) gets their own estimate for both levels of the `experimental` dummy. Given these are counterfactual estimates from a statistical model, they also come with their measures of uncertainty. But just like before, the `predict()` method doesn’t give us a good way to use these model predictions to compute `\(\mathbb E (y_i^1 - y_i^0)\)` in a way that accounts for the standard errors. Once again, the **marginaleffects** package has the solution. Like before, our first attempt will be to insert our updated `nd` data into the `predictions()` function. This time, we’ve included both the `sn` and `experimental` variables into the `by` argument, to help clarity the output.
 
 ``` r
-predictions(fit1, newdata = nd, by = c("sn", "experimental")) %>% 
+predictions(ols1, newdata = nd, by = c("sn", "experimental")) %>% 
   head()
 ```
 
@@ -350,7 +350,7 @@ predictions(fit1, newdata = nd, by = c("sn", "experimental")) %>%
 I’ve used the `head()` function to limit the output to the first six rows, but the full output would have all 82 rows worth of counterfactual predictions. Each one has its own standard error and so on. To compute the actual participant-level contrasts, `\(y_i^1 - y_i^0\)`, we’ll want to switch to the `marginaleffects::comparisons()` function. Here we just need to use the `variables` function to indicate we want counterfactual comparisons on the `experimental` dummy for each case in the original data set.
 
 ``` r
-comparisons(fit1, variables = list(experimental = 0:1)) %>% 
+comparisons(ols1, variables = list(experimental = 0:1)) %>% 
   head()
 ```
 
@@ -369,7 +369,7 @@ comparisons(fit1, variables = list(experimental = 0:1)) %>%
 Here we see the `\(y_i^1 - y_i^0\)` for the first six participants in the data set, each with its own standard errors and so on. But recall our estimand `\(\tau_\text{ATE}\)` is defined as `\(\mathbb E (y_i^1 - y_i^0)\)`. This means, we need a way to compute the average of those contrasts, with a method that also accounts for their standard errors. Happily, all we need to do is tack on the `summary()` function, which will prompt the **marginaleffects** to compute the average of those participant-level contrasts and use the so-called delta method to compute the accompanying standard error.
 
 ``` r
-comparisons(fit1, variables = list(experimental = 0:1)) %>% 
+comparisons(ols1, variables = list(experimental = 0:1)) %>% 
   summary()
 ```
 
@@ -420,9 +420,9 @@ and
 
 In the next couple sections we’ll see what this looks like in action.
 
-#### Compute `\(\mathbb E (y_i^1 | \bar c) - \mathbb E (y_i^0 | \bar c)\)` from `fit2`.
+#### Compute `\(\mathbb E (y_i^1 | \bar c) - \mathbb E (y_i^0 | \bar c)\)` from `ols2`.
 
-With our ANCOVA-type `fit2` model, we can compute `\(\mathbb E (y_i^1 | \bar c)\)` and `\(\mathbb E (y_i^0 | \bar c)\)` with the base **R** `predict()` function. As a first step, we’ll define our prediction grid with the sample means for our covariate `prec`, and then expand the grid to include both values of the `experimental` dummy.
+With our ANCOVA-type `ols2` model, we can compute `\(\mathbb E (y_i^1 | \bar c)\)` and `\(\mathbb E (y_i^0 | \bar c)\)` with the base **R** `predict()` function. As a first step, we’ll define our prediction grid with the sample means for our covariate `prec`, and then expand the grid to include both values of the `experimental` dummy.
 
 ``` r
 nd <- horan1971 %>% 
@@ -442,7 +442,7 @@ print(nd)
 Since the `prec` covariate was already mean centered, we technically didn’t need to manually compute `mean(prec)`. We already knew that value would be zero. But I wanted to make the point explicit so the step will generalize to other data contexts. Anyway, now we have our `nd` data, we’re ready to pump the values into `predict()`.
 
 ``` r
-predict(fit2, 
+predict(ols2, 
         newdata = nd,
         se.fit = TRUE,
         interval = "confidence") %>% 
@@ -457,10 +457,10 @@ predict(fit2,
     ## 1            0
     ## 2            1
 
-Similar to the simple ANOVA-type `fit1` version fo the model, the `predict()` method is great for computing `\(\mathbb{E}(y_i^1 | \bar c)\)` and `\(\mathbb{E}(y_i^0 | \bar c)\)`, but it doesn’t give us a good way to compute the difference of those values with a measure of uncertainty. For that, we can once again rely on the `marginaleffects::predictions()` function.
+Similar to the simple ANOVA-type `ols1` version fo the model, the `predict()` method is great for computing `\(\mathbb{E}(y_i^1 | \bar c)\)` and `\(\mathbb{E}(y_i^0 | \bar c)\)`, but it doesn’t give us a good way to compute the difference of those values with a measure of uncertainty. For that, we can once again rely on the `marginaleffects::predictions()` function.
 
 ``` r
-predictions(fit2, newdata = nd, by = "experimental")
+predictions(ols2, newdata = nd, by = "experimental")
 ```
 
     ## 
@@ -474,7 +474,7 @@ predictions(fit2, newdata = nd, by = "experimental")
 To get the contrast, just add in `hypothesis = "revpairwise"`.
 
 ``` r
-predictions(fit2, newdata = nd, by = "experimental", hypothesis = "revpairwise")
+predictions(ols2, newdata = nd, by = "experimental", hypothesis = "revpairwise")
 ```
 
     ## 
@@ -484,10 +484,10 @@ predictions(fit2, newdata = nd, by = "experimental", hypothesis = "revpairwise")
     ## Prediction type:  response 
     ## Columns: type, term, estimate, std.error, statistic, p.value, conf.low, conf.high
 
-And also like with the ANOVA-type `fit1`, this method for computing the `\(\tau_\text{ATE}\)` from `fit2` returns the same estimate and uncertainty statistics as returned by the `summary()` information for the `\(\beta_1\)` parameter.
+And also like with the ANOVA-type `ols1`, this method for computing the `\(\tau_\text{ATE}\)` from `ols2` returns the same estimate and uncertainty statistics as returned by the `summary()` information for the `\(\beta_1\)` parameter.
 
 ``` r
-summary(fit2)
+summary(ols2)
 ```
 
     ## 
@@ -512,9 +512,9 @@ summary(fit2)
 
 When you fit an OLS-type ANCOVA model with the conventional identity link, `\(\mathbb{E}(y_i^1 | \bar c) - \mathbb{E}(y_i^0 | \bar c)\)` will be the same as the `\(\beta\)` coefficient for the treatment dummy. They’re both estimators of the estimand `\(\tau_\text{ATE}\)`.
 
-#### Compute `\(\mathbb E (y_i^1 - y_i^0 | c_i)\)` from `fit2`.
+#### Compute `\(\mathbb E (y_i^1 - y_i^0 | c_i)\)` from `ols2`.
 
-Before we compute our counterfactual `\(\mathbb{E}(y_i^1 - y_i^0 | c_i)\)` estimates from our ANCOVA-type `fit2`, we’ll first need to redefine our `nd` predictor data. This time, we’ll retain each participants’ `prec` value (i.e., `\(c_i\)`).
+Before we compute our counterfactual `\(\mathbb{E}(y_i^1 - y_i^0 | c_i)\)` estimates from our ANCOVA-type `ols2`, we’ll first need to redefine our `nd` predictor data. This time, we’ll retain each participants’ `prec` value (i.e., `\(c_i\)`).
 
 ``` r
 nd <- horan1971 %>% 
@@ -534,7 +534,7 @@ glimpse(nd)
 Now each level of `sn` has two rows, one for each of the `experimental` dummy’s values: `0` and `1`. But within each level of `sn`, the baseline covariate `prec` is held constant to its original value. Now we can insert our updated counterfactual `nd` into the base **R** `predict()` to compute the conditional estimates for `post`.
 
 ``` r
-predict(fit2, 
+predict(ols2, 
         newdata = nd,
         se.fit = TRUE,
         interval = "confidence") %>% 
@@ -562,7 +562,7 @@ predict(fit2,
 With a little more wrangling, we can compute the point estimates for `\((y_i^1 - y_i^0 | c_i)\)`.
 
 ``` r
-predict(fit2, 
+predict(ols2, 
         newdata = nd,
         se.fit = TRUE,
         interval = "confidence") %>% 
@@ -591,7 +591,7 @@ predict(fit2,
 Even though the participants vary on their point estimates for `0` and `1`, they all have the same estimates for their difference, `tau`. This is a normal characteristic of analyses within the OLS-type paradigm, but it will not hold once we generalize to other kinds of likelihoods. You’ll see. But anyways, since this workflow won’t allow us to retain the uncertainty statistics, we’ll switch back to our **marginaleffects**-based workflow. As a first step, we insert our updated `nd` data into the `predictions()` function. This time we include the `sn`, `experimental`, and `prec` variables into the `by` argument, to help clarity the output.
 
 ``` r
-predictions(fit2, newdata = nd, by = c("sn", "experimental", "prec")) %>% 
+predictions(ols2, newdata = nd, by = c("sn", "experimental", "prec")) %>% 
   head()
 ```
 
@@ -610,7 +610,7 @@ predictions(fit2, newdata = nd, by = c("sn", "experimental", "prec")) %>%
 The `head()` function to limited the output to the first six rows, but the full output would have all 82 rows worth of counterfactual predictions. Each one has its own standard error and so on. To compute the actual participant-level contrasts, `\((y_i^1 - y_i^0 | c_i)\)`, we switch to the `marginaleffects::comparisons()` function. Here we just need to use the `variables` argument to indicate we want counterfactual comparisons on the `experimental` dummy for each case in the original data set.
 
 ``` r
-comparisons(fit2, variables = list(experimental = 0:1)) %>% 
+comparisons(ols2, variables = list(experimental = 0:1)) %>% 
   head()
 ```
 
@@ -626,10 +626,10 @@ comparisons(fit2, variables = list(experimental = 0:1)) %>%
     ## Prediction type:  response 
     ## Columns: rowid, type, term, contrast, estimate, std.error, statistic, p.value, conf.low, conf.high, predicted, predicted_hi, predicted_lo, sl, sn, treatment, pre, post, prec, experimental, eps
 
-Here we see the `\((y_i^1 - y_i^0 | c_i)\)` for the first six participants in the data set, each with its own standard errors and so on. But recall our estimand `\(\tau_\text{ATE}\)` is estimated via `\(\mathbb E (y_i^1 - y_i^0 | c_i)\)`, which means we need to compute the average of those contrasts in a way that produces a standard error. As with the simpler ANOVA-type workflow we used with `fit1`, we can simply tack on a `summary()` line, which will compute delta-method based standard errors.
+Here we see the `\((y_i^1 - y_i^0 | c_i)\)` for the first six participants in the data set, each with its own standard errors and so on. But recall our estimand `\(\tau_\text{ATE}\)` is estimated via `\(\mathbb E (y_i^1 - y_i^0 | c_i)\)`, which means we need to compute the average of those contrasts in a way that produces a standard error. As with the simpler ANOVA-type workflow we used with `ols1`, we can simply tack on a `summary()` line, which will compute delta-method based standard errors.
 
 ``` r
-comparisons(fit2, variables = list(experimental = 0:1)) %>% 
+comparisons(ols2, variables = list(experimental = 0:1)) %>% 
   summary()
 ```
 
@@ -645,7 +645,7 @@ comparisons(fit2, variables = list(experimental = 0:1)) %>%
 When our goal is just to compute `\(\mathbb E (y_i^1 - y_i^0 | c_i)\)`, we can also use the `marginaleffects::avg_comparisons()` function, which skips the `summary()` step.
 
 ``` r
-avg_comparisons(fit2, variables = list(experimental = 0:1))
+avg_comparisons(ols2, variables = list(experimental = 0:1))
 ```
 
     ## 
@@ -655,13 +655,13 @@ avg_comparisons(fit2, variables = list(experimental = 0:1))
     ## Prediction type:  response 
     ## Columns: type, term, contrast, estimate, std.error, statistic, p.value, conf.low, conf.high
 
-As Arel-Bundock pointed out his ([2023](#ref-arelBundock2023CausalInference)) vignette, [*Causal inference with the parametric g-formula*](https://vincentarelbundock.github.io/marginaleffects/articles/gformula.html), the `avg_comparisons()` function is a compact way to compute `\(\mathbb E (y_i^1 - y_i^0 | c_i)\)` with the parametric g-formula method. Again in this case our estimate for `\(\tau_\text{ATE}\)` via `\(\mathbb E (y_i^1 - y_i^0 | c_i)\)` is the same as the `\(\beta_1\)` coefficient and its standard error from `fit2`, and they’re both the same as `\(\tau_\text{ATE}\)` via `\(\mathbb E (y_i^1 | \bar c) - \mathbb E (y_i^0 | \bar c)\)`. We might further say that, in the case of an OLS-based ANCOVA-type model of a randomized experiment,
+As Arel-Bundock pointed out his ([2023](#ref-arelBundock2023CausalInference)) vignette, [*Causal inference with the parametric g-formula*](https://vincentarelbundock.github.io/marginaleffects/articles/gformula.html), the `avg_comparisons()` function is a compact way to compute `\(\mathbb E (y_i^1 - y_i^0 | c_i)\)` with the parametric g-formula method. Again in this case our estimate for `\(\tau_\text{ATE}\)` via `\(\mathbb E (y_i^1 - y_i^0 | c_i)\)` is the same as the `\(\beta_1\)` coefficient and its standard error from `ols2`, and they’re both the same as `\(\tau_\text{ATE}\)` via `\(\mathbb E (y_i^1 | \bar c) - \mathbb E (y_i^0 | \bar c)\)`. We might further say that, in the case of an OLS-based ANCOVA-type model of a randomized experiment,
 
 - `\(\beta_1\)`,
 - `\(\mathbb{E}(y_i^1 - y_i^0 | c_i)\)`, and
 - `\(\mathbb{E}(y_i^1 | \bar c) - \mathbb{E}(y_i^0 | \bar c)\)`
 
-are all the same thing. They’re all estimators of our estimand, the average treatment effect. We can extend this further to point out that the three estimators we used with our ANOVA-type model `fit1` were also estimators of the average treatment effect. But the three methods we just used for our ANCOVA-type model `fit2` all benefit from the increased precision (i.e., power) that comes from including a high-quality baseline covariate in the model.
+are all the same thing. They’re all estimators of our estimand, the average treatment effect. We can extend this further to point out that the three estimators we used with our ANOVA-type model `ols1` were also estimators of the average treatment effect. But the three methods we just used for our ANCOVA-type model `ols2` all benefit from the increased precision (i.e., power) that comes from including a high-quality baseline covariate in the model.
 
 ## Recap
 

@@ -206,8 +206,8 @@ A classical statistical approach to comparing the means of two groups is with a 
 
 $$
 `\begin{align*}
-\text{post}_i & \sim \operatorname{Gaussian}(\mu_i, \sigma) \\
-\mu_i & = \beta_0 + \beta_1 \text{experimental}_i,
+\text{post}_i & = \beta_0 + \beta_1 \text{experimental}_i + \epsilon_i \\
+\epsilon_i & \sim \operatorname{Normal}(0, \sigma),
 \end{align*}`
 $$
 
@@ -217,13 +217,13 @@ Though we’ll eventually analyze these data as Bayesians, I think it’ll be be
 
 ``` r
 # fit the ANOVA-type model with OLS
-fit1 <- lm(
+ols1 <- lm(
   data = horan1971,
   post ~ 1 + experimental
 )
 
 # summarize
-summary(fit1)
+summary(ols1)
 ```
 
     ## 
@@ -248,7 +248,7 @@ summary(fit1)
 We can get a nice parameter summary with 95% confidence intervals with the `broom::tidy()` function. Here we’ll focus on the `\(\beta_1\)` parameter, which allows us to formally compare the means of the two groups.
 
 ``` r
-tidy(fit1, conf.int = TRUE) %>% 
+tidy(ols1, conf.int = TRUE) %>% 
   slice(2) %>% 
   mutate_if(is.double, round, digits = 2)
 ```
@@ -282,8 +282,8 @@ Anyway, the ANCOVA model adds one or more baseline covariates to the ANOVA model
 
 $$
 `\begin{align*}
-\text{post}_i & \sim \operatorname{Gaussian}(\mu_i, \sigma) \\
-\mu_i & = \beta_0 + \beta_1 \text{experimental}_i + {\color{firebrick}{\beta_2 \text{pre}_i}},
+\text{post}_i & = \beta_0 + \beta_1 \text{experimental}_i + {\color{firebrick}{\beta_2 \text{pre}_i}} + \epsilon_i \\
+\epsilon_i & \sim \operatorname{Normal}(0, \sigma),
 \end{align*}`
 $$
 
@@ -305,28 +305,28 @@ Thus, the intercept `\(\beta_0\)` is now the expected value for those in the wai
 
 $$
 `\begin{align*}
-\text{post}_i & \sim \operatorname{Gaussian}(\mu_i, \sigma) \\
-\mu_i & = \beta_0 + \beta_1 \text{experimental}_i + {\color{blueviolet}{\beta_2 \text{prec}_i}},
+\text{post}_i & = \beta_0 + \beta_1 \text{experimental}_i + {\color{blueviolet}{\beta_2 \text{prec}_i}} + \epsilon_i \\
+\epsilon_i & \sim \operatorname{Normal}(0, \sigma),
 \end{align*}`
 $$
 
-where now the intercept `\(\beta_0\)` has the more meaningful interpretation of the expected value for those in the wait-list control group, who have a sample-average weight of about 154 pounds. For the sake of pedagogy, we’ll fit the model with the centered `prec` covariate (`fit3`), and the non-centered `pre` covariate (`fit3`).
+where now the intercept `\(\beta_0\)` has the more meaningful interpretation of the expected value for those in the wait-list control group, who have a sample-average weight of about 154 pounds. For the sake of pedagogy, we’ll fit the model with the centered `prec` covariate (`ols2`), and the non-centered `pre` covariate (`ols3`).
 
 ``` r
 # fit with the centered `prec` covariate
-fit2 <- lm(
+ols2 <- lm(
   data = horan1971,
   post ~ 1 + experimental + prec
 )
 
 # fit with the non-centered `pre` covariate
-fit3 <- lm(
+ols3 <- lm(
   data = horan1971,
   post ~ 1 + experimental + pre
 )
 
 # summarize the centered model
-summary(fit2)
+summary(ols2)
 ```
 
     ## 
@@ -351,7 +351,7 @@ summary(fit2)
 
 ``` r
 # summarize the non-centered model
-summary(fit3)
+summary(ols3)
 ```
 
     ## 
@@ -374,10 +374,10 @@ summary(fit3)
     ## Multiple R-squared:  0.8672, Adjusted R-squared:  0.8602 
     ## F-statistic: 124.1 on 2 and 38 DF,  p-value: < 2.2e-16
 
-Other than the results for the intercept `\(\beta_0\)`, the results of the two versions of the ANCOVA model are identical. The ANCOVA point estimate for `\(\beta_1\)` changed a lot from what we saw in the simple ANOVA model `fit1`. Once again, we can use the `tidy()` function to return the 95% confidence intervals in a nice format.
+Other than the results for the intercept `\(\beta_0\)`, the results of the two versions of the ANCOVA model are identical. The ANCOVA point estimate for `\(\beta_1\)` changed a lot from what we saw in the simple ANOVA model `ols1`. Once again, we can use the `tidy()` function to return the 95% confidence intervals in a nice format.
 
 ``` r
-tidy(fit2, conf.int = TRUE) %>% 
+tidy(ols2, conf.int = TRUE) %>% 
   slice(2) %>% 
   mutate_if(is.double, round, digits = 2)
 ```
@@ -391,7 +391,7 @@ Not only is the point estimate notably lower than in the simple ANOVA model, the
 
 ``` r
 # wrangle
-bind_rows(tidy(fit1, conf.int = TRUE), tidy(fit2, conf.int = TRUE)) %>% 
+bind_rows(tidy(ols1, conf.int = TRUE), tidy(ols2, conf.int = TRUE)) %>% 
   filter(term == "experimental") %>% 
   mutate(model = factor(c("ANOVA", "ANCOVA"), levels = c("ANOVA", "ANCOVA"))) %>% 
 
