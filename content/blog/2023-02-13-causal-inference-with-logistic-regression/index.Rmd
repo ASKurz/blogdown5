@@ -31,11 +31,16 @@ csl: /Users/solomonkurz/Dropbox/blogdown5/content/blog/apa.csl
 link-citations: yes
 ---
 
-So far in this series, we've been been using ordinary least squares (OLS) to analyze and make causal inferences from our experimental data. Though OLS is an applied statistics workhorse and performs admirably in many cases, there are some contexts in which it's just not appropriate. In medical trials, for example, many of the outcome variables are binary. Some typical examples are whether a patient still has the disease (coded `1`) or not (coded `0`), or whether a participant has died (coded `1`) or is still alive (coded `0`). In these cases, we want to model our data with a likelihood function that can handle binary data, and the go-to solution is the binomial[^1]. As we will see, some of the nice qualities from the OLS paradigm fall apart when we want to make causal inferences with binomial models. But no fear; we have solutions.
+```{r, echo = F, cache = F}
+# knitr::opts_chunk$set(fig.retina = 2.5)
+options(width = 110)
+```
+
+So far in this series, we've been been using ordinary least squares (OLS) to analyze and make causal inferences from our experimental data. Though OLS is an applied statistics workhorse and performs admirably in some cases, there are many contexts in which it's just not appropriate. In medical trials, for example, many of the outcome variables are binary. Some typical examples are whether a patient still has the disease (coded `1`) or not (coded `0`), or whether a participant has died (coded `1`) or is still alive (coded `0`). In these cases, we want to model our data with a likelihood function that can handle binary data, and the go-to solution is the binomial[^1]. As we will see, some of the nice qualities from the OLS paradigm fall apart when we want to make causal inferences with binomial models. But no fear; we have solutions.
 
 ## We need data
 
-In this post, we'll be borrowing data from @wilson2017internet, *Internet-accessed sexually transmitted infection (e-STI) testing and results service: A randomised, single-blind, controlled trial*. Wilson and colleagues were open-science champions and made their primary data available as supporting information in the `S1Data.xls` file, which you can download from [here](https://journals.plos.org/plosmedicine/article?id=10.1371/journal.pmed.1002479#sec020).
+In this post, we'll be borrowing data from @wilson2017internet, *Internet-accessed sexually transmitted infection (e-STI) testing and results service: A randomised, single-blind, controlled trial*. Wilson and colleagues were open-science champions and made their primary data available as supporting information in their `S1Data.xls` file, which you can download from [here](https://journals.plos.org/plosmedicine/article?id=10.1371/journal.pmed.1002479#sec020).
 
 ```{r, warning = F, message = F}
 # packages
@@ -120,7 +125,7 @@ We've already introduced our binary outcome variable `anytest` and the experimen
 
 > for gender (male, female, transgender), age (16–19, 20–24, 25–30 years), number of sexual partners in last 12 months (1, 2+), and sexual orientation (MSM, all other groups). All factors had equal weight in determining marginal imbalance. (p. 4)
  
-Further down in the Method (p. 7), we learn all these variables were used as covariates in the primary analysis, in addition to ethnicity[^3].
+Further down in the Method (p. 7), we learn all these variables were used as covariates in the primary analysis[^3], in addition to ethnicity.
 
 To get a sense of these covariates, here we use **flextable** [@R-flextable; @gohelUsingFlextable2023] to make a Table 1 type table of the categorical variables for our randomized subset.
 
@@ -224,7 +229,7 @@ tidy(glm1, conf.int = T) %>%
   mutate_all(plogis)
 ```
 
-This, however, this approach DOES NOT convert $\beta_1$ into a difference in probability. This is not an average treatment effect, and sadly, it's completely uninterpretable. As Imbens and Ruben put it: "The average treatment effect cannot be expressed directly in terms of the parameters of the logistic or probit regression model" [-@imbensCausalInferenceStatistics2015, p. 128]. But we can compute the point estimate for the ATE with a combination of both $\beta_0$ and $\beta_1$, and the `plogis()` function.
+This, however, this approach DOES NOT convert $\beta_1$ into a difference in probability. This is not an average treatment effect, and sadly, it's completely uninterpretable. As Imbens and Ruben put it: "The average treatment effect cannot be expressed directly in terms of the parameters of the logistic or probit regression model" [-@imbensCausalInferenceStatistics2015, p. 128]. But we can use an *in*direct method to compute the point estimate for the ATE with a combination of both $\beta_0$ and $\beta_1$, and the `plogis()` function.
 
 ```{r}
 plogis(coef(glm1)[1] + coef(glm1)[2]) - plogis(coef(glm1)[1])
@@ -283,7 +288,7 @@ $$
 \end{align*}
 $$
 
-This is all important because within the context of our binomial regression model, we can compute the population values $p^1$, $p^0$, and their difference. Thus in the case of the binomial ANOVA model,
+This is all important because within the context of our binomial regression model, we can compute the population estimates for $p^1$, $p^0$, and their difference. Thus in the case of the binomial ANOVA model,
 
 $$\tau_\text{ATE} = p^1 - p^0.$$
 
@@ -409,7 +414,7 @@ nd %>%
   summarise(ate = mean(`1` - `0`))
 ```
 
-At first glance, this might look like a failure. But keep in mind that this was a summary of a single iteration of a random process. In the next code block, we'll expand the initial data set so that each participant has 1,000 iterations of both $\hat y_i^1$ and $\hat y_i^0$ values. We'll compute $\mathbb E (y_i^1 - y_i^0)$ within each iteration, and them summarize the results from the 1,000 iterations by their mean and standard deviation.
+At first glance, this might look like a failure. 0.158 is a much lower value than 0.19 from above. But keep in mind that this was a summary of a single iteration of a random process. In the next code block, we'll expand the initial data set so that each participant has 1,000 iterations of both $\hat y_i^1$ and $\hat y_i^0$ values. We'll compute $\mathbb E (y_i^1 - y_i^0)$ within each iteration, and them summarize the results from the 1,000 iterations by their mean and standard deviation.
 
 ```{r}
 set.seed(1)
@@ -453,7 +458,7 @@ $$
 
 where $p_i^1$ and $p_i^0$ are the counterfactual probabilities for each of the $i$ cases, estimated in light of their covariate values. 
 
-Whether we have continuous covariates, discrete covariates, or a combination of both, the standardization method works the same. This is no longer the case when using the difference in population means approach, the covariate-adjusted version of $\mathbb E (y_i^1) - \mathbb E (y_i^0)$. One complication is me might not be able to mean-center the discrete covariates in our $\mathbf D$ vector. Sometimes people will mean center dummy variables, which can lead to awkward interpretive issues[^7]. But even this approach will not generalize well to multi-categorical nominal variables, like ethnicity. Another solution is to set discrete covariates at their modes [see @muller2014estimating], which we'll denote $\mathbf D^m$. This gives us a new estimand:
+Whether we have continuous covariates, discrete covariates, or a combination of both, the standardization method works the same. However, this is no longer the case when using the difference in population means approach, the covariate-adjusted version of $\mathbb E (y_i^1) - \mathbb E (y_i^0)$. One complication is we might not be able to mean-center the discrete covariates in our $\mathbf D$ vector. Sometimes people will mean center dummy variables, which can lead to awkward interpretive issues[^7]. But even this approach will not generalize well to multi-categorical nominal variables, like ethnicity. Another solution is to set discrete covariates at their modes [see @muller2014estimating], which we'll denote $\mathbf D^m$. This gives us a new estimand:
 
 $$\tau_\text{TEMM} = \operatorname{\mathbb{E}} \left (y_i^1 | \mathbf{\bar C}, \mathbf D^m \right) - \operatorname{\mathbb{E}} \left (y_i^0 | \mathbf{\bar C}, \mathbf D^m \right),$$
 
@@ -481,7 +486,7 @@ $$
 \end{align*}
 $$
 
-Importantly,
+Importantly, we have some inequalities to consider:
 
 $$
 \begin{align*}
@@ -523,7 +528,7 @@ Earlier we learned the coefficient for the experimental group, $\beta_1$, does n
   select(fit, model_type, `beta[1]`, std.error)
 ```
 
-Unlike what typically occurs with OLS-based models, the standard error for $\beta_1$ *increased* when we added the baseline covariates to the model. It turns out this will generally happen with logistic regression models, even when using high-quality covariates [see @robinson1991someSurprising]. This does not, however, mean we should not use baseline covariates in our logistic regression models. Rather, it means that we need to focus on how to compute the ATE, rather than fixate on the model coefficients [cf. @daniel2021makingApples]. This can be very unsettling for those with strong roots in the OLS framework. All I can say is: Your OLS sensibilities will not help you, here. The sooner you shed them, the better.
+Unlike what typically occurs with OLS-based models, the standard error for $\beta_1$ *increased* when we added the baseline covariates to the model. It turns out this will generally happen with logistic regression models, even when using high-quality covariates [see @robinson1991someSurprising]. This does not, however, mean we should not use baseline covariates in our logistic regression models. Rather, it means that we need to focus on how to compute the ATE, rather than fixate on the model coefficients [cf. @daniel2021makingApples]. This can be very unsettling for those with strong roots in the OLS framework--it was for me. All I can say is: Your OLS sensibilities will not help you, here. The sooner you shed them, the better.
 
 ### Compute $\operatorname{\mathbb{E}} \left (p_i^1 | \mathbf{\bar C}, \mathbf D^m \right) - \operatorname{\mathbb{E}} \left (p_i^0 | \mathbf{\bar C}, \mathbf D^m \right)$ from `glm2`.
 
@@ -536,7 +541,7 @@ get_mode <- function(x) {
 }
 ```
 
-This `get_mode()` function is used internally by the **marginaleffects** package (see [here](https://github.com/vincentarelbundock/marginaleffects/blob/9a06aa03c017947df978caa4d82fa6e650e2de8f/R/mean_or_mode.R#L4)), and has its origins in [this](https://stackoverflow.com/a/8189441/342331) stackoverflow discussion. Here's the `nd` data grid.
+This `get_mode()` function is used internally by the **marginaleffects** package (see [here](https://github.com/vincentarelbundock/marginaleffects/blob/9a06aa03c017947df978caa4d82fa6e650e2de8f/R/mean_or_mode.R#L4)), and has its origins in [this](https://stackoverflow.com/a/8189441/342331) stackoverflow discussion. Here's how we can use `get_mode()` to help us make the `nd` data grid.
 
 ```{r}
 nd <- wilson2017 %>% 
@@ -578,6 +583,8 @@ predictions(glm2, newdata = nd, by = "tx")
 # TEMM
 predictions(glm2, newdata = nd, by = "tx", hypothesis = "revpairwise")
 ```
+
+Thus we expect our hypothetical person with demographics at the mean and/or modes for the covariates will be about 22% more likely to get tested if given the intervention, compared to if she had not.
 
 ### Compute $\operatorname{\mathbb{E}} (p_i^1 | \mathbf C = \mathbf c, \mathbf D = \mathbf d) - \operatorname{\mathbb{E}} (p_i^0 | \mathbf C = \mathbf c, \mathbf D = \mathbf d)$ from `glm2`.
 
@@ -702,7 +709,7 @@ In this post, some of the main points we covered were:
   - *in*crease the standard errors for the $\beta_1$ coefficient, and
   - *de*crease the standard errors for the average treatment effect, $\tau_\text{ATE}$.
 
-In the next post, we'll explore how our causal inference methods work within an applied Bayesian statistics framework. We'll practice with both simple Gaussian models, and logistic regression models, too. Until then, happy modeling, friends!
+In the [next post](https://timely-flan-2986f4.netlify.app/blog/2023-02-15-causal-inference-with-bayesian-models/), we'll explore how our causal inference methods work within an applied Bayesian statistics framework. We'll practice with both simple Gaussian models, and logistic regression models, too. Until then, happy modeling, friends!
 
 ## Session information
 
@@ -716,7 +723,7 @@ sessionInfo()
 
 [^2]: I suppose you could even argue it's a censored count. But since we'll be using it as a predictor, I'm not sure that argument would be of much help.
 
-[^3]: As it turns out, statisticians and quanty researchers are not in total agreement on whether or how one must condition on covariates, when those covariates were used to balance during the randomization process. For a lively twitter discussion on this very data set, see the replies to [this twitter poll](https://twitter.com/SolomonKurz/status/1623349977786228736).
+[^3]: As it turns out, statisticians and quanty researchers are not in total agreement on whether or how one must condition on covariates when those covariates were used to balance during the randomization process. For a lively twitter discussion on this very data set, see the replies to [this twitter poll](https://twitter.com/SolomonKurz/status/1623349977786228736).
 
 [^4]: There are numerous effect sizes one could compute from a logistic regression model. For a more exhaustive list, as applied within our causal inference framework, see Section 3.3 in @brumback2022Fundamentals.
 

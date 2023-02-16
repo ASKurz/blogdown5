@@ -210,7 +210,7 @@ which in words means we compute the familiar $\mathbb E (y_i^1 - y_i^0)$ for eac
 
 #### Compute $\mathbb E (y_i^1) - \mathbb E (y_i^0)$ from `fit1`.
 
-Before we go into full computation mode, we might want to streamline some of our summarizing code with a custom function. Many of the functions from the **brms** package summarize the posterior draws in terms of their mean, standard deviation, and percentile-based 95% intervals. Those are common Bayesian analogues to the frequentist point estimate, standard error, and 95% confidence intervals. Here we'll make a custom function that will compute those summary statistics for all vectors in a data frame.
+Before we go into full computation mode, we might want to streamline some of our summarizing code with a custom function. Many of the functions from the **brms** package summarize the posterior draws in terms of their mean, standard deviation, and percentile-based 95% intervals. Those are common Bayesian analogues to the frequentist point estimate, standard error, and 95% confidence intervals, respectively. Here we'll make a custom function that will compute those summary statistics for all vectors in a data frame.
 
 ```{r}
 brms_summary <- function(x) {
@@ -285,7 +285,7 @@ nd <- horan1971 %>%
 glimpse(nd)
 ```
 
-Notice that unlike what we've done before, we added a `row` index. This will help is join our `nd` data to the `fitted()` output, below. Speaking of which, here's the ATE.
+Notice that unlike what we've done before, we added a `row` index. This will help us join our `nd` data to the `fitted()` output, below. Speaking of which, here's the ATE.
 
 ```{r}
 fitted(fit1,
@@ -522,7 +522,7 @@ pp_check(fit4, ndraws = 100, type = "bars") + coord_cartesian(ylim = c(0, 300))
 
 ### Counterfactual interventions, no covariates, with the binomial.
 
-The overall format in the next few sections will follow the same sensibilities as those from above. We'll be practicing most of the primary estimates from the [third post](https://timely-flan-2986f4.netlify.app/blog/2023-02-13-causal-inference-with-logistic-regression/#ate-for-the-anova) in this series. The main new addition is we'll also consider work flows based around the handy `add_epred_draws()` function from the **tidybayes** package [@R-tidybayes].
+The overall format in the next few sections will follow the same sensibilities as those from above. We'll be practicing most of the primary estimates from the [third post](https://timely-flan-2986f4.netlify.app/blog/2023-02-13-causal-inference-with-logistic-regression/#ate-for-the-anova) in this series. The main new addition is we'll also consider work flows based around the handy `add_epred_draws()` function from the **tidybayes** package [@R-tidybayes]. Do note, the `add_epred_draws()` function would also have worked fine for the Gaussian models, above. I just waited until now because I didn't want to overwhelm you with code in the first half of the blog.
 
 #### Compute $\Pr (y_i^1 = 1) - \Pr(y_i^0 = 1)$ from `fit3`.
 
