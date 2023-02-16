@@ -513,7 +513,7 @@ $$
 \end{align*}
 $$
 
-As we will see, this holds for logistic regression models regardless of whether you have discrete covariates.
+This holds for logistic regression models regardless of whether you have discrete covariates. But enough with theory. Let's move into application.
 
 ### $\beta_1$ in the logistic regression ANCOVA.
 
@@ -588,7 +588,7 @@ Thus we expect our hypothetical person with demographics at the mean and/or mode
 
 ### Compute $\operatorname{\mathbb{E}} (p_i^1 | \mathbf C = \mathbf c, \mathbf D = \mathbf d) - \operatorname{\mathbb{E}} (p_i^0 | \mathbf C = \mathbf c, \mathbf D = \mathbf d)$ from `glm2`.
 
-Since the $\tau_\text{TEMM}$ is just a special case of a $\tau_\text{CATE}$, we might practice computing our estimate for $\tau_\text{CATE}$ with a different set of covariate values. Since men who have sex with men (MSM) were one of the vulnerable subgroups of interest in @wilson2017internet, we might take a look to see which combination of covariate values was most common for MSM in our subset of the data.
+Since the $\tau_\text{TEMM}$ is just a special case of a $\tau_\text{CATE}$, we might practice computing our estimate for $\tau_\text{CATE}$ with a different set of covariate values. Men who have sex with men (MSM) were one of the vulnerable subgroups of interest in @wilson2017internet, so we might take a look to see which combination of covariate values was most common for MSM in our subset of the data.
 
 ```{r}
 wilson2017 %>% 
@@ -597,7 +597,7 @@ wilson2017 %>%
   arrange(desc(n))
 ```
 
-It appears we're now interested in computing $\tau_\text{CATE}$ for a White 26-year-old MSM who had 10 or more partners over the past year. Let's redefine our `nd` predictor grid.
+It appears we're now interested in computing $\tau_\text{CATE}$ for a White 26-year-old MSM who had 10 or more partners over the past year. Let's redefine our `nd` predictor grid accordingly.
  
 ```{r}
 nd <- wilson2017 %>% 
@@ -671,7 +671,7 @@ comparisons(glm2, newdata = nd, variables = "tx") %>%
   theme(panel.grid = element_blank())
 ```
 
-Going by point estimate, the participant-specific treatment effects range from zero to about .26. The bulk of the estimates are in the upper part of the range, between .2 and .25. Further, the shape of this distribution will depend on the distribution of the levels of the covariates in the sample.
+Going by point estimate, the participant-specific treatment effects range from zero to about .26. The bulk of the estimates are in the upper part of the range, between .2 and .25. Further, the shape of this distribution will depend on the distribution of the levels of the covariates in the sample. This is something that would not have arisen within the OLS paradigm.
 
 Now here's $\tau_\text{ATE}$ for this model, and for the simpler ANOVA-type `glm1`.
 
