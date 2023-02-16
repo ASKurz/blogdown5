@@ -198,7 +198,15 @@ print(fit2)
 
 ### Counterfactual interventions, no covariates, with the Gauss.
 
-Whether we're working with OLS, maximum likelihood, or Bayesian inference via Markov chain Monte Carlo, the average treatment effect (ATE) is still the ATE. So all the equations we learned about in the last couple posts still apply. However, the methods we'll use to compute them will be different for our **brms** models. Here we'll show the workflow in the same basic order we used in the [second post](https://timely-flan-2986f4.netlify.app/blog/2023-02-06-causal-inference-with-potential-outcomes-bootcamp/#causal-inference).
+Conceptually, $\tau_\text{ATE}$ is the same for Bayesians as it is for frequentists, in that
+
+$$\tau_\text{ATE} = \mathbb E (y_i^1 - y_i^0) = \mathbb E (y_i^1) - \mathbb E (y_i^0).$$
+
+So all the equations we learned about in the last couple posts still apply. However, applied Bayesian inference via MCMC methods adds a new procedural complication for the $\mathbb E (y_i^1 - y_i^0)$ method. If you let $j$ stand for a given MCMC draw, we end up computing 
+
+$$\tau_{\text{ATE}_j} = \mathbb E_j (y_{ij}^1 - y_{ij}^0), \ \text{for}\ j = 1, \dots, J,$$
+
+which in words means we compute the familiar $\mathbb E (y_i^1 - y_i^0)$ for each of the $J$ MCMC draws. This returns a $J$-row vector for the $\tau_\text{ATE}$ distribution, which we can then summarize the same as we would any other dimension of the posterior distribution. You'll see. Anyway, the workflow in this section will follow the same basic order we used in the [second post](https://timely-flan-2986f4.netlify.app/blog/2023-02-06-causal-inference-with-potential-outcomes-bootcamp/#causal-inference).
 
 #### Compute $\mathbb E (y_i^1) - \mathbb E (y_i^0)$ from `fit1`.
 
@@ -300,7 +308,7 @@ fitted(fit1,
   brms_summary()
 ```
 
-We can make the same computation with the `marginaleffects::avg_comparisons()` function.
+Returning to the equation from a two sections up, the `group_by()` and `summarise()` lines were how we computed $\mathbb E_j (y_{ij}^1 - y_{ij}^0)$ for each of the $J$ MCMC draws. It was then in the final `brms_summary()` line where we summarized the vector of all those resulting $\tau_{\text{ATE}_j}$ results. We can make the same computation with the `marginaleffects::avg_comparisons()` function.
 
 ```{r}
 avg_comparisons(fit1, variables = list(experimental = 0:1))
