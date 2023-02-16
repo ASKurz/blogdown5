@@ -1,6 +1,6 @@
 ---
 author: A. Solomon Kurz
-title: Welcome to the draft of my blog
+title: Welcome to where I keep my drafts
 thumbnail_left: true
 description: "This is not my real blog. It’s a place where I can post drafts, and possibly get feedback when needed. Please *do not* share the links to any of these posts with others."
 layout: list-grid # default was list-sidebar
