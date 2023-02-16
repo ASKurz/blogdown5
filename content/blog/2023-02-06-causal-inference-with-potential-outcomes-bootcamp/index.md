@@ -25,13 +25,13 @@ csl: /Users/solomonkurz/Dropbox/blogdown5/content/blog/apa.csl
 link-citations: yes
 ---
 
-One of the nice things about the simple OLS models we fit in the last post is they’re easy to interpret. The various `\(\beta\)` parameters were valid estimates of the population effects for one treatment group relative to the wait-list control. However, this nice property won’t hold in many cases where the nature of our dependent variables and/or research design requires us to fit other kinds of models from the broader generalized linear mixed model (GLMM) framework. Another issue at stake is if you’ve spent most of your statistical analysis career in an OLS-state of mind, there’s a good chance there are concepts that are undifferentiated in your mind. As is turns out, some of these concepts are important when we want to make valid causal inferences. Our task in this post is to start differentiating the undifferentiated.
+One of the nice things about the simple OLS models we fit in the last post is they’re easy to interpret. The various `\(\beta\)` parameters were valid estimates of the population effects for one treatment group relative to the wait-list control. However, this nice property won’t hold in many cases where the nature of our dependent variables and/or research design requires us to fit other kinds of models from the broader generalized linear mixed model (GLMM) framework. Another issue at stake is if you’ve spent most of your statistical analysis career using the OLS framework, there’s a good chance there are concepts that are undifferentiated in your mind. As is turns out, some of these concepts are important when we want to make valid causal inferences. Our task in this post is to start differentiating the undifferentiated.
 
 ## Reload and refit
 
 ### `horan1971` data.
 
-In post, we’ll be continuing on with our `horan1971` data set form the last post. These data, recall, were transposed from the values displayed in Table 2 from Horan & Johnson ([1971](#ref-horan1971coverant)). I’ve saved them as an external `.rda` file in a `/data` subfolder on GitHub. If you don’t want to wander over to my GitHub, you can just copy the code from my last post.
+In post, we’ll be continuing on with our `horan1971` data set form the last post. These data, recall, were transposed from the values displayed in Table 2 from Horan & Johnson ([1971](#ref-horan1971coverant)). I’ve saved them as an external `.rda` file in a `/data` subfolder on GitHub ([here](https://github.com/ASKurz/blogdown5/tree/main/content/blog/2023-02-06-causal-inference-with-potential-outcomes-bootcamp/data)). If you don’t want to wander over to my GitHub, you can just copy the code from the [last post](https://timely-flan-2986f4.netlify.app/blog/2023-02-06-boost-your-power-with-baseline-covariates/).
 
 ``` r
 # packages
@@ -57,13 +57,13 @@ glimpse(horan1971)
 
     ## Rows: 41
     ## Columns: 7
-    ## $ sl           <chr> "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l…
-    ## $ sn           <int> 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17…
-    ## $ treatment    <fct> delayed, delayed, delayed, delayed, delayed, delayed, del…
-    ## $ pre          <dbl> 149.50, 131.25, 146.50, 133.25, 131.00, 141.00, 145.75, 1…
-    ## $ post         <dbl> 149.00, 130.00, 147.75, 139.00, 134.00, 145.25, 142.25, 1…
-    ## $ prec         <dbl> -5.335366, -23.585366, -8.335366, -21.585366, -23.835366,…
-    ## $ experimental <dbl> 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, …
+    ## $ sl           <chr> "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r…
+    ## $ sn           <int> 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 62, 63, …
+    ## $ treatment    <fct> delayed, delayed, delayed, delayed, delayed, delayed, delayed, delayed, delayed, delaye…
+    ## $ pre          <dbl> 149.50, 131.25, 146.50, 133.25, 131.00, 141.00, 145.75, 146.75, 172.50, 156.50, 153.00,…
+    ## $ post         <dbl> 149.00, 130.00, 147.75, 139.00, 134.00, 145.25, 142.25, 147.00, 158.25, 155.25, 151.50,…
+    ## $ prec         <dbl> -5.335366, -23.585366, -8.335366, -21.585366, -23.835366, -13.835366, -9.085366, -8.085…
+    ## $ experimental <dbl> 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, …
 
 ### Same old models.
 
@@ -160,7 +160,7 @@ Okay, so at the beginning of the post, we said the `\(\beta\)` coefficients for 
 
 Our friends in causal inference have been busy over the past few years. First, we should understand there are different ways of speaking about causal inference. I’m not going to cover all the various frameworks, here, but most of the causal inference textbooks I mentioned in the [last post](https://timely-flan-2986f4.netlify.app/blog/2023-02-06-boost-your-power-with-baseline-covariates/#i-make-assumptions) provide historical overviews. At the time of this writing, I’m a fan of the potential-outcomes framework (see [Imbens & Rubin, 2015](#ref-imbensCausalInferenceStatistics2015)), the basics of which we might explain as follows:
 
-Say you have some population of interest, such as overweight female university students interested in losing weight (see [Horan & Johnson, 1971](#ref-horan1971coverant)). You have some focal outcome variable `\(y\)`, which you’d like to see change in a positive direction. In our case that would be bodyweight, as measured in pounds. Since `\(y\)` varies across `\(i\)` persons, we can denote each participants’ value as `\(y_i\)`. Now imagine you have 2 or more well-defined interventions. In our case, that would be assignment to the waitlist control or experimental intervention group. For notation purposes, we can let `\(0\)` stand for the control group and `\(1\)` stand for the active treatment group, just like with a dummy variable. We can then write `\(y_i^0\)` for the `\(i\)`th person’s outcome if they were in the control condition, and `\(y_i^1\)` for the `\(i\)`th person’s outcome if they were in the treatment condition. Putting all those pieces together, we can define the causal effect `\(\tau\)` of treatment versus control for the `\(i\)`th person as
+Say you have some population of interest, such as overweight female university students interested in losing weight (see [Horan & Johnson, 1971](#ref-horan1971coverant)). You have some focal outcome variable `\(y\)`, which you’d like to see change in a positive direction. In our case that would be bodyweight, as measured in pounds. Since `\(y\)` varies across `\(i\)` persons, we can denote each participants’ value as `\(y_i\)`. Now imagine you have 2 or more well-defined interventions. In our case, that would be assignment to the waitlist control or experimental intervention group. For notation purposes, we can let `\(0\)` stand for the control group and `\(1\)` stand for the active treatment group, much like with a dummy variable. We can then write `\(y_i^0\)` for the `\(i\)`th person’s outcome if they were in the control condition, and `\(y_i^1\)` for the `\(i\)`th person’s outcome if they were in the treatment condition. Putting all those pieces together, we can define the causal effect `\(\tau\)` of treatment versus control for the `\(i\)`th person as
 
 `$$\tau_i = y_i^1 - y_i^0.$$`
 
@@ -200,7 +200,7 @@ which, in words, just means that the average treatment effect in the population 
 
 where `\(\mathbb E (y_i^1)\)` is the population average of our `\(y_i^1\)` values, and `\(\mathbb E (y_i^0)\)` is the population average of our `\(y_i^0\)` values. Even if if 50% of the values are missing, we can still compute `\(\mathbb E (y_i^1)\)`, `\(\mathbb E (y_i^0)\)`, and their difference.
 
-Sometimes causal inference scholars differentiate between the *sample* average treatment effect (SATE) and the *population* average treatment effect (PATE). In this blog post and in the rest of this series, I’m presuming y’all researchers are analyzing your data with regression models to make population-level inferences. Thus, I’m always equating the ATE with the PATE. While I’m at it, there are other technical caveats which have to do with proper randomization and whether participants are truly independent of one another and so on. For the sake of this series, I’m presuming a clean simple randomization with no further complications. If you want more complications, check out Imbens & Rubin ([2015](#ref-imbensCausalInferenceStatistics2015)) and any of the other texts on causal inference. Trust me, we already have enough complications on our hands.
+Sometimes causal inference scholars differentiate between the *sample* average treatment effect (SATE) and the *population* average treatment effect (PATE). In this blog post and in the rest of this series, I’m presuming y’all researchers are analyzing your data with regression models to make population-level inferences. Thus, I’m usually equating the ATE with the PATE. While I’m at it, there are other technical caveats which have to do with proper randomization and whether participants are truly independent of one another and so on. For the sake of this series, I’m presuming a clean simple randomization with no further complications. If you want more complications, check out Imbens & Rubin ([2015](#ref-imbensCausalInferenceStatistics2015)) and any of the other texts on causal inference. Trust me, we have enough complications on our hands, as is.
 
 ### Estimands, estimators, and estimates.
 
@@ -218,7 +218,7 @@ Anyway, next we’ll learn how to actually compute `\(\tau_\text{ATE}\)` within 
 
 #### Compute `\(\mathbb E (y_i^1) - \mathbb E (y_i^0)\)` from `ols1`.
 
-Sometimes the authors of introductory causal inference textbooks have readers practice computing these values by hand, which can have its pedagogical value. But in your role as a professional scientist, you’ll be computing `\(\tau_\text{ATE}\)` within the context of a regression model, so you can properly express the uncertainty of your estimand with 95% intervals, as standard error, or some other measure of uncertainty. With our `ols1` model, we can compute `\(\mathbb E (y_i^1)\)` and `\(\mathbb E (y_i^0)\)` with the base **R** `predict()` function.
+Sometimes the authors of introductory causal inference textbooks have readers practice computing these values by hand, which can have its pedagogical value. But in your role as a professional scientist, you’ll be computing `\(\tau_\text{ATE}\)` within the context of a regression model, so you can properly express the uncertainty of your estimand with 95% intervals, as standard error, or some other measure of uncertainty. To that end, we can compute `\(\mathbb E (y_i^1)\)` and `\(\mathbb E (y_i^0)\)` by inserting our `ols1` model into the base **R** `predict()` function.
 
 ``` r
 nd <- tibble(experimental = 0:1)
@@ -235,7 +235,7 @@ predict(ols1,
     ## 1 153.8182 146.3863 161.2501 3.674259 39        17.2338            0
     ## 2 151.3289 143.3318 159.3261 3.953706 39        17.2338            1
 
-The `fit.fit` column shows the point estimates, and the `fit.lwr` and `fit.upr` columns show the 95% intervals, and the `se.fit` columns shows the standard errors. Though the `predict()` method is great for computing `\(\mathbb{E}(y_i^1)\)` and `\(\mathbb{E}(y_i^0)\)`, it doesn’t give us a good way to compute the difference of those values with a measure of uncertainty, such as a standard error. Happily, we can rely on functions from the handy **marginaleffects** package ([Arel-Bundock, 2022](#ref-R-marginaleffects)) for that. First, notice how the `predictions()` function works in a similar way to the `predict()` function from above, but with nicer default behavior.
+The `fit.fit` column shows the point estimates, and the `fit.lwr` and `fit.upr` columns show the 95% intervals, and the `se.fit` columns shows the standard errors. Though the `predict()` method is great for computing `\(\mathbb{E}(y_i^1)\)` and `\(\mathbb{E}(y_i^0)\)`, it doesn’t give us a good way to compute the difference of those values with a measure of uncertainty, such as a standard error. Happily, we can rely on functions from the handy **marginaleffects** package ([Arel-Bundock, 2022](#ref-R-marginaleffects)) for that. First, notice how the `predictions()` function works in a similar way to the `predict()` function, but with nicer default behavior.
 
 ``` r
 predictions(ols1, newdata = nd, by = "experimental")
@@ -287,11 +287,11 @@ summary(ols1)
     ## Multiple R-squared:  0.005424,   Adjusted R-squared:  -0.02008 
     ## F-statistic: 0.2127 on 1 and 39 DF,  p-value: 0.6472
 
-Notice that the summary for our `\(\beta_1\)` parameter is the same as the `\(\tau_\text{ATE}\)` from above. When you have a simple OLS-type Gaussian model without a fancy link function, the `\(\tau_\text{ATE}\)` will be the same as the `\(\beta\)` coefficient for the treatment dummy.
+Notice that the summary for our `\(\beta_1\)` parameter is the same as the `\(\tau_\text{ATE}\)` from above. When you have a simple OLS-type Gaussian model without a fancy link function, the `\(\tau_\text{ATE}\)` will be the same as the `\(\beta\)` coefficient for the treatment dummy. As we will see in the next post, this will not generalize to other kinds GLM’s.
 
 #### Compute `\(\mathbb E (y_i^1 - y_i^0)\)` from `ols1`.
 
-It’s time for me to confess my rhetoric above was a little misleading. As it turns out, you can in fact compute `\(\mathbb E (y_i^1 - y_i^0)\)` from your regression models, even with 50% of the values missing. The key is to compute *counterfactual* values for `\(y_i^1\)` and `\(y_i^0\)` from the model. Before we can do that, we’ll first need to redefine our `nd` predictor data.
+It’s time for me to confess my rhetoric above was a little misleading. As it turns out, you can in fact compute `\(\mathbb E (y_i^1 - y_i^0)\)` from your regression models, even with 50% of the values missing. The key is to compute *counterfactual* estimates `\(\hat y_i^1\)` and `\(\hat y_i^0\)` from the model. Before we can do that, we’ll first need to redefine our `nd` predictor data.
 
 ``` r
 nd <- horan1971 %>% 
@@ -304,10 +304,10 @@ glimpse(nd)
 
     ## Rows: 82
     ## Columns: 2
-    ## $ sn           <int> 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10,…
-    ## $ experimental <int> 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, …
+    ## $ sn           <int> 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, 1…
+    ## $ experimental <int> 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, …
 
-What we’ve done is taken each unique case in the original `horan1971` data, as indexed by `sn`, and assigned them both values for the `experimental` dummy, `0` and `1`. As a consequence, we took our 41-row data frame and doubled it in length. Now we can insert our updated counterfactual `nd` into the base **R** `predict()` to compute all those `\(y_i^1\)` and `\(y_i^0\)` estimates.
+What we’ve done is taken each unique case in the original `horan1971` data, as indexed by `sn`, and assigned them both values for the `experimental` dummy, `0` and `1`. As a consequence, we took our 41-row data frame and doubled it to 82 rows. Now we can insert our updated counterfactual `nd` into the base **R** `predict()` to compute all those `\(\hat y_i^1\)` and `\(\hat y_i^0\)` estimates.
 
 ``` r
 predict(ols1, 
@@ -374,10 +374,8 @@ comparisons(ols1, variables = list(experimental = 0:1)) %>%
 ```
 
     ## 
-    ##          Term          Contrast Estimate Std. Error       z Pr(>|z|)  2.5 %
-    ##  experimental mean(1) - mean(0)   -2.489      5.397 -0.4612  0.64466 -13.07
-    ##  97.5 %
-    ##   8.089
+    ##          Term          Contrast Estimate Std. Error       z Pr(>|z|)  2.5 % 97.5 %
+    ##  experimental mean(1) - mean(0)   -2.489      5.397 -0.4612  0.64466 -13.07  8.089
     ## 
     ## Prediction type:  response 
     ## Columns: type, term, contrast, estimate, std.error, statistic, p.value, conf.low, conf.high
@@ -392,11 +390,11 @@ are all the same thing. They’re all estimators of our estimand `\(\tau_\text{A
 
 ### Counterfactual interventions, with covariates.
 
-Much like we can use baseline covariates when we analyze RCT data to boost the power, we can use baseline covariates when we make causal inferences, too. We just have to expand the framework a bit. If we let `\(c_i\)` stand for the `\(i\)`th person’s value on continuous covariate `\(c\)`, we can estimate the ATE with help from covariates `\(c\)` with the formula:
+Much like we can use baseline covariates when we analyze RCT data to boost the power, we can use baseline covariates when we make causal inferences, too. We just have to expand the framework a bit. If we let `\(c_i\)` stand for the `\(i\)`th person’s value on continuous covariate `\(c\)`, we can estimate the ATE with help from covariate `\(c\)` with the formula:
 
 `$$\tau_\text{ATE} = \mathbb E (y_i^1 - y_i^0 | c_i),$$`
 
-which, in words, means that the average treatment effect in the population is the same as the average of each person’s individual treatment effect, computed conditional on their values of `\(c\)`. We can generalize this equation so that `\(\mathbf C_i\)` is a vector of covariates, continuous or otherwise, the values for which vary across the participants, to the following:
+which, in words, means that the average treatment effect in the population is the same as the average of each person’s individual treatment effect, computed conditional on their values of `\(c\)`. We can generalize this equation so that `\(\mathbf C_i\)` is a vector of covariates, the values for which vary across the participants, to the following:
 
 `$$\tau_\text{ATE} = \mathbb E (y_i^1 - y_i^0 | \mathbf C_i).$$`
 
@@ -439,7 +437,7 @@ print(nd)
     ## 1 -7.62e-15            0
     ## 2 -7.62e-15            1
 
-Since the `prec` covariate was already mean centered, we technically didn’t need to manually compute `mean(prec)`. We already knew that value would be zero. But I wanted to make the point explicit so the step will generalize to other data contexts. Anyway, now we have our `nd` data, we’re ready to pump the values into `predict()`.
+In case you’re not used to scientific notation, the `prec` values in that output are basically zero. Since the `prec` covariate was already mean centered, we technically didn’t need to manually compute `mean(prec)`. We already knew that value would be zero. But I wanted to make the point explicit so the step will generalize to other data contexts. Anyway, now we have our `nd` data, we’re ready to pump the values into `predict()`.
 
 ``` r
 predict(ols2, 
@@ -450,12 +448,9 @@ predict(ols2,
   bind_cols(nd)
 ```
 
-    ##    fit.fit  fit.lwr  fit.upr   se.fit df residual.scale         prec
-    ## 1 154.7835 152.0275 157.5396 1.361421 38       6.379119 -7.62485e-15
-    ## 2 150.2112 147.2450 153.1773 1.465200 38       6.379119 -7.62485e-15
-    ##   experimental
-    ## 1            0
-    ## 2            1
+    ##    fit.fit  fit.lwr  fit.upr   se.fit df residual.scale         prec experimental
+    ## 1 154.7835 152.0275 157.5396 1.361421 38       6.379119 -7.62485e-15            0
+    ## 2 150.2112 147.2450 153.1773 1.465200 38       6.379119 -7.62485e-15            1
 
 Similar to the simple ANOVA-type `ols1` version fo the model, the `predict()` method is great for computing `\(\mathbb{E}(y_i^1 | \bar c)\)` and `\(\mathbb{E}(y_i^0 | \bar c)\)`, but it doesn’t give us a good way to compute the difference of those values with a measure of uncertainty. For that, we can once again rely on the `marginaleffects::predictions()` function.
 
@@ -527,9 +522,9 @@ glimpse(nd)
 
     ## Rows: 82
     ## Columns: 3
-    ## $ sn           <int> 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10,…
-    ## $ prec         <dbl> -5.335366, -5.335366, -23.585366, -23.585366, -8.335366, …
-    ## $ experimental <int> 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, …
+    ## $ sn           <int> 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, 1…
+    ## $ prec         <dbl> -5.335366, -5.335366, -23.585366, -23.585366, -8.335366, -8.335366, -21.585366, -21.585…
+    ## $ experimental <int> 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, …
 
 Now each level of `sn` has two rows, one for each of the `experimental` dummy’s values: `0` and `1`. But within each level of `sn`, the baseline covariate `prec` is held constant to its original value. Now we can insert our updated counterfactual `nd` into the base **R** `predict()` to compute the conditional estimates for `post`.
 
@@ -544,20 +539,13 @@ predict(ols2,
   head()
 ```
 
-    ##    fit.fit  fit.lwr  fit.upr   se.fit df residual.scale sn       prec
-    ## 1 149.9366 147.1383 152.7349 1.382308 38       6.379119  1  -5.335366
-    ## 2 145.3642 142.3035 148.4250 1.511950 38       6.379119  1  -5.335366
-    ## 3 133.3573 129.5447 137.1700 1.883360 38       6.379119  2 -23.585366
-    ## 4 128.7850 124.6350 132.9349 2.049955 38       6.379119  2 -23.585366
-    ## 5 147.2112 144.3293 150.0932 1.423612 38       6.379119  3  -8.335366
-    ## 6 142.6389 139.4715 145.8062 1.564584 38       6.379119  3  -8.335366
-    ##   experimental
-    ## 1            0
-    ## 2            1
-    ## 3            0
-    ## 4            1
-    ## 5            0
-    ## 6            1
+    ##    fit.fit  fit.lwr  fit.upr   se.fit df residual.scale sn       prec experimental
+    ## 1 149.9366 147.1383 152.7349 1.382308 38       6.379119  1  -5.335366            0
+    ## 2 145.3642 142.3035 148.4250 1.511950 38       6.379119  1  -5.335366            1
+    ## 3 133.3573 129.5447 137.1700 1.883360 38       6.379119  2 -23.585366            0
+    ## 4 128.7850 124.6350 132.9349 2.049955 38       6.379119  2 -23.585366            1
+    ## 5 147.2112 144.3293 150.0932 1.423612 38       6.379119  3  -8.335366            0
+    ## 6 142.6389 139.4715 145.8062 1.564584 38       6.379119  3  -8.335366            1
 
 With a little more wrangling, we can compute the point estimates for `\((y_i^1 - y_i^0 | c_i)\)`.
 
@@ -634,10 +622,8 @@ comparisons(ols2, variables = list(experimental = 0:1)) %>%
 ```
 
     ## 
-    ##          Term          Contrast Estimate Std. Error      z Pr(>|z|)  2.5 %
-    ##  experimental mean(1) - mean(0)   -4.572      2.002 -2.284 0.022394 -8.497
-    ##  97.5 %
-    ##  -0.648
+    ##          Term          Contrast Estimate Std. Error      z Pr(>|z|)  2.5 % 97.5 %
+    ##  experimental mean(1) - mean(0)   -4.572      2.002 -2.284 0.022394 -8.497 -0.648
     ## 
     ## Prediction type:  response 
     ## Columns: type, term, contrast, estimate, std.error, statistic, p.value, conf.low, conf.high
@@ -699,33 +685,24 @@ sessionInfo()
     ## [1] stats     graphics  grDevices utils     datasets  methods   base     
     ## 
     ## other attached packages:
-    ##  [1] marginaleffects_0.9.0.9014 forcats_0.5.1             
-    ##  [3] stringr_1.4.1              dplyr_1.1.0               
-    ##  [5] purrr_1.0.1                readr_2.1.2               
-    ##  [7] tidyr_1.2.1                tibble_3.1.8              
-    ##  [9] ggplot2_3.4.0              tidyverse_1.3.2           
+    ##  [1] marginaleffects_0.9.0.9014 forcats_0.5.1              stringr_1.4.1             
+    ##  [4] dplyr_1.1.0                purrr_1.0.1                readr_2.1.2               
+    ##  [7] tidyr_1.2.1                tibble_3.1.8               ggplot2_3.4.0             
+    ## [10] tidyverse_1.3.2           
     ## 
     ## loaded via a namespace (and not attached):
-    ##  [1] lubridate_1.8.0     assertthat_0.2.1    digest_0.6.31      
-    ##  [4] utf8_1.2.2          R6_2.5.1            cellranger_1.1.0   
-    ##  [7] backports_1.4.1     reprex_2.0.2        evaluate_0.18      
-    ## [10] httr_1.4.4          blogdown_1.15       pillar_1.8.1       
-    ## [13] rlang_1.0.6         googlesheets4_1.0.1 readxl_1.4.1       
-    ## [16] rstudioapi_0.13     data.table_1.14.6   jquerylib_0.1.4    
-    ## [19] checkmate_2.1.0     rmarkdown_2.16      googledrive_2.0.0  
-    ## [22] munsell_0.5.0       broom_1.0.2         compiler_4.2.2     
-    ## [25] modelr_0.1.8        xfun_0.35           pkgconfig_2.0.3    
-    ## [28] htmltools_0.5.3     insight_0.19.0      tidyselect_1.2.0   
-    ## [31] bookdown_0.28       fansi_1.0.4         crayon_1.5.2       
-    ## [34] tzdb_0.3.0          dbplyr_2.2.1        withr_2.5.0        
-    ## [37] grid_4.2.2          jsonlite_1.8.4      gtable_0.3.1       
-    ## [40] lifecycle_1.0.3     DBI_1.1.3           magrittr_2.0.3     
-    ## [43] scales_1.2.1        cli_3.6.0           stringi_1.7.8      
-    ## [46] cachem_1.0.6        fs_1.5.2            xml2_1.3.3         
-    ## [49] bslib_0.4.0         ellipsis_0.3.2      generics_0.1.3     
-    ## [52] vctrs_0.5.2         tools_4.2.2         glue_1.6.2         
-    ## [55] hms_1.1.1           fastmap_1.1.0       yaml_2.3.5         
-    ## [58] colorspace_2.1-0    gargle_1.2.0        rvest_1.0.2        
+    ##  [1] lubridate_1.8.0     assertthat_0.2.1    digest_0.6.31       utf8_1.2.2          R6_2.5.1           
+    ##  [6] cellranger_1.1.0    backports_1.4.1     reprex_2.0.2        evaluate_0.18       httr_1.4.4         
+    ## [11] blogdown_1.15       pillar_1.8.1        rlang_1.0.6         googlesheets4_1.0.1 readxl_1.4.1       
+    ## [16] rstudioapi_0.13     data.table_1.14.6   jquerylib_0.1.4     checkmate_2.1.0     rmarkdown_2.16     
+    ## [21] googledrive_2.0.0   munsell_0.5.0       broom_1.0.2         compiler_4.2.2      modelr_0.1.8       
+    ## [26] xfun_0.35           pkgconfig_2.0.3     htmltools_0.5.3     insight_0.19.0      tidyselect_1.2.0   
+    ## [31] bookdown_0.28       fansi_1.0.4         crayon_1.5.2        tzdb_0.3.0          dbplyr_2.2.1       
+    ## [36] withr_2.5.0         grid_4.2.2          jsonlite_1.8.4      gtable_0.3.1        lifecycle_1.0.3    
+    ## [41] DBI_1.1.3           magrittr_2.0.3      scales_1.2.1        cli_3.6.0           stringi_1.7.8      
+    ## [46] cachem_1.0.6        fs_1.5.2            xml2_1.3.3          bslib_0.4.0         ellipsis_0.3.2     
+    ## [51] generics_0.1.3      vctrs_0.5.2         tools_4.2.2         glue_1.6.2          hms_1.1.1          
+    ## [56] fastmap_1.1.0       yaml_2.3.5          colorspace_2.1-0    gargle_1.2.0        rvest_1.0.2        
     ## [61] knitr_1.40          haven_2.5.1         sass_0.4.2
 
 ## References
