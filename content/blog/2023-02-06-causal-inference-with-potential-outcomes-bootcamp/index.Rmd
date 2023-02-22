@@ -30,7 +30,7 @@ link-citations: yes
 options(width = 110)
 ```
 
-One of the nice things about the simple OLS models we fit in the last post is they're easy to interpret. The various $\beta$ parameters were valid estimates of the population effects for one treatment group relative to the wait-list control. However, this nice property won't hold in many cases where the nature of our dependent variables and/or research design requires us to fit other kinds of models from the broader generalized linear mixed model (GLMM) framework. Another issue at stake is if you've spent most of your statistical analysis career using the OLS framework, there's a good chance there are concepts that are undifferentiated in your mind. As is turns out, some of these concepts are important when we want to make valid causal inferences. Our task in this post is to start differentiating the undifferentiated.
+One of the nice things about the simple OLS models we fit in the last post is they're easy to interpret. The various $\beta$ parameters were valid estimates of the population effects for one treatment group relative to the wait-list control[^1]. However, this nice property won't hold in many cases where the nature of our dependent variables and/or research design requires us to fit other kinds of models from the broader generalized linear mixed model (GLMM) framework. Another issue at stake is if you've spent most of your statistical analysis career using the OLS framework, there's a good chance there are concepts that are undifferentiated in your mind. As is turns out, some of these concepts are important when we want to make valid causal inferences. Our task in this post is to start differentiating the undifferentiated.
 
 ## Reload and refit
 
@@ -41,7 +41,10 @@ In post, we'll be continuing on with our `horan1971` data set form the last post
 ```{r, warning = F, message = F}
 # packages
 library(tidyverse)
+library(flextable)
 library(marginaleffects)
+library(ggdist)
+library(patchwork)
 
 # adjust the global theme
 theme_set(theme_gray(base_size = 12) +
@@ -115,7 +118,7 @@ Okay, so at the beginning of the post, we said the $\beta$ coefficients for our 
 
 ### Counterfactual interventions, no covariates.
 
-Our friends in causal inference have been busy over the past few years. First, we should understand there are different ways of speaking about causal inference. I'm not going to cover all the various frameworks, here, but most of the causal inference textbooks I mentioned in the [last post](https://timely-flan-2986f4.netlify.app/blog/2023-02-06-boost-your-power-with-baseline-covariates/#i-make-assumptions) provide historical overviews. At the time of this writing, I'm a fan of the potential-outcomes framework [see @imbensCausalInferenceStatistics2015], the basics of which we might explain as follows: 
+Our friends in causal inference have been busy over the past few years. First, we should understand there are different ways of speaking about causal inference. I'm not going to cover all the various frameworks, here, but most of the causal inference textbooks I mentioned in the [last post](https://timely-flan-2986f4.netlify.app/blog/2023-02-06-boost-your-power-with-baseline-covariates/#i-make-assumptions) provide historical overviews. At the time of this writing, I'm a fan of the potential-outcomes framework [see @imbensCausalInferenceStatistics2015; @splawa1990application], the basics of which we might explain as follows:
 
 Say you have some population of interest, such as overweight female university students interested in losing weight [see @horan1971coverant]. You have some focal outcome variable $y$, which you'd like to see change in a positive direction. In our case that would be bodyweight, as measured in pounds. Since $y$ varies across $i$ persons, we can denote each participants' value as $y_i$. Now imagine you have 2 or more well-defined interventions. In our case, that would be assignment to the waitlist control or experimental intervention group. For notation purposes, we can let $0$ stand for the control group and $1$ stand for the active treatment group, much like with a dummy variable. We can then write $y_i^0$ for the $i$th person's outcome if they were in the control condition, and $y_i^1$ for the $i$th person's outcome if they were in the treatment condition. Putting all those pieces together, we can define the causal effect $\tau$ of treatment versus control for the $i$th person as
 
@@ -130,14 +133,15 @@ horan1971 %>%
   slice_sample(n = 10) %>% 
   mutate(y1 = ifelse(treatment == "experimental", post, NA),
          y0 = ifelse(treatment == "delayed", post, NA)) %>% 
-  select(sn, treatment, post, y1, y0)
+  select(sn, treatment, post, y1, y0) %>% 
+  flextable()
 ```
 
-Within the `mutate()` function, I computed each participants' `y1` and `y0` score, based on a combination of her `treatment` and `post` values. Because none of the participants have values for both `y1` and `y0`, we cannot use the raw data to compute their individual treatment effects. What we can do, however, is compute the *average treatment effect* (ATE) with the formula:
+Within the `mutate()` function, I computed each participants' `y1` and `y0` score, based on a combination of her `treatment` and `post` values. That last `flextable()` line converted the results to a nice table format, with help from the **flextable** package [@R-flextable; @gohelUsingFlextable2023]. Because none of the participants have values for both `y1` and `y0`, we cannot use the raw data to compute their individual treatment effects. What we can do, however, is compute the *average treatment effect* (ATE) with the formula:
 
 $$\tau_\text{ATE} = \mathbb E (y_i^1 - y_i^0),$$
 
-which, in words, just means that the average treatment effect in the population is the same as the average of each person's individual treatment effect. In the equation, I'm using the expectation operator $\mathbb E()$ to emphasize we're working within a likelihoodist framework. At first glance, it might appear[^1] this equation doesn't solve the problem that we cannot compute $y_i^1 - y_i^0$ from the data of any of our participants, because half of the required values are still missing. However, it's also the case that when we're working with a simple OLS-type model[^2], 
+which, in words, just means that the average treatment effect in the population is the same as the average of each person's individual treatment effect. In the equation, I'm using the expectation operator $\mathbb E()$ to emphasize we're working within a likelihoodist framework. At first glance, it might appear[^2] this equation doesn't solve the problem that we cannot compute $y_i^1 - y_i^0$ from the data of any of our participants, because half of the required values are still missing. However, it's also the case that when we're working with a simple OLS-type model[^3],
 
 $$\tau_\text{ATE} = \mathbb E (y_i^1 - y_i^0) = {\color{blueviolet}{\mathbb E (y_i^1) - \mathbb E (y_i^0)}},$$
 
@@ -153,7 +157,11 @@ Before we get into it, we should probably introduce a few more vocabulary words.
 * **Estimators** are the statistical methods we use to analyze our data. In this blog post and in the last, our estimators have been our OLS regression models. In the next couple blog posts, we'll add logistic regression via maximum likelihood and various Bayesian models to our list of estimators.
 * An **estimate** is the result from your statistical model (estimator) that's designed to answer your research question.
 
-If you prefer your education in the form of silly social media memes, maybe this one will help:
+@rubin2005causal did a pretty good job summarizing why terms like this are necessary:
+
+> When facing any problem of statistical inference, it is most important to begin by understanding the quantities that we are trying to estimate—the estimands. Doing so is particularly critical when dealing with causal inference, where mistakes can easily be made by describing the technique (e.g., computer program) used to do the estimation without any description of the object of the estimation. (p. 323)
+
+I have made such mistakes, and my hope is this and the material to come will help prevent you from doing the same. If you prefer your education in the form of silly social media memes, maybe this one will help:
 
 ```{r echo = FALSE}
 blogdown::shortcode('tweet', user = "rlmcelreath", id = '1582368904529137672')
@@ -163,7 +171,7 @@ Anyway, next we'll learn how to actually compute $\tau_\text{ATE}$ within the co
 
 #### Compute $\mathbb E (y_i^1) - \mathbb E (y_i^0)$ from `ols1`.
 
-Sometimes the authors of introductory causal inference textbooks have readers practice computing these values by hand, which can have its pedagogical value. But in your role as a professional scientist, you'll be computing $\tau_\text{ATE}$ within the context of a regression model, so you can properly express the uncertainty of your estimand with 95% intervals, as standard error, or some other measure of uncertainty. To that end, we can compute $\mathbb E (y_i^1)$ and $\mathbb E (y_i^0)$ by inserting our `ols1` model into the base **R** `predict()` function.
+Sometimes the authors of introductory causal inference textbooks have readers practice computing these values by hand, which can have its pedagogical value. But in your role as a professional scientist, you'll be computing $\tau_\text{ATE}$ within the context of a regression model, so you can properly express the uncertainty of your estimate with 95% intervals, as standard error, or some other measure of uncertainty. To that end, we can compute $\mathbb E (y_i^1)$ and $\mathbb E (y_i^0)$ by inserting our `ols1` model into the base **R** `predict()` function.
 
 ```{r}
 nd <- tibble(experimental = 0:1)
@@ -188,7 +196,7 @@ The **marginaleffects** package offers a few ways to contrast the to mean values
 predictions(ols1, newdata = nd, by = "experimental", hypothesis = "revpairwise")
 ```
 
-Now we have a nice standard error and 95% interval range for the estiamte of our estimand, $\tau_\text{ATE}$. Thus, the average causal effect of the experimental condition relative to the waitlist control is a reduction of about 2 and a half pounds, with with a very wide 95% confidence interval range spanning from a reduction of 13 pounds to an *increase* of 8 pounds. Now look back at the parameter summary for `ols1`.
+Now we have a nice standard error and 95% interval range for the estimate of our estimand, $\tau_\text{ATE}$. Thus, the average causal effect of the experimental condition relative to the waitlist control is a reduction of about 2 and a half pounds, with with a very wide 95% confidence interval range spanning from a reduction of 13 pounds to an *increase* of 8 pounds. Now look back at the parameter summary for `ols1`.
 
 ```{r}
 summary(ols1)
@@ -198,7 +206,7 @@ Notice that the summary for our $\beta_1$ parameter is the same as the $\tau_\te
 
 #### Compute $\mathbb E (y_i^1 - y_i^0)$ from `ols1`.
 
-It's time for me to confess my rhetoric above was a little misleading. As it turns out, you can in fact compute $\mathbb E (y_i^1 - y_i^0)$ from your regression models, even with 50% of the values missing. The key is to compute *counterfactual* estimates $\hat y_i^1$ and $\hat y_i^0$ from the model. Before we can do that, we'll first need to redefine our `nd` predictor data.
+It's time for me to confess my rhetoric above was a little misleading. As it turns out, you can in fact compute $\mathbb E (y_i^1 - y_i^0)$ from your regression models, even with 50% of the values missing. The key is to compute *counterfactual* estimates $\hat y_i^1$ and $\hat y_i^0$ from the model[^4]. Before we can do that, we'll first need to redefine our `nd` predictor data.
 
 ```{r}
 nd <- horan1971 %>% 
@@ -236,7 +244,55 @@ comparisons(ols1, variables = list(experimental = 0:1)) %>%
   head()
 ```
 
-Here we see the $y_i^1 - y_i^0$ for the first six participants in the data set, each with its own standard errors and so on. But recall our estimand $\tau_\text{ATE}$ is defined as $\mathbb E (y_i^1 - y_i^0)$. This means, we need a way to compute the average of those contrasts, with a method that also accounts for their standard errors. Happily, all we need to do is tack on the `summary()` function, which will prompt the **marginaleffects** to compute the average of those participant-level contrasts and use the so-called delta method to compute the accompanying standard error.
+Here we see the $y_i^1 - y_i^0$ for the first six participants in the data set, each with its own standard errors and so on. To give you a better sense of what we've been computing, we might put the participant-level counterfactual predictions and their contrasts into a couple plots.
+
+```{r, fig.width = 8, fig.height = 5.5}
+# counterfactual predictions
+p1 <- predictions(ols1, newdata = nd, by = c("sn", "experimental")) %>% 
+  data.frame() %>% 
+  mutate(y = ifelse(experimental == 0, "hat(italic(y))^0", "hat(italic(y))^1")) %>% 
+  
+  ggplot(aes(x = estimate, y = reorder(sn, estimate), color = y)) +
+  geom_interval(aes(xmin = conf.low, xmax = conf.high),
+                position = position_dodge(width = 0.2),
+                size = 1/5) +
+  geom_point(aes(shape = y),
+             size = 2) +
+  scale_color_viridis_d(NULL, option = "A", begin = .3, end = .6,
+                        labels = scales::parse_format()) +
+  scale_shape_manual(NULL, values = c(20, 18),
+              labels = scales::parse_format()) +
+  scale_y_discrete(breaks = NULL) +
+  labs(subtitle = "counterfactual predictions",
+       x = "post",
+       y = "sn (ranked)") +
+  xlim(120, 200) +
+  theme(legend.background = element_blank(),
+        legend.position = c(.9, .85))
+
+# treatment effects
+p2 <- comparisons(ols1, variables = list(experimental = 0:1), by = "sn") %>% 
+  data.frame() %>% 
+  
+  ggplot(aes(x = estimate, y = reorder(sn, estimate))) +
+  geom_vline(xintercept = 0, color = "white") +
+  geom_interval(aes(xmin = conf.low, xmax = conf.high),
+                position = position_dodge(width = 0.25),
+                size = 1/5) +
+  geom_point() +
+  scale_y_discrete(breaks = NULL) +
+  labs(subtitle = "treatment effects",
+       x = expression(hat(tau)[italic(i)]~("i.e., "*hat(italic(y))[italic(i)]^1-hat(italic(y))[italic(i)]^0)),
+       y = NULL) +
+  xlim(-40, 40)
+
+# combine the two plots
+p1 + p2 + plot_annotation(title = "Person-level estimates based on the ANOVA model (ols1)")
+```
+
+If the left plot, we see the counterfactual predictions, depicted by their point estimates (dots) and 95% intervals (horizontal lines), and colored by whether they were based on the waitlist intervention $(\hat y_i^0)$ or the control intervention $(\hat y_i^1)$. In the right plot, we have the corresponding treatment effects $(y_i^1 - y_i^0)$. In both plots, the y-axis has been rank ordered by the magnitudes of the predictions. Because the ANOVA model `ols1` has no covariates, the predictions and their contrasts are identical for all participants, which makes rank ordering them an odd thing to do. As we'll see later on, the ranking will make more sense once we work with the ANCOVA model.
+
+But recall our focal estimand $\tau_\text{ATE}$ is defined as $\mathbb E (y_i^1 - y_i^0)$. This means we need a way to compute the average of those person-level contrasts, with a method that also accounts for their standard errors. Happily, all we need to do is use the `summary()` function after `comparisons()`, which will prompt the **marginaleffects** package to compute the average of those participant-level contrasts and use the so-called delta method to compute the accompanying standard error.
 
 ```{r}
 comparisons(ols1, variables = list(experimental = 0:1)) %>% 
@@ -263,7 +319,7 @@ $$\tau_\text{ATE} = \mathbb E (y_i^1 - y_i^0 | \mathbf C_i).$$
 
 Though we won't consider more complex data examples in this blog post, we will want to keep the $\mathbf C$ vector insights in the backs of our minds for the blog posts to come. In the literature, this method is often called *standardization* or *g-computation*. To my knowledge, these terms have their origins in different parts of the literature, but they're really the same thing when used in the ways I'll be highlighting in this blog series. For a way into this literature, you might check out @snowden2011implementation, @muller2014estimating, or @wang2017gcomputation.
 
-Anyway, an alternative approach is to use the mean[^3] value of the covariate, $\bar c$, to compute the conditional predicted values for the two levels of treatment, and then take their difference:
+Anyway, an alternative approach is to use the mean[^5] value of the covariate, $\bar c$, to compute the conditional predicted values for the two levels of treatment, and then take their difference:
 
 $$\tau_\text{ATE} = \mathbb E (y_i^1 | \bar c) - \mathbb E (y_i^0 | \bar c).$$
 
@@ -331,7 +387,7 @@ Before we compute our counterfactual $\mathbb{E}(y_i^1 - y_i^0 | c_i)$ estimates
 
 ```{r}
 nd <- horan1971 %>% 
-  select(sn, prec) %>% 
+  select(sn, prec, pre) %>% 
   expand_grid(experimental = 0:1)
 
 # what?
@@ -379,8 +435,55 @@ comparisons(ols2, variables = list(experimental = 0:1)) %>%
   head()
 ```
 
+Here we see the $(y_i^1 - y_i^0 | c_i)$ for the first six participants in the data set, each with its own standard errors and so on. Like with the ANOVA model, we might put the participant-level counterfactual predictions and their contrasts into a couple plots to give you a better sense of what we've been computing.
 
-Here we see the $(y_i^1 - y_i^0 | c_i)$ for the first six participants in the data set, each with its own standard errors and so on. But recall our estimand $\tau_\text{ATE}$ is estimated via $\mathbb E (y_i^1 - y_i^0 | c_i)$, which means we need to compute the average of those contrasts in a way that produces a standard error. As with the simpler ANOVA-type workflow we used with `ols1`, we can simply tack on a `summary()` line, which will compute delta-method based standard errors.
+```{r, fig.width = 8, fig.height = 5.5}
+# counterfactual predictions
+p3 <- predictions(ols2, newdata = nd, by = c("sn", "experimental", "prec")) %>% 
+  data.frame() %>% 
+  mutate(y = ifelse(experimental == 0, "hat(italic(y))^0", "hat(italic(y))^1")) %>% 
+  
+  ggplot(aes(x = estimate, y = reorder(sn, estimate))) +
+  ggdist::geom_interval(aes(xmin = conf.low, xmax = conf.high, color = y),
+                        position = position_dodge(width = 0.2),
+                        size = 1/5) +
+  geom_point(aes(color = y, shape = y),
+             size = 2) +
+  scale_color_viridis_d(NULL, option = "A", begin = .3, end = .6,
+                        labels = scales::parse_format()) +
+  scale_shape_manual(NULL, values = c(20, 18),
+              labels = scales::parse_format()) +
+  scale_y_discrete(breaks = NULL) +
+  labs(subtitle = "counterfactual predictions",
+       x = "post",
+       y = "sn (ranked)") +
+  coord_cartesian(xlim = c(120, 200)) +
+  theme(legend.background = element_blank(),
+        legend.position = c(.9, .85))
+
+# treatment effects
+p4 <- comparisons(ols2, variables = list(experimental = 0:1), by = "sn") %>% 
+  data.frame() %>% 
+  
+  ggplot(aes(x = estimate, y = reorder(sn, estimate))) +
+  geom_vline(xintercept = 0, color = "white") +
+  ggdist::geom_interval(aes(xmin = conf.low, xmax = conf.high),
+                        position = position_dodge(width = 0.25),
+                        size = 1/5) +
+  geom_point() +
+  scale_y_discrete(breaks = NULL) +
+  labs(subtitle = "treatment effects",
+       x = expression(hat(tau)[italic(i)]~("i.e., "*hat(italic(y))[italic(i)]^1-hat(italic(y))[italic(i)]^0)),
+       y = NULL) +
+  xlim(-40, 40)
+
+# combine
+p3 + p4 + plot_annotation(title = "Person-level estimates based on the ANCOVA model (ols2)")
+```
+
+To my eye, a few things emerge when comparing these ANCOVA-based plots to their ANOVA counterparts from above. First, we now see how the `prec` covariate in the ANCOVA model changes the counterfactual predictions for the participants, and how each person's predictions can vary widely from those for the other participants. Yet even though the individual predictions vary, the differences between $(\hat y_i^0)$ and $(\hat y_i^1)$ are the *same* across all participants, which is still depicted by the identical $\hat \tau_i$ estimates in the right plot. Also, notice how the 95% intervals are much narrower in both plots, when compared to their ANOVA counterparts from above. This is why we like strongly-predictive baseline covariates. They shrink the standard errors and the 95% interval ranges.
+
+But anyways, recall our focal estimand $\tau_\text{ATE}$ is estimated via $\mathbb E (y_i^1 - y_i^0 | c_i)$, which means we need to compute the average of those contrasts in a way that produces a standard error. As with the simpler ANOVA-type workflow we used with `ols1`, we can simply tack on a `summary()` line, which will compute delta-method based standard errors.
 
 ```{r}
 comparisons(ols2, variables = list(experimental = 0:1)) %>% 
@@ -424,11 +527,15 @@ sessionInfo()
 
 ## References
 
-[^1]: I say "might appear" because we'll eventually see this isn't an unsolvable problem within our regression paradigm. But we do have to make some strong assumptions with our paradigm and the counterfactual estimates we'll produce still aren't the same thing as if we had actually observed all the potential outcomes. But we're getting ahead of ourselves.
+[^1]: This, of course, is assuming you didn't have major problems at the study design and implementation phases. If you did, those are issues for another blog series.
 
-[^2]: As we'll see later, this has a lot to do with link functions, which are popular with non-Gaussian models like logistic and Poisson regression. But basically, if you're fitting a mean-model with an identity link, as with conventional OLS or a simple Gaussian GLM, $\mathbb E (y_i^1 - y_i^0) = \mathbb E (y_i^1) - \mathbb E (y_i^0)$. In other situations, it might not.
+[^2]: I say "might appear" because we'll eventually see this isn't an unsolvable problem within our regression paradigm. But we do have to make some strong assumptions with our paradigm and the counterfactual estimates we'll produce still aren't the same thing as if we had actually observed all the potential outcomes. But we're getting ahead of ourselves.
 
-[^3]: In addition to the sample mean, you could also use the mode [see @muller2014estimating], or some other value of theoretical interest. The mode can be a particularly good option when working with categorical covariates, and we'll cover this possibility in a future post. You could even use different strategies for different covariates in your covariate set.
+[^3]: As we'll see later, this has a lot to do with link functions, which are popular with non-Gaussian models like logistic and Poisson regression. But basically, if you're fitting a mean-model with an identity link, as with conventional OLS or a simple Gaussian GLM, $\mathbb E (y_i^1 - y_i^0) = \mathbb E (y_i^1) - \mathbb E (y_i^0)$. In other situations, it might not.
+
+[^4]: Don Rubin isn't a huge fan of equating *counterfactuals* with *potential outcomes* [see @rubin2005causal, p. 325]. To my mind, this is the kind of nuanced distinction that may be of interest to philosophers or causal inference scholars, but has little importance for the kinds of applied statistical methods we're highlighting in this series.
+
+[^5]: In addition to the sample mean, you could also use the mode [see @muller2014estimating], or some other value of theoretical interest. The mode can be a particularly good option when working with categorical covariates, and we'll cover this possibility in a future post. You could even use different strategies for different covariates in your covariate set.
 
 ```{r, eval = F, echo = F}
 tibble(x = 0, y = 0, label = "tau[ATE]") %>% 
