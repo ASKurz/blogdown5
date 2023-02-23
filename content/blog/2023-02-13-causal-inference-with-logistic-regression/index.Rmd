@@ -782,8 +782,7 @@ comparisons(glm2, newdata = nd, variables = "tx", by = "id") %>%
   labs(title = "The individual treatment effect distribution",
        subtitle = "Each gray dot is a point estmiate for a single participant's treatment effect. The horizontal red line marks off the interquartile range, and the red dot marks the ATE.",
        x = expression(hat(tau)[italic(i)]~("i.e., "*hat(italic(p))[italic(i)]^1-hat(italic(p))[italic(i)]^0))) +
-  coord_cartesian(ylim = c(0, 0.7)) +
-  theme(panel.grid = element_blank())
+  coord_cartesian(ylim = c(0, 0.7))
 ```
 
 The red dot below the distribution marks off the average of the $\hat \tau_i$ values, which is the same as the point estimate for the ATE. Speaking of which, here's $\tau_\text{ATE}$ for this model, and for the simpler ANOVA-type `glm1`.
@@ -828,8 +827,9 @@ glimpse(nd)
 Now we'll plot the results.
 
 ```{r, fig.width = 8, fig.height = 4.25}
-# compute/save the point estimate for the ATE
+# compute/save the point estimate and standard error for the ATE
 ate_est <- avg_comparisons(glm2, variables = "tx") %>% pull(estimate)
+ate_se <- avg_comparisons(glm2, variables = "tx") %>% pull(std.error)
 
 # point estimates
 p5 <- comparisons(glm2, newdata = nd, variables = "tx", by = "id")  %>% 
@@ -936,7 +936,7 @@ sessionInfo()
 [^7]: For example, say you have a dummy variable called `male`, which is a zero for women and a one for men. One way to interpret a model using the centered version of `male` is it returns the contrast weighted by the proportion of women/men in the sample or population. Another interpretation is this returns the contrast for someone who is in the middle of the female-male spectrum--which is what? Intersex? Non-binary? Transgender? It might be possible to interpret such a computation with skill and care, but such an approach might also leave one's audience confused or offended.
 
 ```{r, fig.width = 4, fig.height = 4, echo = F, eval = F}
-comparisons(glm2, newdata = nd, variables = "tx") %>% 
+comparisons(glm2, variables = "tx") %>% 
   data.frame() %>% 
   
   ggplot(aes(x = estimate)) +
@@ -946,8 +946,8 @@ comparisons(glm2, newdata = nd, variables = "tx") %>%
   labs(title = "The individual treatment effect distribution",
        x = expression(hat(tau)[italic(i)]~("i.e., "*hat(italic(p))[italic(i)]^1-hat(italic(p))[italic(i)]^0))) +
   theme_gray(base_size = 11.7, base_family = "serif") +
-  theme(panel.grid = element_blank(),
-        panel.background = element_rect(fill = "#ffe5ea"))
+  theme(panel.background = element_rect(fill = "#ffe5ea"),
+        panel.grid = element_blank())
 
 ggsave("tau-i-featured.jpg", width = 3.5, height = 3.5, units = "in")
 ```
