@@ -51,6 +51,10 @@ library(broom)
 library(ggdist)
 library(patchwork)
 
+# adjust the global theme
+theme_set(theme_gray(base_size = 12) +
+            theme(panel.grid = element_blank()))
+
 # data
 wilson2017 <- readxl::read_excel("data/S1Data.xls", sheet = "data")
 
