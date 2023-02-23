@@ -767,7 +767,7 @@ Now we have added covariates to the model, the counterfactual probabilities vary
 
 Investigating further, here's the full distribution of the $\hat \tau_i$ values for all $n = 400$ cases. To reduce visual complexity, we'll drop the 95% confidence interval lines.
 
-```{r, fig.width = 4, fig.height = 3}
+```{r, fig.width = 4.5, fig.height = 4}
 comparisons(glm2, newdata = nd, variables = "tx", by = "id") %>% 
   data.frame() %>% 
   
@@ -780,7 +780,7 @@ comparisons(glm2, newdata = nd, variables = "tx", by = "id") %>%
   scale_x_continuous(limits = c(-0.5, 0.5)) +
   scale_y_continuous(NULL, breaks = NULL) +
   labs(title = "The individual treatment effect distribution",
-       subtitle = "Each gray dot is a point estmiate for a single participant's treatment effect. The horizontal red line marks off the interquartile range, and the red dot marks the ATE.",
+       subtitle = "Each gray dot is a point estmiate for a single participant's\ntreatment effect. The horizontal red line marks off the\ninterquartile range, and the red dot marks the ATE.",
        x = expression(hat(tau)[italic(i)]~("i.e., "*hat(italic(p))[italic(i)]^1-hat(italic(p))[italic(i)]^0))) +
   coord_cartesian(ylim = c(0, 0.7))
 ```
