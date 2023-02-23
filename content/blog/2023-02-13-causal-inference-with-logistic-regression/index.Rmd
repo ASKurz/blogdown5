@@ -48,6 +48,8 @@ library(tidyverse)
 library(marginaleffects)
 library(flextable)
 library(broom)
+library(ggdist)
+library(patchwork)
 
 # data
 wilson2017 <- readxl::read_excel("data/S1Data.xls", sheet = "data")
@@ -94,7 +96,7 @@ wilson2017 <- wilson2017 %>%
 dim(wilson2017)
 ```
 
-Now we'll adjust some of the variables, themselves. We will save the nominal covariates `gender`, `msm`, and `ethnicgrp` as factors with defined levels. The covariate `partners` is ordinal[^2], but for our purposes it will be fine to convert it to a factor, too. The `age` covariate is continuous, but it'll come in handy to rescale it into a $z$-score metric, which we'll name `agez`. We'll simplify the character variable for out experimental groups, `group`, in to a a `tx` dummy coded `0` for the control condition and `1` for those in the intervention condition. Then we'll rename the `anon_id` index to `id`, reorder the columns, and drop the other columns we won't be focusing on in this post.
+Now we'll adjust some of the variables, themselves. We will save the nominal covariates `gender`, `msm`, and `ethnicgrp` as factors with defined levels. The covariate `partners` is ordinal[^2], but for our purposes it will be fine to convert it to a factor, too. The `age` covariate is continuous, but it'll come in handy to rescale it into a $z$-score metric, which we'll name `agez`. We'll simplify the character variable for the experimental groups, `group`, in to a a `tx` dummy coded `0` for the control condition and `1` for those in the intervention condition. Then we'll rename the `anon_id` index to `id`, reorder the columns, and drop the other columns we won't be focusing on in this post.
 
 ```{r}
 wilson2017 <- wilson2017 %>% 
@@ -127,7 +129,7 @@ We've already introduced our binary outcome variable `anytest` and the experimen
  
 Further down in the Method (p. 7), we learn all these variables were used as covariates in the primary analysis[^3], in addition to ethnicity.
 
-To get a sense of these covariates, here we use **flextable** [@R-flextable; @gohelUsingFlextable2023] to make a Table 1 type table of the categorical variables for our randomized subset.
+To get a sense of these covariates, we'll make a Table 1 type table of the categorical variables for our randomized subset.
 
 ```{r}
 wilson2017 %>% 
@@ -436,7 +438,66 @@ nd %>%
 
 The mean[^6] of our random process is a pretty good approximation of $\tau_\text{ATE}$ computed from the `avg_comparisons()` function, above.
 
-So in the case of an ANOVA-type logistic regression model of a randomized experiment,
+Backing up a bit, we might want to get a better sense of all those $p_i^1$, $p_i^0$, and $(p_i^1 - p_i^0)$ estimates we've been averaging over. Like in the last post, we'll display them in a couple plots. To keep down the clutter, we'll restrict ourselves to a random $n = 50$ subset of the 400 cases in the `wilson2017` data.
+
+```{r, fig.width = 8, fig.height = 5.5}
+# make the random subset
+set.seed(3)
+
+id_subset <- wilson2017 %>%
+  slice_sample(n = 50) %>% 
+  pull(id)
+
+# counterfactual probabilities
+p1 <- predictions(glm1, newdata = nd) %>% 
+  data.frame() %>% 
+  filter(id %in% id_subset) %>% 
+  mutate(y = ifelse(tx == 0, "hat(italic(p))^0", "hat(italic(p))^1")) %>% 
+  
+  ggplot(aes(x = estimate, y = reorder(id, estimate), color = y)) +
+  geom_interval(aes(xmin = conf.low, xmax = conf.high),
+                position = position_dodge(width = 0.2),
+                size = 1/5) +
+  geom_point(aes(shape = y),
+             size = 2) +
+  scale_color_viridis_d(NULL, option = "A", begin = .3, end = .6,
+                        labels = scales::parse_format()) +
+  scale_shape_manual(NULL, values = c(20, 18),
+              labels = scales::parse_format()) +
+  scale_x_continuous(limits = 0:1) +
+  scale_y_discrete(breaks = NULL) +
+  labs(subtitle = "counterfactual probabilities",
+       x = expression(italic(p[i])),
+       y = "id (ranked)") +
+  theme(legend.background = element_blank(),
+        legend.position = c(.9, .85))
+
+# treatment effects
+p2 <- comparisons(glm1, newdata = nd, variables = list(tx = 0:1), by = "id") %>% 
+  data.frame() %>% 
+  filter(id %in% id_subset) %>% 
+  
+  ggplot(aes(x = estimate, y = reorder(id, estimate))) +
+  geom_vline(xintercept = 0, color = "white") +
+  geom_interval(aes(xmin = conf.low, xmax = conf.high),
+                size = 1/5) +
+  geom_point() +
+  scale_x_continuous(limits = c(-0.5, 0.5)) +
+  scale_y_discrete(breaks = NULL) +
+  labs(subtitle = "treatment effects",
+       x = expression(hat(tau)[italic(i)]~("i.e., "*hat(italic(p))[italic(i)]^1-hat(italic(p))[italic(i)]^0)),
+       y = NULL) +
+  theme(legend.background = element_blank(),
+        legend.position = c(.9, .85))
+
+# combine the two plots
+p1 + p2 + plot_annotation(title = "Person-level estimates based on the logistic regression ANOVA model (glm1)")
+```
+
+
+If the left plot, we see the counterfactual probabilities, depicted by their point estimates (dots) and 95% intervals (horizontal lines), and colored by whether they were based on the control condition $(\hat p_i^0)$ or the experimental intervention $(\hat p_i^1)$. In the right plot, we have the corresponding treatment effects $(p_i^1 - p_i^0)$. In both plots, the y-axis has been rank ordered by the magnitudes of the estimates. Other than how we have switched from predictions $\hat y_i$ to probabilities $\hat p_i$, the overall results of these plots follow the same patterns as those in their [analogues from the last post](https://timely-flan-2986f4.netlify.app/blog/2023-02-06-causal-inference-with-potential-outcomes-bootcamp/#estimands-estimators-and-estimates), where we used the conventional OLS framework. Because the logistic regression ANOVA model `glm1` has no covariates, the probabilities and their contrasts are identical for all participants. As we'll see later on, this will change when we switch to the ANCOVA model. 
+
+Wrapping up, in the case of an ANOVA-type logistic regression model of a randomized experiment,
 
 * $\operatorname{logit}^{-1}(\beta_0 + \beta_1) - \operatorname{logit}^{-1}(\beta_1)$,
 * $p^1 - p^0$, and
@@ -520,7 +581,7 @@ This holds for logistic regression models regardless of whether you have discret
 Earlier we learned the coefficient for the experimental group, $\beta_1$, does not have a direct relation with the ATE for the logistic regression ANOVA model. In a similar way, the $\beta_1$ coefficient does not have a direct relation with the ATE for the logistic regression ANCOVA model, either. If you want the ATE, you'll have to use the methods from the sections to come. In the meantime, let's compare the $\beta_1$ estimates for the ANOVA and ANCOVA models:
 
 ```{r}
- bind_rows(tidy(glm1), tidy(glm2)) %>% 
+bind_rows(tidy(glm1), tidy(glm2)) %>% 
   filter(term == "tx") %>% 
   mutate(fit = c("glm1", "glm2"),
          model_type = c("ANOVA", "ANCOVA")) %>%
@@ -649,31 +710,79 @@ comparisons(glm2, newdata = nd, variables = "tx") %>%
   head(n = 10)
 ```
 
-Even among the first 10 rows, we can see there's a lot of diversity among the estimates for the individual treatment effects. Before we compute the ATE, it might be worth the effort to look at all those estimates in a coefficient plot.
+Even among the first 10 rows, we can see there's a lot of diversity among the estimates for the individual treatment effects. Before we compute the ATE, it might be worth the effort to look more closely at the person-level estimates in a coefficient plot. As with the ANOVA model, we'll only visualize an $n = 50$ subset of the 400 cases.
 
-```{r, fig.width = 8, fig.height = 5}
-comparisons(glm2, newdata = nd, variables = "tx") %>% 
-  # convert the output to a data frame
+```{r, fig.width = 8, fig.height = 5.5}
+# counterfactual probabilities
+p3 <- predictions(glm2, newdata = nd) %>% 
   data.frame() %>% 
-  # sort the output by the point estimates
-  arrange(estimate) %>% 
-  # make an index for the ranks
-  mutate(rank = 1:n()) %>% 
+  filter(id %in% id_subset) %>% 
+  mutate(y = ifelse(tx == 0, "hat(italic(p))^0", "hat(italic(p))^1")) %>% 
   
-  # plot!
-  ggplot(aes(x = estimate, xmin = conf.low, xmax = conf.high, y = rank)) +
-  geom_pointrange(linewidth = 1/10, fatten = 1/10) +
+  ggplot(aes(x = estimate, y = reorder(id, estimate), color = y)) +
+  geom_interval(aes(xmin = conf.low, xmax = conf.high),
+                position = position_dodge(width = 0.2),
+                size = 1/5) +
+  geom_point(aes(shape = y),
+             size = 2) +
+  scale_color_viridis_d(NULL, option = "A", begin = .3, end = .6,
+                        labels = scales::parse_format()) +
+  scale_shape_manual(NULL, values = c(20, 18),
+              labels = scales::parse_format()) +
+  scale_x_continuous(limits = 0:1) +
+  scale_y_discrete(breaks = NULL) +
+  labs(subtitle = "counterfactual probabilities",
+       x = expression(italic(p[i])),
+       y = "id (ranked)") +
+  theme(legend.background = element_blank(),
+        legend.position = c(.9, .85))
+
+# treatment effects
+p4 <- comparisons(glm2, newdata = nd, variables = "tx") %>% 
+  data.frame() %>% 
+  filter(id %in% id_subset) %>% 
+  
+  ggplot(aes(x = estimate, y = reorder(id, estimate))) +
+  geom_vline(xintercept = 0, color = "white") +
+  geom_interval(aes(xmin = conf.low, xmax = conf.high),
+                size = 1/5) +
+  geom_point() +
+  scale_x_continuous(limits = c(-0.5, 0.5)) +
+  scale_y_discrete(breaks = NULL) +
+  labs(subtitle = "treatment effects",
+       x = expression(hat(tau)[italic(i)]~("i.e., "*hat(italic(p))[italic(i)]^1-hat(italic(p))[italic(i)]^0)),
+       y = NULL) +
+  theme(legend.background = element_blank(),
+        legend.position = c(.9, .85))
+
+# combine
+p3 + p4 + plot_annotation(title = "Person-level estimates based on the logistic regression ANCOVA model (glm2)")
+```
+
+Now we have added covariates to the model, the counterfactual probabilities vary across participants, which was the same pattern for the OLS-based ANCOVA from the [last post](https://timely-flan-2986f4.netlify.app/blog/2023-02-06-causal-inference-with-potential-outcomes-bootcamp/#counterfactual-interventions-with-covariates), too. But unlike with the ANOVA model and unlike with the ANCOVA results from the last post, the treatment effects $(p_i^1 - p_i^0)$ now vary across participants. Once you leave the simple OLS paradigm, this issue will come up again and again when you fit ANCOVA models. Covariate values change the magnitudes of the probability estimates and their contrasts.
+
+Investigating further, here's the full distribution of the $\hat \tau_i$ values for all $n = 400$ cases. To reduce visual complexity, we'll drop the 95% confidence interval lines.
+
+```{r, fig.width = 4, fig.height = 3}
+comparisons(glm2, newdata = nd, variables = "tx", by = "id") %>% 
+  data.frame() %>% 
+  
+  ggplot(aes(x = estimate)) +
+  geom_vline(xintercept = 0, color = "white") +
+  geom_dots(layout = "swarm", color = "gray30", fill = "gray30") +
+  stat_pointinterval(aes(y = -0.017), 
+                     point_interval = mean_qi, .width = .5, 
+                     point_size = 3, color = "red") +
+  scale_x_continuous(limits = c(-0.5, 0.5)) +
   scale_y_continuous(NULL, breaks = NULL) +
-  labs(title = "Behold the diversity among the individual treatment effect estimates.",
+  labs(title = "The individual treatment effect distribution",
+       subtitle = "Each gray dot is a point estmiate for a single participant's treatment effect. The horizontal red line marks off the interquartile range, and the red dot marks the ATE.",
        x = expression(hat(tau)[italic(i)]~("i.e., "*hat(italic(p))[italic(i)]^1-hat(italic(p))[italic(i)]^0))) +
-  coord_cartesian(xlim = c(-0.1, 0.4)) +
-  theme_gray(base_size = 13) +
+  coord_cartesian(ylim = c(0, 0.7)) +
   theme(panel.grid = element_blank())
 ```
 
-Going by point estimate, the participant-specific treatment effects range from zero to about .26. The bulk of the estimates are in the upper part of the range, between .2 and .25. Further, the shape of this distribution will depend on the distribution of the levels of the covariates in the sample. This is something that would not have arisen within the OLS paradigm.
-
-Now here's $\tau_\text{ATE}$ for this model, and for the simpler ANOVA-type `glm1`.
+The red dot below the distribution marks off the average of the $\hat \tau_i$ values, which is the same as the point estimate for the ATE. Speaking of which, here's $\tau_\text{ATE}$ for this model, and for the simpler ANOVA-type `glm1`.
 
 ```{r}
 bind_rows(
@@ -688,6 +797,95 @@ bind_rows(
 ```
 
 Whereas the standard error for the $\beta_1$ coefficient *increased* when we added the baseline covariates to the model, the standard error for our primary estimand $\tau_\text{ATE}$ *decreased*. This isn't a fluke of our $n = 400$ subset. The same general pattern holds for the full data set. Not only is $\beta_1$ not the same as the ATE for a logistic regression model, adding covariates can have the reverse effect on their respective standard errors. This phenomena is related to the so-called noncollapsibility issue, which is well known among statisticians who work with medical trials. For an entry point into that literature, see @daniel2021makingApples or @morris2022planning. But anyway, yes, baseline covariates can help increase the precision with which you estimate the ATE from a logistic regression model. Don't worry about what happens with $\beta_1$. Focus on the ATE.
+
+### Grappling with $(p_i^1 - p_i^0 | \mathbf C_i, \mathbf D_i)$ distributions.
+
+Given how the logistic-regression-based $\tau_i$ values now come in distributions when estimated from ANCOVA models, some researchers have wondered whether it's a good idea to use a single summary value like the ATE. Biostatistician Frank Harrell, for example, recommended displaying the entire $\tau_i$ distribution in his [@harrell2021avoiding] blog post, [*Avoiding one-number summaries of treatment effects for RCTs with binary outcomes*](https://www.fharrell.com/post/rdist/). Albuquerque and Arel-Bundock covered Harrell's primary material from a **marginaleffects** perspective in their [-@albuquerque2023logisticRegression] vignette, [*Logistic regression*](https://vincentarelbundock.github.io/marginaleffects/articles/logit.html) [see also @kent2007limitations]. At the moment, I'm inclined to still rely on the ATE, but perhaps also show a plot of the $\tau_i$ distribution as a supplement. 
+
+Another approach might be to focus on one or a handful of CATE's. This, however, I would only recommend with great caution. To help clarify why, let's compute the CATE for every valid combination of our baseline covariate values. First, we'll update our `nd` data grid.
+
+```{r}
+nd <- crossing(
+  agez      = distinct(wilson2017, agez) %>% pull(),
+  gender    = distinct(wilson2017, gender) %>% pull(),
+  msm       = distinct(wilson2017, msm) %>% pull(),
+  ethnicgrp = distinct(wilson2017, ethnicgrp) %>% pull(),
+  partners  = distinct(wilson2017, partners) %>% pull()) %>% 
+  # remove the impossible cases of Females who are also MSM
+  filter((gender == "Female" & msm == "other") | gender == "Male") %>% 
+  # throw in an id index
+  mutate(id = 1:n()) %>% 
+  expand_grid(tx = 0:1)
+
+# what?
+glimpse(nd)
+```
+
+Now we'll plot the results.
+
+```{r, fig.width = 8, fig.height = 4.25}
+# compute/save the point estimate for the ATE
+ate_est <- avg_comparisons(glm2, variables = "tx") %>% pull(estimate)
+
+# point estimates
+p5 <- comparisons(glm2, newdata = nd, variables = "tx", by = "id")  %>% 
+  data.frame() %>% 
+  
+  ggplot(aes(x = estimate)) +
+  geom_histogram(boundary = 0, binwidth = 0.01) +
+  geom_vline(xintercept = ate_est, color = "red") +
+  scale_y_continuous(limits = c(0, 450)) +
+  labs(subtitle = "The red line marks the ATE point estimate.",
+       x = expression(widehat(CATE)))
+
+# standard errors
+p6 <- comparisons(glm2, newdata = nd, variables = "tx", by = "id")  %>% 
+  data.frame() %>% 
+  
+  ggplot(aes(x = std.error)) +
+  geom_histogram(boundary = 0, binwidth = 0.005) +
+  geom_vline(xintercept = ate_se, color = "red") +
+  scale_y_continuous(NULL, breaks = NULL, limits = c(0, 450)) +
+  labs(subtitle = "The red line marks the ATE standard error.",
+       x = expression(CATE[italic(SE)]))
+
+# combine
+p5 + p6 + 
+  plot_annotation(title = "CATE distributions based on the logistic regression ANCOVA model (glm2)",
+                  subtitle = "Based on 2,250 possible combinations of covariate values.")
+```
+
+The ATE is still near the middle of the distribution of point estimates for the CATE's. However, the standard error for the ATE is well lower than the bulk of the standard errors for the various versions of the CATE. If you have designed and powered a study to compute the ATE, be very cautious about switching your focus to the CATE. You might not have the right data set to answer questions like that.
+
+In case you were wondering, all those counterfactual cases with near-zero point estimates and near-zero standard errors had `Other` as the value for `ethnicgrp`. If you look back up to the model summary for `glm2`, you'll notice the coefficient for that category has a very low point estimate and an extremely large standard error. This is what can happen when you include a categorical variables with only a handful of cases for one of the categories in a frequentist logistic regression model. Happily, this will be a much smaller problem when we adopt a Bayesian framework in the next post.
+
+```{r, eval = F, echo = F}
+# which cases are the problem?
+id_low_se <- comparisons(glm2, newdata = nd, variables = "tx", by = "id")  %>% 
+  data.frame() %>% 
+  filter(std.error < 0.02) %>% 
+  pull(id)
+
+nd %>% 
+  filter(id %in% id_low_se)
+
+# check with point estimates
+all.equal(
+  comparisons(glm2, newdata = nd, variables = "tx", by = "id")  %>% 
+    data.frame() %>% 
+    filter(estimate < 0.03) %>% 
+    pull(id),  
+  id_low_se)  # yep, same
+
+# check the model summary again
+summary(glm2)
+
+# how many cases have ethnicgrp == "Other"
+wilson2017 %>% 
+  count(ethnicgrp)
+
+# answer: it's 4
+```
 
 ## Acknowledgments
 
