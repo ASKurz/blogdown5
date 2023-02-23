@@ -803,7 +803,7 @@ Whereas the standard error for the $\beta_1$ coefficient *increased* when we add
 
 ### Grappling with $(p_i^1 - p_i^0 | \mathbf C_i, \mathbf D_i)$ distributions.
 
-Given how the logistic-regression-based $\tau_i$ values now come in distributions when estimated from ANCOVA models, some researchers have wondered whether it's a good idea to use a single summary value like the ATE. Biostatistician Frank Harrell, for example, recommended displaying the entire $\tau_i$ distribution in his [@harrell2021avoiding] blog post, [*Avoiding one-number summaries of treatment effects for RCTs with binary outcomes*](https://www.fharrell.com/post/rdist/). Albuquerque and Arel-Bundock covered Harrell's primary material from a **marginaleffects** perspective in their [-@albuquerque2023logisticRegression] vignette, [*Logistic regression*](https://vincentarelbundock.github.io/marginaleffects/articles/logit.html) [see also @kent2007limitations]. At the moment, I'm inclined to still rely on the ATE, but perhaps also show a plot of the $\tau_i$ distribution as a supplement. 
+Given how the logistic-regression-based $\tau_i$ values now come in distributions when estimated from ANCOVA models, some researchers have wondered whether it's a good idea to use a single summary value like the ATE. Biostatistician Frank Harrell, for example, recommended displaying the entire $\tau_i$ distribution in his [-@harrell2021avoiding] blog post, [*Avoiding one-number summaries of treatment effects for RCTs with binary outcomes*](https://www.fharrell.com/post/rdist/). Albuquerque and Arel-Bundock covered Harrell's primary material from a **marginaleffects** perspective in their [-@albuquerque2023logisticRegression] vignette, [*Logistic regression*](https://vincentarelbundock.github.io/marginaleffects/articles/logit.html) [see also @kent2007limitations]. At the moment, I'm inclined to still rely on the ATE, but perhaps also show a plot of the $\tau_i$ distribution as a supplement. 
 
 Another approach might be to focus on one or a handful of CATE's. This, however, I would only recommend with great caution. To help clarify why, let's compute the CATE for every valid combination of our baseline covariate values. First, we'll update our `nd` data grid.
 
@@ -824,7 +824,7 @@ nd <- crossing(
 glimpse(nd)
 ```
 
-Now we'll plot the results.
+Now we'll summarize the results with a plot of the point estimates (left), and a plot their standard errors (right).
 
 ```{r, fig.width = 8, fig.height = 4.25}
 # compute/save the point estimate and standard error for the ATE
