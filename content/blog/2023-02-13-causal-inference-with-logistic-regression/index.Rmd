@@ -776,7 +776,7 @@ comparisons(glm2, newdata = nd, variables = "tx", by = "id") %>%
   geom_dots(layout = "swarm", color = "gray30", fill = "gray30") +
   stat_pointinterval(aes(y = -0.017), 
                      point_interval = mean_qi, .width = .5, 
-                     point_size = 3, color = "red") +
+                     point_size = 2.5, color = "red") +
   scale_x_continuous(limits = c(-0.5, 0.5)) +
   scale_y_continuous(NULL, breaks = NULL) +
   labs(title = "The individual treatment effect distribution",
