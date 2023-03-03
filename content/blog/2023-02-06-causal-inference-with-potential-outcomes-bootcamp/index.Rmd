@@ -147,7 +147,7 @@ $$\tau_\text{ATE} = \mathbb E (y_i^1 - y_i^0) = {\color{blueviolet}{\mathbb E (y
 
 where $\mathbb E (y_i^1)$ is the population average of our $y_i^1$ values, and $\mathbb E (y_i^0)$ is the population average of our $y_i^0$ values. Even if if 50% of the values are missing, we can still compute $\mathbb E (y_i^1)$, $\mathbb E (y_i^0)$, and their difference.
 
-Sometimes causal inference scholars differentiate between the *sample* average treatment effect (SATE) and the *population* average treatment effect (PATE). In this blog post and in the rest of this series, I'm presuming y'all researchers are analyzing your data with regression models to make population-level inferences. Thus, I'm usually equating the ATE with the PATE. While I'm at it, there are other technical caveats which have to do with proper randomization and whether participants are truly independent of one another and so on. For the sake of this series, I'm presuming a clean simple randomization with no further complications. If you want more complications, check out @imbensCausalInferenceStatistics2015 and any of the other texts on causal inference. Trust me, we have enough complications on our hands, as is.
+Sometimes causal inference scholars differentiate between the *sample* average treatment effect (SATE) and the *population* average treatment effect (PATE). In this blog post and in the rest of this series, I'm presuming y'all researchers are analyzing your data with regression models to make population-level inferences[^4]. Thus, I'm usually equating the ATE with the PATE. While I'm at it, there are other technical caveats which have to do with proper randomization and whether participants are truly independent of one another and so on. For the sake of this series, I'm presuming a clean simple randomization with no further complications. If you want more complications, check out @imbensCausalInferenceStatistics2015 and any of the other texts on causal inference. Trust me, we have enough complications on our hands, as is.
 
 ### Estimands, estimators, and estimates.
 
@@ -206,7 +206,7 @@ Notice that the summary for our $\beta_1$ parameter is the same as the $\tau_\te
 
 #### Compute $\mathbb E (y_i^1 - y_i^0)$ from `ols1`.
 
-It's time for me to confess my rhetoric above was a little misleading. As it turns out, you can in fact compute $\mathbb E (y_i^1 - y_i^0)$ from your regression models, even with 50% of the values missing. The key is to compute *counterfactual* estimates $\hat y_i^1$ and $\hat y_i^0$ from the model[^4]. Before we can do that, we'll first need to redefine our `nd` predictor data.
+It's time for me to confess my rhetoric above was a little misleading. As it turns out, you can in fact compute $\mathbb E (y_i^1 - y_i^0)$ from your regression models, even with 50% of the values missing. The key is to compute *counterfactual* estimates $\hat y_i^1$ and $\hat y_i^0$ from the model[^5]. Before we can do that, we'll first need to redefine our `nd` predictor data.
 
 ```{r}
 nd <- horan1971 %>% 
@@ -319,7 +319,7 @@ $$\tau_\text{ATE} = \mathbb E (y_i^1 - y_i^0 \mid \mathbf C_i).$$
 
 Though we won't consider more complex data examples in this blog post, we will want to keep the $\mathbf C$ vector insights in the backs of our minds for the blog posts to come. In the literature, this method is often called *standardization* or *g-computation*. To my knowledge, these terms have their origins in different parts of the literature, but they're really the same thing when used in the ways I'll be highlighting in this blog series. For a way into this literature, you might check out @snowden2011implementation, @muller2014estimating, or @wang2017gcomputation.
 
-Anyway, an alternative approach is to use the mean[^5] value of the covariate, $\bar c$, to compute the conditional predicted values for the two levels of treatment, and then take their difference:
+Anyway, an alternative approach is to use the mean[^6] value of the covariate, $\bar c$, to compute the conditional predicted values for the two levels of treatment, and then take their difference:
 
 $$\tau_\text{ATE} = \mathbb E (y_i^1 \mid \bar c) - \mathbb E (y_i^0 \mid \bar c).$$
 
@@ -533,9 +533,11 @@ sessionInfo()
 
 [^3]: As we'll see later, this has a lot to do with link functions, which are popular with non-Gaussian models like logistic and Poisson regression. But basically, if you're fitting a mean-model with an identity link, as with conventional OLS or a simple Gaussian GLM, $\mathbb E (y_i^1 - y_i^0) = \mathbb E (y_i^1) - \mathbb E (y_i^0)$. In other situations, it might not.
 
-[^4]: Don Rubin isn't a huge fan of equating *counterfactuals* with *potential outcomes* [see @rubin2005causal, p. 325]. To my mind, this is the kind of nuanced distinction that may be of interest to philosophers or causal inference scholars, but has little importance for the kinds of applied statistical methods we're highlighting in this series.
+[^4]: A related issue is in some of the causal-inference literature [e.g., @neyman1990OnTheApplication, @lin2013agnostic], the authors have used a finite-population framework where the sample is the population. In this series, this will not be our approach. Rather, I am always assuming our sample is a representative subset of a superpopulation, as is typical in my field of psychology.
 
-[^5]: In addition to the sample mean, you could also use the mode [see @muller2014estimating], or some other value of theoretical interest. The mode can be a particularly good option when working with categorical covariates, and we'll cover this possibility in a future post. You could even use different strategies for different covariates in your covariate set.
+[^5]: Don Rubin isn't a huge fan of equating *counterfactuals* with *potential outcomes* [see @rubin2005causal, p. 325]. To my mind, this is the kind of nuanced distinction that may be of interest to philosophers or causal inference scholars, but has little importance for the kinds of applied statistical methods we're highlighting in this series.
+
+[^6]: In addition to the sample mean, you could also use the mode [see @muller2014estimating], or some other value of theoretical interest. The mode can be a particularly good option when working with categorical covariates, and we'll cover this possibility in a future post. You could even use different strategies for different covariates in your covariate set.
 
 ```{r, eval = F, echo = F}
 tibble(x = 0, y = 0, label = "tau[ATE]") %>% 
