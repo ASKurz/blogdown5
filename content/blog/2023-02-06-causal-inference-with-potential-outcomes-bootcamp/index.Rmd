@@ -311,35 +311,35 @@ are all the same thing. They're all estimators of our estimand $\tau_\text{ATE}$
 
 Much like we can use baseline covariates when we analyze RCT data to boost the power, we can use baseline covariates when we make causal inferences, too. We just have to expand the framework a bit. If we let $c_i$ stand for the $i$th person's value on continuous covariate $c$, we can estimate the ATE with help from covariate $c$ with the formula:
 
-$$\tau_\text{ATE} = \mathbb E (y_i^1 - y_i^0 | c_i),$$
+$$\tau_\text{ATE} = \mathbb E (y_i^1 - y_i^0 \mid c_i),$$
 
 which, in words, means that the average treatment effect in the population is the same as the average of each person's individual treatment effect, computed conditional on their values of $c$. We can generalize this equation so that $\mathbf C_i$ is a vector of covariates, the values for which vary across the participants, to the following:
 
-$$\tau_\text{ATE} = \mathbb E (y_i^1 - y_i^0 | \mathbf C_i).$$
+$$\tau_\text{ATE} = \mathbb E (y_i^1 - y_i^0 \mid \mathbf C_i).$$
 
 Though we won't consider more complex data examples in this blog post, we will want to keep the $\mathbf C$ vector insights in the backs of our minds for the blog posts to come. In the literature, this method is often called *standardization* or *g-computation*. To my knowledge, these terms have their origins in different parts of the literature, but they're really the same thing when used in the ways I'll be highlighting in this blog series. For a way into this literature, you might check out @snowden2011implementation, @muller2014estimating, or @wang2017gcomputation.
 
 Anyway, an alternative approach is to use the mean[^5] value of the covariate, $\bar c$, to compute the conditional predicted values for the two levels of treatment, and then take their difference:
 
-$$\tau_\text{ATE} = \mathbb E (y_i^1 | \bar c) - \mathbb E (y_i^0 | \bar c).$$
+$$\tau_\text{ATE} = \mathbb E (y_i^1 \mid \bar c) - \mathbb E (y_i^0 \mid \bar c).$$
 
 As above, we can generalize this equation so that $\mathbf C_i$ is a vector of covariates, and update the equation for the ATE to account for our $\mathbf{\bar C}$ vector to
 
-$$\tau_\text{ATE} = \mathbb E \left (y_i^1 | \mathbf{\bar C} \right) - \mathbb E \left (y_i^0 | \mathbf{\bar C} \right).$$
+$$\tau_\text{ATE} = \mathbb E \left (y_i^1 \mid \mathbf{\bar C} \right) - \mathbb E \left (y_i^0 \mid \mathbf{\bar C} \right).$$
 
 As we will see, when working with a continuous outcome variable within the conventional OLS-type paradigm, 
 
-$$\mathbb E (y_i^1 - y_i^0 | c_i) = \mathbb E (y_i^1 | \bar c) - \mathbb E (y_i^0 | \bar c),$$
+$$\mathbb E (y_i^1 - y_i^0 \mid c_i) = \mathbb E (y_i^1 \mid \bar c) - \mathbb E (y_i^0 \mid \bar c),$$
 
 and
 
-$$\mathbb E (y_i^1 - y_i^0 | \mathbf C_i) = \mathbb E \left (y_i^1 | \mathbf{\bar C} \right) - \mathbb E \left (y_i^0 | \mathbf{\bar C} \right).$$
+$$\mathbb E (y_i^1 - y_i^0 \mid \mathbf C_i) = \mathbb E \left (y_i^1 \mid \mathbf{\bar C} \right) - \mathbb E \left (y_i^0 \mid \mathbf{\bar C} \right).$$
 
 In the next couple sections we'll see what this looks like in action.
 
-#### Compute $\mathbb E (y_i^1 | \bar c) - \mathbb E (y_i^0 | \bar c)$ from `ols2`.
+#### Compute $\mathbb E (y_i^1 \mid \bar c) - \mathbb E (y_i^0 \mid \bar c)$ from `ols2`.
 
-With our ANCOVA-type `ols2` model, we can compute $\mathbb E (y_i^1 | \bar c)$ and $\mathbb E (y_i^0 | \bar c)$ with the base **R** `predict()` function. As a first step, we'll define our prediction grid with the sample means for our covariate `prec`, and then expand the grid to include both values of the `experimental` dummy.
+With our ANCOVA-type `ols2` model, we can compute $\mathbb E (y_i^1 \mid \bar c)$ and $\mathbb E (y_i^0 \mid \bar c)$ with the base **R** `predict()` function. As a first step, we'll define our prediction grid with the sample means for our covariate `prec`, and then expand the grid to include both values of the `experimental` dummy.
 
 ```{r}
 nd <- horan1971 %>% 
@@ -361,7 +361,7 @@ predict(ols2,
   bind_cols(nd)
 ```
 
-Similar to the simple ANOVA-type `ols1` version fo the model, the `predict()` method is great for computing $\mathbb{E}(y_i^1 | \bar c)$ and $\mathbb{E}(y_i^0 | \bar c)$, but it doesn't give us a good way to compute the difference of those values with a measure of uncertainty. For that, we can once again rely on the `marginaleffects::predictions()` function.
+Similar to the simple ANOVA-type `ols1` version fo the model, the `predict()` method is great for computing $\mathbb{E}(y_i^1 \mid \bar c)$ and $\mathbb{E}(y_i^0 \mid \bar c)$, but it doesn't give us a good way to compute the difference of those values with a measure of uncertainty. For that, we can once again rely on the `marginaleffects::predictions()` function.
 
 ```{r}
 predictions(ols2, newdata = nd, by = "experimental")
@@ -379,11 +379,11 @@ And also like with the ANOVA-type `ols1`, this method for computing the $\tau_\t
 summary(ols2)
 ```
 
-When you fit an OLS-type ANCOVA model with the conventional identity link, $\mathbb{E}(y_i^1 | \bar c) - \mathbb{E}(y_i^0 | \bar c)$ will be the same as the $\beta$ coefficient for the treatment dummy. They're both estimators of the estimand $\tau_\text{ATE}$.
+When you fit an OLS-type ANCOVA model with the conventional identity link, $\mathbb{E}(y_i^1 \mid \bar c) - \mathbb{E}(y_i^0 \mid \bar c)$ will be the same as the $\beta$ coefficient for the treatment dummy. They're both estimators of the estimand $\tau_\text{ATE}$.
 
-#### Compute $\mathbb E (y_i^1 - y_i^0 | c_i)$ from `ols2`.
+#### Compute $\mathbb E (y_i^1 - y_i^0 \mid c_i)$ from `ols2`.
 
-Before we compute our counterfactual $\mathbb{E}(y_i^1 - y_i^0 | c_i)$ estimates from our ANCOVA-type `ols2`, we'll first need to redefine our `nd` predictor data. This time, we'll retain each participants' `prec` value (i.e., $c_i$).
+Before we compute our counterfactual $\mathbb{E}(y_i^1 - y_i^0 \mid c_i)$ estimates from our ANCOVA-type `ols2`, we'll first need to redefine our `nd` predictor data. This time, we'll retain each participants' `prec` value (i.e., $c_i$).
 
 ```{r}
 nd <- horan1971 %>% 
@@ -407,7 +407,7 @@ predict(ols2,
   head()
 ```
 
-With a little more wrangling, we can compute the point estimates for $(y_i^1 - y_i^0 | c_i)$.
+With a little more wrangling, we can compute the point estimates for $(y_i^1 - y_i^0 \mid c_i)$.
 
 ```{r}
 predict(ols2, 
@@ -428,14 +428,14 @@ predictions(ols2, newdata = nd, by = c("sn", "experimental", "prec")) %>%
   head()
 ```
 
-The `head()` function to limited the output to the first six rows, but the full output would have all 82 rows worth of counterfactual predictions. Each one has its own standard error and so on. To compute the actual participant-level contrasts, $(y_i^1 - y_i^0 | c_i)$, we switch to the `marginaleffects::comparisons()` function. Here we just need to use the `variables` argument to indicate we want counterfactual comparisons on the `experimental` dummy for each case in the original data set.
+The `head()` function to limited the output to the first six rows, but the full output would have all 82 rows worth of counterfactual predictions. Each one has its own standard error and so on. To compute the actual participant-level contrasts, $(y_i^1 - y_i^0 \mid c_i)$, we switch to the `marginaleffects::comparisons()` function. Here we just need to use the `variables` argument to indicate we want counterfactual comparisons on the `experimental` dummy for each case in the original data set.
 
 ```{r}
 comparisons(ols2, variables = list(experimental = 0:1)) %>% 
   head()
 ```
 
-Here we see the $(y_i^1 - y_i^0 | c_i)$ for the first six participants in the data set, each with its own standard errors and so on. Like with the ANOVA model, we might put the participant-level counterfactual predictions and their contrasts into a couple plots to give you a better sense of what we've been computing.
+Here we see the $(y_i^1 - y_i^0 \mid c_i)$ for the first six participants in the data set, each with its own standard errors and so on. Like with the ANOVA model, we might put the participant-level counterfactual predictions and their contrasts into a couple plots to give you a better sense of what we've been computing.
 
 ```{r, fig.width = 8, fig.height = 5.5}
 # counterfactual predictions
@@ -483,24 +483,24 @@ p3 + p4 + plot_annotation(title = "Person-level estimates based on the ANCOVA mo
 
 To my eye, a few things emerge when comparing these ANCOVA-based plots to their ANOVA counterparts from above. First, we now see how the `prec` covariate in the ANCOVA model changes the counterfactual predictions for the participants, and how each person's predictions can vary widely from those for the other participants. Yet even though the individual predictions vary, the differences between $(\hat y_i^0)$ and $(\hat y_i^1)$ are the *same* across all participants, which is still depicted by the identical $\hat \tau_i$ estimates in the right plot. Also, notice how the 95% intervals are much narrower in both plots, when compared to their ANOVA counterparts from above. This is why we like strongly-predictive baseline covariates. They shrink the standard errors and the 95% interval ranges.
 
-But anyways, recall our focal estimand $\tau_\text{ATE}$ is estimated via $\mathbb E (y_i^1 - y_i^0 | c_i)$, which means we need to compute the average of those contrasts in a way that produces a standard error. As with the simpler ANOVA-type workflow we used with `ols1`, we can simply tack on a `summary()` line, which will compute delta-method based standard errors.
+But anyways, recall our focal estimand $\tau_\text{ATE}$ is estimated via $\mathbb E (y_i^1 - y_i^0 \mid c_i)$, which means we need to compute the average of those contrasts in a way that produces a standard error. As with the simpler ANOVA-type workflow we used with `ols1`, we can simply tack on a `summary()` line, which will compute delta-method based standard errors.
 
 ```{r}
 comparisons(ols2, variables = list(experimental = 0:1)) %>% 
   summary()
 ```
 
-When our goal is just to compute $\mathbb E (y_i^1 - y_i^0 | c_i)$, we can also use the `marginaleffects::avg_comparisons()` function, which skips the `summary()` step.
+When our goal is just to compute $\mathbb E (y_i^1 - y_i^0 \mid c_i)$, we can also use the `marginaleffects::avg_comparisons()` function, which skips the `summary()` step.
 
 ```{r}
 avg_comparisons(ols2, variables = list(experimental = 0:1))
 ```
 
-As Arel-Bundock pointed out his [-@arelBundock2023CausalInference] vignette, [*Causal inference with the parametric g-formula*](https://vincentarelbundock.github.io/marginaleffects/articles/gformula.html), the `avg_comparisons()` function is a compact way to compute $\mathbb E (y_i^1 - y_i^0 | c_i)$ with the parametric g-formula method. Again in this case our estimate for $\tau_\text{ATE}$ via $\mathbb E (y_i^1 - y_i^0 | c_i)$ is the same as the $\beta_1$ coefficient and its standard error from `ols2`, and they're both the same as $\tau_\text{ATE}$ via $\mathbb E (y_i^1 | \bar c) - \mathbb E (y_i^0 | \bar c)$. We might further say that, in the case of an OLS-based ANCOVA-type model of a randomized experiment,
+As Arel-Bundock pointed out his [-@arelBundock2023CausalInference] vignette, [*Causal inference with the parametric g-formula*](https://vincentarelbundock.github.io/marginaleffects/articles/gformula.html), the `avg_comparisons()` function is a compact way to compute $\mathbb E (y_i^1 - y_i^0 \mid c_i)$ with the parametric g-formula method. Again in this case our estimate for $\tau_\text{ATE}$ via $\mathbb E (y_i^1 - y_i^0 \mid c_i)$ is the same as the $\beta_1$ coefficient and its standard error from `ols2`, and they're both the same as $\tau_\text{ATE}$ via $\mathbb E (y_i^1 \mid \bar c) - \mathbb E (y_i^0 \mid \bar c)$. We might further say that, in the case of an OLS-based ANCOVA-type model of a randomized experiment,
 
 * $\beta_1$,
-* $\mathbb{E}(y_i^1 - y_i^0 | c_i)$, and
-* $\mathbb{E}(y_i^1 | \bar c) - \mathbb{E}(y_i^0 | \bar c)$
+* $\mathbb{E}(y_i^1 - y_i^0 \mid c_i)$, and
+* $\mathbb{E}(y_i^1 \mid \bar c) - \mathbb{E}(y_i^0 \mid \bar c)$
 
 are all the same thing. They're all estimators of our estimand, the average treatment effect. We can extend this further to point out that the three estimators we used with our ANOVA-type model `ols1` were also estimators of the average treatment effect. But the three methods we just used for our ANCOVA-type model `ols2` all benefit from the increased precision (i.e., power) that comes from including a high-quality baseline covariate in the model.
 
@@ -512,7 +512,7 @@ In this post, some of the main points we covered were:
 * We cannot compute an individual's causal effect $\tau_i = y_i^1 - y_i^0$ by hand, because we are always missing at least half of the data. This is the *fundamental problem of causal inference*.
 * Conceptually, the *average treatment effect* (ATE, $\tau_\text{ATE}$) is the mean of the person-specific treatment effects.
 * In a simple ANOVA-type regression model, we can estimate $\tau_\text{ATE}$ with either the $\mathbb E (y_i^1 - y_i^0)$ or the $\mathbb E (y_i^1) - \mathbb E (y_i^0)$ method, and the results will be exactly the same. Both methods will also be the same as the $\beta$ coefficient for the treatment dummy in the ANOVA model.
-* With an ANCOVA-type regression model with a single baseline covariate, we can estimate $\tau_\text{ATE}$ with either the $\mathbb E (y_i^1 - y_i^0 | c_i)$ or the $\mathbb{E}(y_i^1 | \bar c) - \mathbb{E}(y_i^0 | \bar c)$ method, and the results will be exactly the same, granted we use the same covariate $c$.
+* With an ANCOVA-type regression model with a single baseline covariate, we can estimate $\tau_\text{ATE}$ with either the $\mathbb E (y_i^1 - y_i^0 \mid c_i)$ or the $\mathbb{E}(y_i^1 \mid \bar c) - \mathbb{E}(y_i^0 \mid \bar c)$ method, and the results will be exactly the same, granted we use the same covariate $c$.
 * We can generalize the two ANCOVA-type methods to models with multiple baseline covariates.
 
 At this point, some readers might wonder why we have so many methods that produce the identical results. As we will soon see, this pattern will not generalize to models with other likelihoods and link functions. Speaking of which, in the [next post](https://timely-flan-2986f4.netlify.app/blog/2023-02-13-causal-inference-with-logistic-regression/) we'll see what this framework looks like for logistic regression.

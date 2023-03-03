@@ -513,23 +513,23 @@ are all the same thing. They're all estimators of our estimand $\tau_\text{ATE}$
 
 In our [last post](http://localhost:4321/blog/2023-02-06-causal-inference-with-potential-outcomes-bootcamp/), we focused on a case where the only covariate was continuous. In this blog post, we're analyzing a data set containing a mixture of continuous and discrete covariates. So for notation sake, let $\mathbf C_i$ stand a vector of *continuous* covariates and let $\mathbf D_i$ stand a vector of *discrete* covariates, both of which vary across the $i$ cases. We can use these to help estimate the ATE with the formula:
 
-$$\tau_\text{ATE} = \mathbb E (y_i^1 - y_i^0 | \mathbf C_i, \mathbf D_i).$$
+$$\tau_\text{ATE} = \mathbb E (y_i^1 - y_i^0 \mid \mathbf C_i, \mathbf D_i).$$
 
 In words, this means the average treatment effect in the population is the same as the average of each person's individual treatment effect, computed conditional on their continuous covariates $\mathbf C_i$ and discrete covariates $\mathbf D_i$. This, again, is sometimes called *standardization* or *g-computation*. Within the context of a logistic regression model, we further observe
 
 $$
-\tau_\text{ATE} = \mathbb E (y_i^1 - y_i^0 | \mathbf C_i, \mathbf D_i) = {\color{blueviolet}{\mathbb E (p_i^1 - p_i^0 | \mathbf C_i, \mathbf D_i)}},
+\tau_\text{ATE} = \mathbb E (y_i^1 - y_i^0 \mid \mathbf C_i, \mathbf D_i) = {\color{blueviolet}{\mathbb E (p_i^1 - p_i^0 \mid \mathbf C_i, \mathbf D_i)}},
 $$
 
 where $p_i^1$ and $p_i^0$ are the counterfactual probabilities for each of the $i$ cases, estimated in light of their covariate values. 
 
 Whether we have continuous covariates, discrete covariates, or a combination of both, the standardization method works the same. However, this is no longer the case when using the difference in population means approach, the covariate-adjusted version of $\mathbb E (y_i^1) - \mathbb E (y_i^0)$. One complication is we might not be able to mean-center the discrete covariates in our $\mathbf D$ vector. Sometimes people will mean center dummy variables, which can lead to awkward interpretive issues[^7]. But even this approach will not generalize well to multi-categorical nominal variables, like ethnicity. Another solution is to set discrete covariates at their modes [see @muller2014estimating], which we'll denote $\mathbf D^m$. This gives us a new estimand:
 
-$$\tau_\text{TEMM} = \operatorname{\mathbb{E}} \left (y_i^1 | \mathbf{\bar C}, \mathbf D^m \right) - \operatorname{\mathbb{E}} \left (y_i^0 | \mathbf{\bar C}, \mathbf D^m \right),$$
+$$\tau_\text{TEMM} = \operatorname{\mathbb{E}} \left (y_i^1 \mid \mathbf{\bar C}, \mathbf D^m \right) - \operatorname{\mathbb{E}} \left (y_i^0 \mid \mathbf{\bar C}, \mathbf D^m \right),$$
 
 where *TEMM* is an acronym for *treatment effect at the mean and/or mode*. Beware the TEMM acronym is not widely used in the literature; I'm just using it here to help clarify a point. More importantly, once you move beyond the ATE to specify particular values for $\mathbf C$ and/or $\mathbf D$, you're really just computing one form or another of the *conditional average treatment effect* (CATE; $\tau_\text{CATE}$), which we might clarify with the formula
 
-$$\tau_\text{CATE} = \operatorname{\mathbb{E}}(y_i^1 | \mathbf C = \mathbf c, \mathbf D = \mathbf d) - \operatorname{\mathbb{E}}(y_i^0 | \mathbf C = \mathbf c, \mathbf D = \mathbf d),$$
+$$\tau_\text{CATE} = \operatorname{\mathbb{E}}(y_i^1 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d) - \operatorname{\mathbb{E}}(y_i^0 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d),$$
 
 where $\mathbf C = \mathbf c$ is meant to convey you have chosen particular values $\mathbf c$ for the variables in the $\mathbf C$ vector, and $\mathbf D = \mathbf d$ is meant to convey you have chosen particular values $\mathbf d$ for the variables in the $\mathbf D$ vector. In addition to means or modes, these values could be any which are of particular interest to researchers and their audiences.
 
@@ -537,8 +537,8 @@ Within the context of a logistic regression model, we further observe
 
 $$
 \begin{align*}
-\tau_\text{TEMM} & = \operatorname{\mathbb{E}} \left (y_i^1 | \mathbf{\bar C}, \mathbf D^m \right) - \operatorname{\mathbb{E}} \left (y_i^0 | \mathbf{\bar C}, \mathbf D^m \right) \\
-& = {\color{blueviolet}{\operatorname{\mathbb{E}} \left (p_i^1 | \mathbf{\bar C}, \mathbf D^m \right) - \operatorname{\mathbb{E}} \left (p_i^0 | \mathbf{\bar C}, \mathbf D^m \right)}}
+\tau_\text{TEMM} & = \operatorname{\mathbb{E}} \left (y_i^1 \mid \mathbf{\bar C}, \mathbf D^m \right) - \operatorname{\mathbb{E}} \left (y_i^0 \mid \mathbf{\bar C}, \mathbf D^m \right) \\
+& = {\color{blueviolet}{\operatorname{\mathbb{E}} \left (p_i^1 \mid \mathbf{\bar C}, \mathbf D^m \right) - \operatorname{\mathbb{E}} \left (p_i^0 \mid \mathbf{\bar C}, \mathbf D^m \right)}}
 \end{align*}
 $$
 
@@ -546,8 +546,8 @@ where $p_i^1$ and $p_i^0$ are the counterfactual probabilities for each of the $
 
 $$
 \begin{align*}
-\tau_\text{CATE} & = \operatorname{\mathbb{E}} (y_i^1 | \mathbf C = \mathbf c, \mathbf D = \mathbf d) - \operatorname{\mathbb{E}}(y_i^0 | \mathbf C = \mathbf c, \mathbf D = \mathbf d) \\
-& = {\color{blueviolet}{\operatorname{\mathbb{E}} (p_i^1 | \mathbf C = \mathbf c, \mathbf D = \mathbf d) - \operatorname{\mathbb{E}}(p_i^0 | \mathbf C = \mathbf c, \mathbf D = \mathbf d)}}.
+\tau_\text{CATE} & = \operatorname{\mathbb{E}} (y_i^1 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d) - \operatorname{\mathbb{E}}(y_i^0 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d) \\
+& = {\color{blueviolet}{\operatorname{\mathbb{E}} (p_i^1 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d) - \operatorname{\mathbb{E}}(p_i^0 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d)}}.
 \end{align*}
 $$
 
@@ -555,8 +555,8 @@ Importantly, we have some inequalities to consider:
 
 $$
 \begin{align*}
-\mathbb E (y_i^1 - y_i^0 | \mathbf C_i, \mathbf D_i) & \neq \operatorname{\mathbb{E}} \left (y_i^1 | \mathbf{\bar C}, \mathbf D^m \right) - \operatorname{\mathbb{E}} \left (y_i^0 | \mathbf{\bar C}, \mathbf D^m \right) \\
-& \neq \operatorname{\mathbb{E}} (y_i^1 | \mathbf C = \mathbf c, \mathbf D = \mathbf d) - \operatorname{\mathbb{E}} (y_i^0 | \mathbf C = \mathbf c, \mathbf D = \mathbf d)
+\mathbb E (y_i^1 - y_i^0 \mid \mathbf C_i, \mathbf D_i) & \neq \operatorname{\mathbb{E}} \left (y_i^1 \mid \mathbf{\bar C}, \mathbf D^m \right) - \operatorname{\mathbb{E}} \left (y_i^0 \mid \mathbf{\bar C}, \mathbf D^m \right) \\
+& \neq \operatorname{\mathbb{E}} (y_i^1 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d) - \operatorname{\mathbb{E}} (y_i^0 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d)
 \end{align*}
 $$
 
@@ -564,8 +564,8 @@ and thus
 
 $$
 \begin{align*}
-\mathbb E (p_i^1 - p_i^0 | \mathbf C_i, \mathbf D_i) & \neq \operatorname{\mathbb{E}} \left (p_i^1 | \mathbf{\bar C}, \mathbf D^m \right) - \operatorname{\mathbb{E}} \left (p_i^0 | \mathbf{\bar C}, \mathbf D^m \right) \\
-& \neq \operatorname{\mathbb{E}} (p_i^1 | \mathbf C = \mathbf c, \mathbf D = \mathbf d) - \operatorname{\mathbb{E}} (p_i^0 | \mathbf C = \mathbf c, \mathbf D = \mathbf d),
+\mathbb E (p_i^1 - p_i^0 \mid \mathbf C_i, \mathbf D_i) & \neq \operatorname{\mathbb{E}} \left (p_i^1 \mid \mathbf{\bar C}, \mathbf D^m \right) - \operatorname{\mathbb{E}} \left (p_i^0 \mid \mathbf{\bar C}, \mathbf D^m \right) \\
+& \neq \operatorname{\mathbb{E}} (p_i^1 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d) - \operatorname{\mathbb{E}} (p_i^0 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d),
 \end{align*}
 $$
 
@@ -595,9 +595,9 @@ bind_rows(tidy(glm1), tidy(glm2)) %>%
 
 Unlike what typically occurs with OLS-based models, the standard error for $\beta_1$ *increased* when we added the baseline covariates to the model. It turns out this will generally happen with logistic regression models, even when using high-quality covariates [@robinson1991someSurprising; see also @ford2002role]. This does not, however, mean we should not use baseline covariates in our logistic regression models. Rather, it means that we need to focus on how to compute the ATE, rather than fixate on the model coefficients [cf. @daniel2021makingApples]. This can be very unsettling for those with strong roots in the OLS framework--it was for me. All I can say is: Your OLS sensibilities will not help you, here. The sooner you shed them, the better.
 
-### Compute $\operatorname{\mathbb{E}} \left (p_i^1 | \mathbf{\bar C}, \mathbf D^m \right) - \operatorname{\mathbb{E}} \left (p_i^0 | \mathbf{\bar C}, \mathbf D^m \right)$ from `glm2`.
+### Compute $\operatorname{\mathbb{E}} \left (p_i^1 \mid \mathbf{\bar C}, \mathbf D^m \right) - \operatorname{\mathbb{E}} \left (p_i^0 \mid \mathbf{\bar C}, \mathbf D^m \right)$ from `glm2`.
 
-With our ANCOVA-type `glm2` model, we can compute $\operatorname{\mathbb{E}} \left (p_i^1 | \mathbf{\bar C}, \mathbf D^m \right)$ and $\operatorname{\mathbb{E}} \left (p_i^1 | \mathbf{\bar C}, \mathbf D^m \right)$ with the base **R** `predict()` function. As a first step, we'll define our prediction grid with the sample mean for our continuous covariate `agez`, the sample modes for our four discrete covariates, and then expand the grid to include both values of the `experimental` dummy. This presents a small difficulty, however, because base **R** does not have a function for modes. Here we'll make one ourselves.
+With our ANCOVA-type `glm2` model, we can compute $\operatorname{\mathbb{E}} \left (p_i^1 \mid \mathbf{\bar C}, \mathbf D^m \right)$ and $\operatorname{\mathbb{E}} \left (p_i^1 \mid \mathbf{\bar C}, \mathbf D^m \right)$ with the base **R** `predict()` function. As a first step, we'll define our prediction grid with the sample mean for our continuous covariate `agez`, the sample modes for our four discrete covariates, and then expand the grid to include both values of the `experimental` dummy. This presents a small difficulty, however, because base **R** does not have a function for modes. Here we'll make one ourselves.
 
 ```{r}
 get_mode <- function(x) {
@@ -651,7 +651,7 @@ predictions(glm2, newdata = nd, by = "tx", hypothesis = "revpairwise")
 
 Thus we expect our hypothetical person with demographics at the mean and/or modes for the covariates will be about 22% more likely to get tested if given the intervention, compared to if she had not.
 
-### Compute $\operatorname{\mathbb{E}} (p_i^1 | \mathbf C = \mathbf c, \mathbf D = \mathbf d) - \operatorname{\mathbb{E}} (p_i^0 | \mathbf C = \mathbf c, \mathbf D = \mathbf d)$ from `glm2`.
+### Compute $\operatorname{\mathbb{E}} (p_i^1 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d) - \operatorname{\mathbb{E}} (p_i^0 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d)$ from `glm2`.
 
 Since the $\tau_\text{TEMM}$ is just a special case of a $\tau_\text{CATE}$, we might practice computing our estimate for $\tau_\text{CATE}$ with a different set of covariate values. Men who have sex with men (MSM) were one of the vulnerable subgroups of interest in @wilson2017internet, so we might take a look to see which combination of covariate values was most common for MSM in our subset of the data.
 
@@ -689,9 +689,9 @@ predictions(glm2, newdata = nd, by = "tx", hypothesis = "revpairwise")
 
 Turns out this $\tau_\text{CATE}$ is a little larger than our estimate for $\tau_\text{TEMM}$, from above. With this framework, you can compute $\tau_\text{CATE}$  estimates for any number of theoretically-meaningful covariate sets.
 
-### Compute $\mathbb E (p_i^1 - p_i^0 | \mathbf C_i, \mathbf D_i)$ from `glm2`.
+### Compute $\mathbb E (p_i^1 - p_i^0 \mid \mathbf C_i, \mathbf D_i)$ from `glm2`.
 
-Before we compute our counterfactual $\mathbb{E}(p_i^1 - p_i^0 | \mathbf C_i, \mathbf D_i)$ estimates from our ANCOVA-type logistic regression model `glm2`, we'll first need to redefine our `nd` predictor data. This time, we'll retain the full set of covariate values for each participant.
+Before we compute our counterfactual $\mathbb{E}(p_i^1 - p_i^0 \mid \mathbf C_i, \mathbf D_i)$ estimates from our ANCOVA-type logistic regression model `glm2`, we'll first need to redefine our `nd` predictor data. This time, we'll retain the full set of covariate values for each participant.
 
 ```{r}
 nd <- wilson2017 %>% 
@@ -801,7 +801,7 @@ bind_rows(
 
 Whereas the standard error for the $\beta_1$ coefficient *increased* when we added the baseline covariates to the model, the standard error for our primary estimand $\tau_\text{ATE}$ *decreased*. This isn't a fluke of our $n = 400$ subset. The same general pattern holds for the full data set. Not only is $\beta_1$ not the same as the ATE for a logistic regression model, adding covariates can have the reverse effect on their respective standard errors. This phenomena is related to the so-called noncollapsibility issue, which is well known among statisticians who work with medical trials. For an entry point into that literature, see @daniel2021makingApples or @morris2022planning. But anyway, yes, baseline covariates can help increase the precision with which you estimate the ATE from a logistic regression model. Don't worry about what happens with $\beta_1$. Focus on the ATE.
 
-### Grappling with $(p_i^1 - p_i^0 | \mathbf C_i, \mathbf D_i)$ distributions.
+### Grappling with $(p_i^1 - p_i^0 \mid \mathbf C_i, \mathbf D_i)$ distributions.
 
 Given how the logistic-regression-based $\tau_i$ values now come in distributions when estimated from ANCOVA models, some researchers have wondered whether it's a good idea to use a single summary value like the ATE. Biostatistician Frank Harrell, for example, recommended displaying the entire $\tau_i$ distribution in his [-@harrell2021avoiding] blog post, [*Avoiding one-number summaries of treatment effects for RCTs with binary outcomes*](https://www.fharrell.com/post/rdist/). Albuquerque and Arel-Bundock covered Harrell's primary material from a **marginaleffects** perspective in their [-@albuquerque2023logisticRegression] vignette, [*Logistic regression*](https://vincentarelbundock.github.io/marginaleffects/articles/logit.html) [see also @kent2007limitations]. At the moment, I'm inclined to still rely on the ATE, but perhaps also show a plot of the $\tau_i$ distribution as a supplement. 
 
@@ -904,8 +904,8 @@ In this post, some of the main points we covered were:
   - $\tau_\text{ATE} = \mathbb E (p_i^1 - p_i^0)$, and
   - $\tau_\text{ATE} = p^1 - p^0$.
 * For the logistic regression ANCOVA model,
-  - $\tau_\text{ATE} = \mathbb E (p_i^1 - p_i^0 | \mathbf C_i, \mathbf D_i)$, but
-  - $\tau_\text{CATE} = \operatorname{\mathbb{E}} (p_i^1 | \mathbf C = \mathbf c, \mathbf D = \mathbf d) - \operatorname{\mathbb{E}}(p_i^0 | \mathbf C = \mathbf c, \mathbf D = \mathbf d)$.
+  - $\tau_\text{ATE} = \mathbb E (p_i^1 - p_i^0 \mid \mathbf C_i, \mathbf D_i)$, but
+  - $\tau_\text{CATE} = \operatorname{\mathbb{E}} (p_i^1 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d) - \operatorname{\mathbb{E}}(p_i^0 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d)$.
 * For a logistic regression ANCOVA model, there can be many different values for the conditional average treatment effect, $\tau_\text{CATE}$, depending which values one uses for the covariates. 
 * With logistic regression models, baseline covariates tend to
   - *in*crease the standard errors for the $\beta_1$ coefficient, and

@@ -409,9 +409,9 @@ Not only are the results from the `fitted()`- and `avg_comparisons()`-based appr
 
 ### Counterfactual interventions, with covariates, with the Gauss.
 
-#### Compute `\(\mathbb E (y_i^1 | \bar c) - \mathbb E (y_i^0 | \bar c)\)` from `fit2`.
+#### Compute `\(\mathbb E (y_i^1 \mid \bar c) - \mathbb E (y_i^0 \mid \bar c)\)` from `fit2`.
 
-We need to redifine our `nd` predictor grid, which now includes the mean of `prec`.
+We need to redefine our `nd` predictor grid, which now includes the mean of `prec`.
 
 ``` r
 nd <- horan1971 %>% 
@@ -474,7 +474,7 @@ predictions(fit2, newdata = nd, by = "experimental", hypothesis = "revpairwise")
     ## Prediction type:  response 
     ## Columns: type, term, estimate, conf.low, conf.high
 
-#### Compute `\(\mathbb E (y_i^1 - y_i^0 | c_i)\)` from `fit2`.
+#### Compute `\(\mathbb E (y_i^1 - y_i^0 \mid c_i)\)` from `fit2`.
 
 Redefine the `nd` predictor grid, which once again includes a `row` index.
 
@@ -495,7 +495,7 @@ glimpse(nd)
     ## $ experimental <int> 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0…
     ## $ row          <int> 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27…
 
-Now compute the ATE via the `\(\mathbb E (y_i^1 - y_i^0 | c_i)\)` method based on the posterior draws from our Bayesian `fit2`.
+Now compute the ATE via the `\(\mathbb E (y_i^1 - y_i^0 \mid c_i)\)` method based on the posterior draws from our Bayesian `fit2`.
 
 ``` r
 fitted(fit2,
@@ -886,7 +886,7 @@ Each time, the results are exactly the same.
 
 ### Counterfactual interventions, with covariates, with the binomial.
 
-#### Compute `\(\operatorname{\mathbb{E}} \left (p_i^1 | \mathbf{\bar C}, \mathbf D^m \right) - \operatorname{\mathbb{E}} \left (p_i^0 | \mathbf{\bar C}, \mathbf D^m \right)\)` from `fit4`.
+#### Compute `\(\operatorname{\mathbb{E}} \left (p_i^1 \mid \mathbf{\bar C}, \mathbf D^m \right) - \operatorname{\mathbb{E}} \left (p_i^0 \mid \mathbf{\bar C}, \mathbf D^m \right)\)` from `fit4`.
 
 As in the [last post](https://timely-flan-2986f4.netlify.app/blog/2023-02-13-causal-inference-with-logistic-regression/#compute-operatornamemathbbe-left-p_i1--mathbfbar-c-mathbf-dm-right---operatornamemathbbe-left-p_i0--mathbfbar-c-mathbf-dm-right-from-glm2), we going to want to make a custom function to compute the modes for a few variables.
 
@@ -985,7 +985,7 @@ predictions(fit4, newdata = nd, by = "tx", hypothesis = "revpairwise")
 
 For the sake of brevity, I’m going to skip the other `\(\tau_\text{CATE}\)` example from the [last post](https://timely-flan-2986f4.netlify.app/blog/2023-02-13-causal-inference-with-logistic-regression/#compute-operatornamemathbbe-p_i1--mathbf-c--mathbf-c-mathbf-d--mathbf-d---operatornamemathbbe-p_i0--mathbf-c--mathbf-c-mathbf-d--mathbf-d-from-glm2). The workflow is nearly the same. You just need to put different covariate vales into the `nd` predictor grid.
 
-#### Compute `\(\mathbb E (p_i^1 - p_i^0 | \mathbf C_i, \mathbf D_i)\)` from `fit4`.
+#### Compute `\(\mathbb E (p_i^1 - p_i^0 \mid \mathbf C_i, \mathbf D_i)\)` from `fit4`.
 
 Update the `nd` predictor grid, with the good old `row` index.
 
@@ -1011,7 +1011,7 @@ glimpse(nd)
     ## $ tx        <int> 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1…
     ## $ row       <int> 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 2…
 
-Use the `\(\mathbb E (p_i^1 - p_i^0 | \mathbf C_i, \mathbf D_i)\)` method to compute the ATE with `fitted()`.
+Use the `\(\mathbb E (p_i^1 - p_i^0 \mid \mathbf C_i, \mathbf D_i)\)` method to compute the ATE with `fitted()`.
 
 ``` r
 fitted(fit4,
