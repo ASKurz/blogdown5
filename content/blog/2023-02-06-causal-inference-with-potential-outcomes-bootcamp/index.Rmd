@@ -533,7 +533,7 @@ sessionInfo()
 
 [^3]: As we'll see later, this has a lot to do with link functions, which are popular with non-Gaussian models like logistic and Poisson regression. But basically, if you're fitting a mean-model with an identity link, as with conventional OLS or a simple Gaussian GLM, $\mathbb E (y_i^1 - y_i^0) = \mathbb E (y_i^1) - \mathbb E (y_i^0)$. In other situations, it might not.
 
-[^4]: A related issue is in some of the causal-inference literature [e.g., @neyman1990OnTheApplication; @lin2013agnostic], the authors have used a finite-population framework where the sample is the population. In this series, this will not be our approach. Rather, I am always assuming our sample is a representative subset of a superpopulation, as is typical in my field of psychology.
+[^4]: A related issue is in some of the causal-inference literature [e.g., @lin2013agnostic; @neyman1990OnTheApplication], the authors have used a finite-population framework where the sample is the population. In this series, this will not be our approach. Rather, I am always assuming our sample is a representative subset of a superpopulation, as is typical in my field of psychology.
 
 [^5]: Don Rubin isn't a huge fan of equating *counterfactuals* with *potential outcomes* [see @rubin2005causal, p. 325]. To my mind, this is the kind of nuanced distinction that may be of interest to philosophers or causal inference scholars, but has little importance for the kinds of applied statistical methods we're highlighting in this series.
 
