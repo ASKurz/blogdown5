@@ -237,7 +237,7 @@ predictions(ols1, newdata = nd, by = c("sn", "experimental")) %>%
   head()
 ```
 
-I've used the `head()` function to limit the output to the first six rows, but the full output would have all 82 rows worth of counterfactual predictions. Each one has its own standard error and so on. To compute the actual participant-level contrasts, $y_i^1 - y_i^0$, we'll want to switch to the `marginaleffects::comparisons()` function. Here we just need to use the `variables` function to indicate we want counterfactual comparisons on the `experimental` dummy for each case in the original data set.
+I've used the `head()` function to limit the output to the first six rows, but the full output would have all 82 rows worth of counterfactual predictions. Each one has its own standard error and so on. To compute the actual participant-level contrasts, $y_i^1 - y_i^0$, we'll want to switch to the `marginaleffects::comparisons()` function. Here we just need to use the `variables` argument to indicate we want counterfactual comparisons on the `experimental` dummy for each case in the original data set.
 
 ```{r}
 comparisons(ols1, variables = list(experimental = 0:1)) %>% 
@@ -299,7 +299,7 @@ comparisons(ols1, variables = list(experimental = 0:1)) %>%
   summary()
 ```
 
-Again in this case our model-based estimate for $\tau_\text{ATE}$, computed by the formula $\mathbb E (y_i^1 - y_i^0)$, is the same as the $\beta_1$ coefficient and its standard error. So in the case of a simple OLS-based ANOVA-type model of a randomized experiment,
+In this case our model-based estimate for $\tau_\text{ATE}$, computed by the formula $\mathbb E (y_i^1 - y_i^0)$, is the same as the $\beta_1$ coefficient and its standard error. With a simple OLS-based ANOVA-type model of a randomized experiment,
 
 * $\beta_1$,
 * $\mathbb E (y_i^1 - y_i^0)$, and
@@ -309,7 +309,7 @@ are all the same thing. They're all estimators of our estimand $\tau_\text{ATE}$
 
 ### Counterfactual interventions, with covariates.
 
-Much like we can use baseline covariates when we analyze RCT data to boost the power, we can use baseline covariates when we make causal inferences, too. We just have to expand the framework a bit. If we let $c_i$ stand for the $i$th person's value on continuous covariate $c$, we can estimate the ATE with help from covariate $c$ with the formula:
+Much like how we can use baseline covariates when we analyze RCT data to boost the power, we can use baseline covariates when we make causal inferences, too. We just have to expand the framework a bit. If we let $c_i$ stand for the $i$th person's value on continuous covariate $c$, we can estimate the ATE with help from covariate $c$ with the formula:
 
 $$\tau_\text{ATE} = \mathbb E (y_i^1 - y_i^0 \mid c_i),$$
 
@@ -325,7 +325,7 @@ $$\tau_\text{ATE} = \mathbb E (y_i^1 \mid \bar c) - \mathbb E (y_i^0 \mid \bar c
 
 As above, we can generalize this equation so that $\mathbf C_i$ is a vector of covariates, and update the equation for the ATE to account for our $\mathbf{\bar C}$ vector to
 
-$$\tau_\text{ATE} = \mathbb E \left (y_i^1 \mid \mathbf{\bar C} \right) - \mathbb E \left (y_i^0 \mid \mathbf{\bar C} \right).$$
+$$\tau_\text{ATE} = \operatorname{\mathbb{E}} \left (y_i^1 \mid \mathbf{\bar C} \right) - \mathbb E \left (y_i^0 \mid \mathbf{\bar C} \right).$$
 
 As we will see, when working with a continuous outcome variable within the conventional OLS-type paradigm, 
 
@@ -350,7 +350,7 @@ nd <- horan1971 %>%
 print(nd)
 ```
 
-In case you're not used to scientific notation, the `prec` values in that output are basically zero. Since the `prec` covariate was already mean centered, we technically didn't need to manually compute `mean(prec)`. We already knew that value would be zero. But I wanted to make the point explicit so the step will generalize to other data contexts. Anyway, now we have our `nd` data, we're ready to pump the values into `predict()`.
+In case you're not used to scientific notation, the `prec` values in that output are basically zero. Since the `prec` covariate was already mean centered, we technically didn't need to manually compute `mean(prec)`; we already knew that value would be zero. But I wanted to make the point explicit so the step will generalize to other data contexts. Anyway, now we have our `nd` data, we're ready to pump the values into `predict()`.
 
 ```{r}
 predict(ols2, 
