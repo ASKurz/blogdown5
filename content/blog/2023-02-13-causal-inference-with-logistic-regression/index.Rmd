@@ -564,7 +564,7 @@ and thus
 
 $$
 \begin{align*}
-\mathbb E (p_i^1 - p_i^0 \mid \mathbf C_i, \mathbf D_i) & \neq \operatorname{\mathbb{E}} \left (p_i^1 \mid \mathbf{\bar C}, \mathbf D^m \right) - \operatorname{\mathbb{E}} \left (p_i^0 \mid \mathbf{\bar C}, \mathbf D^m \right) \\
+\mathbb E (p_i^1 - p_i^0 \mid \mathbf C_i, \mathbf D_i) & \neq \left (p^1 \mid \mathbf{\bar C}, \mathbf D^m \right) - \left (p^0 \mid \mathbf{\bar C}, \mathbf D^m \right) \\
 & \neq (p^1 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d) - (p^0 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d),
 \end{align*}
 $$
