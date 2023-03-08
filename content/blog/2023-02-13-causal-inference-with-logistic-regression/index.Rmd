@@ -499,7 +499,9 @@ p1 + p2 + plot_annotation(title = "Person-level estimates based on the logistic 
 ```
 
 
-If the left plot, we see the counterfactual probabilities, depicted by their point estimates (dots) and 95% intervals (horizontal lines), and colored by whether they were based on the control condition $(\hat p_i^0)$ or the experimental intervention $(\hat p_i^1)$. In the right plot, we have the corresponding contrasts $(p_i^1 - p_i^0)$. In both plots, the y-axis has been rank ordered by the magnitudes of the estimates. Other than how we have switched from predictions $\hat y_i$ to probabilities $\hat p_i$, the overall results of these plots follow the same patterns as those in their [analogues from the last post](https://timely-flan-2986f4.netlify.app/blog/2023-02-06-causal-inference-with-potential-outcomes-bootcamp/#estimands-estimators-and-estimates), where we used the conventional OLS framework. Because the logistic regression ANOVA model `glm1` has no covariates, the probabilities and their contrasts are identical for all participants. As we'll see later on, this will change when we switch to the ANCOVA model. 
+If the left plot, we see the counterfactual probabilities, depicted by their point estimates (dots) and 95% intervals (horizontal lines), and colored by whether they were based on the control condition $(\hat p_i^0)$ or the experimental intervention $(\hat p_i^1)$. In the right plot, we have the corresponding contrasts $(p_i^1 - p_i^0)$. In both plots, the y-axis has been rank ordered by the magnitudes of the estimates. Other than how we have switched from predictions $\hat y_i$ to probabilities $\hat p_i$, the overall results of these plots follow the same patterns as those in their [analogues from the last post](https://timely-flan-2986f4.netlify.app/blog/2023-02-06-causal-inference-with-potential-outcomes-bootcamp/#estimands-estimators-and-estimates), where we used the conventional OLS framework. Because the logistic regression ANOVA model `glm1` has no covariates, the probabilities and their contrasts are identical for all participants. As we'll see later on, this will change when we switch to the ANCOVA model.
+
+Another fine point that's easy to lose track of is all those $(p_i^1 - p_i^0)$ contrasts in the right plot are NOT individual causal effects $(\tau_i)$. For binary data, individual causal effects can only take on values of $-1$, $0$, or $1$. Even when we use the so-called standardization or g-computation method, our logistic regression models don't really return individual treatment effects, even in the counterfactual sense. Rather, they return individual probability contrasts. But importantly, the average of those probability contrasts does return a valid estimate of the ATE. Wild, huh?
 
 Wrapping up, in the case of an ANOVA-type logistic regression model of a randomized experiment,
 
@@ -780,7 +782,7 @@ comparisons(glm2, newdata = nd, variables = "tx", by = "id") %>%
   scale_x_continuous(limits = c(-0.5, 0.5)) +
   scale_y_continuous(NULL, breaks = NULL) +
   labs(title = "The individual contrast distribution",
-       subtitle = "Each gray dot is a point estmiate for a single participant's\ncontrast. The horizontal red line marks off the\ninterquartile range, and the red dot marks the ATE.",
+       subtitle = "Each gray dot is a point estmiate for a single participant's\ncontrast. The horizontal red line marks off the interquartile\nrange, and the red dot marks the ATE.",
        x = expression(hat(italic(p))[italic(i)]^1-hat(italic(p))[italic(i)]^0)) +
   coord_cartesian(ylim = c(0, 0.7))
 ```
