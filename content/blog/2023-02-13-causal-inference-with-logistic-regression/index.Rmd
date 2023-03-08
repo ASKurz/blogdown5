@@ -245,7 +245,7 @@ In somewhat awkward statistical notation, that code is
 
 $$\operatorname{logit}^{-1}(\beta_0 + \beta_1) - \operatorname{logit}^{-1}(\beta_1),$$
 
-where $\operatorname{logit}^{-1}(\cdot)$ is the inverse of the logistic function. In base **R**, `plogis()` is the $\operatorname{logit}^{-1}(\cdot)$ function. Let's prove our estimate with this formula is correct with the *sample* ATE (SATE), as computed by hand with sample statistics.
+where $\operatorname{logit}^{-1}(\cdot)$ is the inverse of the logistic function (i.e., `plogis()`). Let's prove our estimate with this formula is correct with the *sample* ATE (SATE), as computed by hand with sample statistics.
 
 ```{r}
 wilson2017 %>% 
@@ -597,7 +597,7 @@ Unlike what typically occurs with OLS-based models, the standard error for $\bet
 
 ### Compute $\left (p^1 \mid \mathbf{\bar C}, \mathbf D^m \right) - \left (p^0 \mid \mathbf{\bar C}, \mathbf D^m \right)$ from `glm2`.
 
-With our ANCOVA-type `glm2` model, we can compute $\left (p^1 \mid \mathbf{\bar C}, \mathbf D^m \right)$ and $\left (p^1 \mid \mathbf{\bar C}, \mathbf D^m \right)$ with the base **R** `predict()` function. As a first step, we'll define our prediction grid with the sample mean for our continuous covariate `agez`, the sample modes for our four discrete covariates, and then expand the grid to include both values of the `experimental` dummy. This presents a small difficulty, however, because base **R** does not have a function for modes. Here we'll make one ourselves.
+With our ANCOVA-type `glm2` model, we can compute $\left (p^1 \mid \mathbf{\bar C}, \mathbf D^m \right)$ and $\left (p^0 \mid \mathbf{\bar C}, \mathbf D^m \right)$ with the base **R** `predict()` function. As a first step, we'll define our prediction grid with the sample mean for our continuous covariate `agez`, the sample modes for our four discrete covariates, and then expand the grid to include both values of the `experimental` dummy. This presents a small difficulty, however, because base **R** does not have a function for modes. Here we'll make one ourselves.
 
 ```{r}
 get_mode <- function(x) {
