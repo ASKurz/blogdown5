@@ -325,7 +325,7 @@ $$\tau_\text{ATE} = \mathbb E (y_i^1 \mid \bar c) - \mathbb E (y_i^0 \mid \bar c
 
 As above, we can generalize this equation so that $\mathbf C_i$ is a vector of covariates, and update the equation for the ATE to account for our $\mathbf{\bar C}$ vector to
 
-$$\tau_\text{ATE} = \operatorname{\mathbb{E}} \left (y_i^1 \mid \mathbf{\bar C} \right) - \mathbb E \left (y_i^0 \mid \mathbf{\bar C} \right).$$
+$$\tau_\text{ATE} = \operatorname{\mathbb{E}} \left (y_i^1 \mid \mathbf{\bar C} \right) - \operatorname{\mathbb{E}} \left (y_i^0 \mid \mathbf{\bar C} \right).$$
 
 As we will see, when working with a continuous outcome variable within the conventional OLS-type paradigm, 
 
