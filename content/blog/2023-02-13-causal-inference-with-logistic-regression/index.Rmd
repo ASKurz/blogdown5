@@ -538,7 +538,7 @@ Within the context of a logistic regression model, we further observe
 $$
 \begin{align*}
 \tau_\text{TEMM} & = \operatorname{\mathbb{E}} \left (y_i^1 \mid \mathbf{\bar C}, \mathbf D^m \right) - \operatorname{\mathbb{E}} \left (y_i^0 \mid \mathbf{\bar C}, \mathbf D^m \right) \\
-& = {\color{blueviolet}{\operatorname{\mathbb{E}} \left (p_i^1 \mid \mathbf{\bar C}, \mathbf D^m \right) - \operatorname{\mathbb{E}} \left (p_i^0 \mid \mathbf{\bar C}, \mathbf D^m \right)}}
+& = {\color{blueviolet}{\left (p^1 \mid \mathbf{\bar C}, \mathbf D^m \right) - \left (p^0 \mid \mathbf{\bar C}, \mathbf D^m \right)}}
 \end{align*}
 $$
 
@@ -547,7 +547,7 @@ where $p_i^1$ and $p_i^0$ are the counterfactual probabilities for each of the $
 $$
 \begin{align*}
 \tau_\text{CATE} & = \operatorname{\mathbb{E}} (y_i^1 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d) - \operatorname{\mathbb{E}}(y_i^0 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d) \\
-& = {\color{blueviolet}{\operatorname{\mathbb{E}} (p_i^1 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d) - \operatorname{\mathbb{E}}(p_i^0 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d)}}.
+& = {\color{blueviolet}{(p^1 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d) - (p^0 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d)}}.
 \end{align*}
 $$
 
@@ -565,7 +565,7 @@ and thus
 $$
 \begin{align*}
 \mathbb E (p_i^1 - p_i^0 \mid \mathbf C_i, \mathbf D_i) & \neq \operatorname{\mathbb{E}} \left (p_i^1 \mid \mathbf{\bar C}, \mathbf D^m \right) - \operatorname{\mathbb{E}} \left (p_i^0 \mid \mathbf{\bar C}, \mathbf D^m \right) \\
-& \neq \operatorname{\mathbb{E}} (p_i^1 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d) - \operatorname{\mathbb{E}} (p_i^0 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d),
+& \neq (p^1 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d) - (p^0 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d),
 \end{align*}
 $$
 
@@ -595,9 +595,9 @@ bind_rows(tidy(glm1), tidy(glm2)) %>%
 
 Unlike what typically occurs with OLS-based models, the standard error for $\beta_1$ *increased* when we added the baseline covariates to the model. It turns out this will generally happen with logistic regression models, even when using high-quality covariates [@robinson1991someSurprising; see also @ford2002role]. This does not, however, mean we should not use baseline covariates in our logistic regression models. Rather, it means that we need to focus on how to compute the ATE, rather than fixate on the model coefficients [cf. @daniel2021makingApples]. This can be very unsettling for those with strong roots in the OLS framework--it was for me. All I can say is: Your OLS sensibilities will not help you, here. The sooner you shed them, the better.
 
-### Compute $\operatorname{\mathbb{E}} \left (p_i^1 \mid \mathbf{\bar C}, \mathbf D^m \right) - \operatorname{\mathbb{E}} \left (p_i^0 \mid \mathbf{\bar C}, \mathbf D^m \right)$ from `glm2`.
+### Compute $\left (p^1 \mid \mathbf{\bar C}, \mathbf D^m \right) - \left (p^0 \mid \mathbf{\bar C}, \mathbf D^m \right)$ from `glm2`.
 
-With our ANCOVA-type `glm2` model, we can compute $\operatorname{\mathbb{E}} \left (p_i^1 \mid \mathbf{\bar C}, \mathbf D^m \right)$ and $\operatorname{\mathbb{E}} \left (p_i^1 \mid \mathbf{\bar C}, \mathbf D^m \right)$ with the base **R** `predict()` function. As a first step, we'll define our prediction grid with the sample mean for our continuous covariate `agez`, the sample modes for our four discrete covariates, and then expand the grid to include both values of the `experimental` dummy. This presents a small difficulty, however, because base **R** does not have a function for modes. Here we'll make one ourselves.
+With our ANCOVA-type `glm2` model, we can compute $\left (p^1 \mid \mathbf{\bar C}, \mathbf D^m \right)$ and $\left (p^1 \mid \mathbf{\bar C}, \mathbf D^m \right)$ with the base **R** `predict()` function. As a first step, we'll define our prediction grid with the sample mean for our continuous covariate `agez`, the sample modes for our four discrete covariates, and then expand the grid to include both values of the `experimental` dummy. This presents a small difficulty, however, because base **R** does not have a function for modes. Here we'll make one ourselves.
 
 ```{r}
 get_mode <- function(x) {
@@ -651,7 +651,7 @@ predictions(glm2, newdata = nd, by = "tx", hypothesis = "revpairwise")
 
 Thus we expect our hypothetical person with demographics at the mean and/or modes for the covariates will be about 22% more likely to get tested if given the intervention, compared to if she had not.
 
-### Compute $\operatorname{\mathbb{E}} (p_i^1 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d) - \operatorname{\mathbb{E}} (p_i^0 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d)$ from `glm2`.
+### Compute $(p^1 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d) - (p^0 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d)$ from `glm2`.
 
 Since the $\tau_\text{TEMM}$ is just a special case of a $\tau_\text{CATE}$, we might practice computing our estimate for $\tau_\text{CATE}$ with a different set of covariate values. Men who have sex with men (MSM) were one of the vulnerable subgroups of interest in @wilson2017internet, so we might take a look to see which combination of covariate values was most common for MSM in our subset of the data.
 
@@ -905,7 +905,7 @@ In this post, some of the main points we covered were:
   - $\tau_\text{ATE} = p^1 - p^0$.
 * For the logistic regression ANCOVA model,
   - $\tau_\text{ATE} = \mathbb E (p_i^1 - p_i^0 \mid \mathbf C_i, \mathbf D_i)$, but
-  - $\tau_\text{CATE} = \operatorname{\mathbb{E}} (p_i^1 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d) - \operatorname{\mathbb{E}}(p_i^0 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d)$.
+  - $\tau_\text{CATE} = (p^1 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d) - (p^0 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d)$.
 * For a logistic regression ANCOVA model, there can be many different values for the conditional average treatment effect, $\tau_\text{CATE}$, depending which values one uses for the covariates. 
 * With logistic regression models, baseline covariates tend to
   - *in*crease the standard errors for the $\beta_1$ coefficient, and
