@@ -360,7 +360,7 @@ Imbens and Rubin discussed this kind of scenario in Section 1.3 in their [-@imbe
 
 $$\tau_\text{SATE} = \frac{1}{N} \sum_{i=1}^N (y_i^1 - y_i^0),$$
 
-could take on any continuous value ranging from -1 to 1. Thus unlike with the OLS paradigm for continuous variables, the metric for $\tau_\text{SATE}$, and also $\tau_\text{ATE}$, is not the same as the metric for and individual case's causal effect $\tau_i$. The average of a set of integers is a real number.
+could take on any continuous value ranging from -1 to 1. Thus unlike with the OLS paradigm for continuous variables, the metric for $\tau_\text{SATE}$, and also $\tau_\text{ATE}$, is not the same as the metric for any individual case's causal effect $\tau_i$. The average of a set of integers is a real number.
 
 The second issue is when we compute the case-specific counterfactual estimates from a logistic regression model, we don't typically get a vector of $\hat y_i^1$ and $\hat y_i^1$ values; we get $\hat p_i^1$ and $\hat p_i^0$ instead. Let's explore with `predict()`.
 
@@ -488,8 +488,8 @@ p2 <- comparisons(glm1, newdata = nd, variables = list(tx = 0:1), by = "id") %>%
   geom_point() +
   scale_x_continuous(limits = c(-0.5, 0.5)) +
   scale_y_discrete(breaks = NULL) +
-  labs(subtitle = "treatment effects",
-       x = expression(hat(tau)[italic(i)]~("i.e., "*hat(italic(p))[italic(i)]^1-hat(italic(p))[italic(i)]^0)),
+  labs(subtitle = "contrasts",
+       x = expression(hat(italic(p))[italic(i)]^1-hat(italic(p))[italic(i)]^0),
        y = NULL) +
   theme(legend.background = element_blank(),
         legend.position = c(.9, .85))
@@ -499,7 +499,7 @@ p1 + p2 + plot_annotation(title = "Person-level estimates based on the logistic 
 ```
 
 
-If the left plot, we see the counterfactual probabilities, depicted by their point estimates (dots) and 95% intervals (horizontal lines), and colored by whether they were based on the control condition $(\hat p_i^0)$ or the experimental intervention $(\hat p_i^1)$. In the right plot, we have the corresponding treatment effects $(p_i^1 - p_i^0)$. In both plots, the y-axis has been rank ordered by the magnitudes of the estimates. Other than how we have switched from predictions $\hat y_i$ to probabilities $\hat p_i$, the overall results of these plots follow the same patterns as those in their [analogues from the last post](https://timely-flan-2986f4.netlify.app/blog/2023-02-06-causal-inference-with-potential-outcomes-bootcamp/#estimands-estimators-and-estimates), where we used the conventional OLS framework. Because the logistic regression ANOVA model `glm1` has no covariates, the probabilities and their contrasts are identical for all participants. As we'll see later on, this will change when we switch to the ANCOVA model. 
+If the left plot, we see the counterfactual probabilities, depicted by their point estimates (dots) and 95% intervals (horizontal lines), and colored by whether they were based on the control condition $(\hat p_i^0)$ or the experimental intervention $(\hat p_i^1)$. In the right plot, we have the corresponding contrasts $(p_i^1 - p_i^0)$. In both plots, the y-axis has been rank ordered by the magnitudes of the estimates. Other than how we have switched from predictions $\hat y_i$ to probabilities $\hat p_i$, the overall results of these plots follow the same patterns as those in their [analogues from the last post](https://timely-flan-2986f4.netlify.app/blog/2023-02-06-causal-inference-with-potential-outcomes-bootcamp/#estimands-estimators-and-estimates), where we used the conventional OLS framework. Because the logistic regression ANOVA model `glm1` has no covariates, the probabilities and their contrasts are identical for all participants. As we'll see later on, this will change when we switch to the ANCOVA model. 
 
 Wrapping up, in the case of an ANOVA-type logistic regression model of a randomized experiment,
 
@@ -753,8 +753,8 @@ p4 <- comparisons(glm2, newdata = nd, variables = "tx") %>%
   geom_point() +
   scale_x_continuous(limits = c(-0.5, 0.5)) +
   scale_y_discrete(breaks = NULL) +
-  labs(subtitle = "treatment effects",
-       x = expression(hat(tau)[italic(i)]~("i.e., "*hat(italic(p))[italic(i)]^1-hat(italic(p))[italic(i)]^0)),
+  labs(subtitle = "contrasts",
+       x = expression(hat(italic(p))[italic(i)]^1-hat(italic(p))[italic(i)]^0),
        y = NULL) +
   theme(legend.background = element_blank(),
         legend.position = c(.9, .85))
@@ -763,9 +763,9 @@ p4 <- comparisons(glm2, newdata = nd, variables = "tx") %>%
 p3 + p4 + plot_annotation(title = "Person-level estimates based on the logistic regression ANCOVA model (glm2)")
 ```
 
-Now we have added covariates to the model, the counterfactual probabilities vary across participants, which was the same pattern for the OLS-based ANCOVA from the [last post](https://timely-flan-2986f4.netlify.app/blog/2023-02-06-causal-inference-with-potential-outcomes-bootcamp/#counterfactual-interventions-with-covariates), too. But unlike with the ANOVA model and unlike with the ANCOVA results from the last post, the treatment effects $(p_i^1 - p_i^0)$ now vary across participants. Once you leave the simple OLS paradigm, this issue will come up again and again when you fit ANCOVA models. Covariate values change the magnitudes of the probability estimates and their contrasts.
+Now we have added covariates to the model, the counterfactual probabilities vary across participants, which was the same pattern for the OLS-based ANCOVA from the [last post](https://timely-flan-2986f4.netlify.app/blog/2023-02-06-causal-inference-with-potential-outcomes-bootcamp/#counterfactual-interventions-with-covariates), too. But unlike with the ANOVA model and unlike with the ANCOVA results from the last post, the contrasts $(p_i^1 - p_i^0)$ now vary across participants. Once you leave the simple OLS paradigm, this issue will come up again and again when you fit ANCOVA models. Covariate values change the magnitudes of the probability estimates and their contrasts.
 
-Investigating further, here's the full distribution of the $\hat \tau_i$ values for all $n = 400$ cases. To reduce visual complexity, we'll drop the 95% confidence interval lines.
+Investigating further, here's the full distribution of the contrast values for all $n = 400$ cases. To reduce visual complexity, we'll drop the 95% confidence interval lines.
 
 ```{r, fig.width = 4.5, fig.height = 4}
 comparisons(glm2, newdata = nd, variables = "tx", by = "id") %>% 
@@ -779,13 +779,13 @@ comparisons(glm2, newdata = nd, variables = "tx", by = "id") %>%
                      point_size = 2.5, color = "red") +
   scale_x_continuous(limits = c(-0.5, 0.5)) +
   scale_y_continuous(NULL, breaks = NULL) +
-  labs(title = "The individual treatment effect distribution",
-       subtitle = "Each gray dot is a point estmiate for a single participant's\ntreatment effect. The horizontal red line marks off the\ninterquartile range, and the red dot marks the ATE.",
-       x = expression(hat(tau)[italic(i)]~("i.e., "*hat(italic(p))[italic(i)]^1-hat(italic(p))[italic(i)]^0))) +
+  labs(title = "The individual contrast distribution",
+       subtitle = "Each gray dot is a point estmiate for a single participant's\ncontrast. The horizontal red line marks off the\ninterquartile range, and the red dot marks the ATE.",
+       x = expression(hat(italic(p))[italic(i)]^1-hat(italic(p))[italic(i)]^0)) +
   coord_cartesian(ylim = c(0, 0.7))
 ```
 
-The red dot below the distribution marks off the average of the $\hat \tau_i$ values, which is the same as the point estimate for the ATE. Speaking of which, here's $\tau_\text{ATE}$ for this model, and for the simpler ANOVA-type `glm1`.
+The red dot below the distribution marks off the average of the participant-level probability contrast estimates, which is the same as the point estimate for the ATE. Speaking of which, here's $\tau_\text{ATE}$ for this model, and for the simpler ANOVA-type `glm1`.
 
 ```{r}
 bind_rows(
@@ -803,7 +803,7 @@ Whereas the standard error for the $\beta_1$ coefficient *increased* when we add
 
 ### Grappling with $(p_i^1 - p_i^0 \mid \mathbf C_i, \mathbf D_i)$ distributions.
 
-Given how the logistic-regression-based $\tau_i$ values now come in distributions when estimated from ANCOVA models, some researchers have wondered whether it's a good idea to use a single summary value like the ATE. Biostatistician Frank Harrell, for example, recommended displaying the entire $\tau_i$ distribution in his [-@harrell2021avoiding] blog post, [*Avoiding one-number summaries of treatment effects for RCTs with binary outcomes*](https://www.fharrell.com/post/rdist/). Albuquerque and Arel-Bundock covered Harrell's primary material from a **marginaleffects** perspective in their [-@albuquerque2023logisticRegression] vignette, [*Logistic regression*](https://vincentarelbundock.github.io/marginaleffects/articles/logit.html) [see also @kent2007limitations]. At the moment, I'm inclined to still rely on the ATE, but perhaps also show a plot of the $\tau_i$ distribution as a supplement. 
+Given how the logistic-regression-based participant-level probability contrasts now come in distributions when estimated from ANCOVA models, some researchers have wondered whether it's a good idea to use a single summary value like the ATE. Biostatistician Frank Harrell, for example, recommended displaying the entire contrast distribution in his [-@harrell2021avoiding] blog post, [*Avoiding one-number summaries of treatment effects for RCTs with binary outcomes*](https://www.fharrell.com/post/rdist/). Albuquerque and Arel-Bundock covered Harrell's primary material from a **marginaleffects** perspective in their [-@albuquerque2023logisticRegression] vignette, [*Logistic regression*](https://vincentarelbundock.github.io/marginaleffects/articles/logit.html) [see also @kent2007limitations]. At the moment, I'm inclined to still rely on the ATE, but perhaps also show a plot of the contrast distribution as a supplement. 
 
 Another approach might be to focus on one or a handful of CATE's. This, however, I would only recommend with great caution. To help clarify why, let's compute the CATE for every valid combination of our baseline covariate values. First, we'll update our `nd` data grid.
 
