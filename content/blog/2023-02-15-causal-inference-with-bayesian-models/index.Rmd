@@ -482,7 +482,7 @@ $$
 \end{align*}
 $$
 
-Now we're extending the generic $\operatorname{Normal}(0, 1)$ prior to all predictor variables in the model. I have no doubt a real medical researcher could have set better priors. This is what you get when you let a psychologist put his mitts on your data.
+For simplicity, we're extending the generic $\operatorname{Normal}(0, 1)$ prior to all predictor variables in the ANCOVA version of the model. I have no doubt a real medical researcher could have set better priors. This is what you get when you let a psychologist put his mitts on your data.
 
 Here's how to fit the Bayesian binomial models with the `brm()` function.
 
@@ -508,7 +508,7 @@ fit4 <- brm(
 )
 ```
 
-The parameter summary for the binomial ANCOVA `fit3` is pretty similar to the results from the `glm()`-based version of the model. You'll note many of the parameters from our Bayesian `fit4` are more conservative compared to its frequentist counterpart. That's what happens when you use a regularizing prior.
+The parameter summary for the binomial ANCOVA `fit3` is pretty similar to the results from the `glm()`-based version of the model. You'll note many of the parameters from our Bayesian `fit4` are more conservative compared to its frequentist counterpart. That's what happens when you use regularizing priors.
 
 ```{r}
 print(fit3)
@@ -524,7 +524,7 @@ pp_check(fit4, ndraws = 100, type = "bars") + coord_cartesian(ylim = c(0, 300))
 
 The overall format in the next few sections will follow the same sensibilities as those from above. We'll be practicing most of the primary estimates from the [third post](https://timely-flan-2986f4.netlify.app/blog/2023-02-13-causal-inference-with-logistic-regression/#ate-for-the-anova) in this series. The main new addition is we'll also consider work flows based around the handy `add_epred_draws()` function from the **tidybayes** package [@R-tidybayes]. Do note, the `add_epred_draws()` function would also have worked fine for the Gaussian models, above. I just waited until now because I didn't want to overwhelm you with code in the first half of the blog.
 
-#### Compute $\Pr (y_i^1 = 1) - \Pr(y_i^0 = 1)$ from `fit3`.
+#### Compute $p^1 - p^0$ from `fit3`.
 
 When working with a `brm()` binomial model, the `fitted()` default is to return the posterior draws on the probability scale.
 
@@ -625,7 +625,7 @@ Each time, the results are exactly the same.
 
 ### Counterfactual interventions, with covariates, with the binomial.
 
-#### Compute $\operatorname{\mathbb{E}} \left (p_i^1 \mid \mathbf{\bar C}, \mathbf D^m \right) - \operatorname{\mathbb{E}} \left (p_i^0 \mid \mathbf{\bar C}, \mathbf D^m \right)$ from `fit4`.
+#### Compute $\left (p^1 \mid \mathbf{\bar C}, \mathbf D^m \right) - \left (p^0 \mid \mathbf{\bar C}, \mathbf D^m \right)$ from `fit4`.
 
 As in the [last post](https://timely-flan-2986f4.netlify.app/blog/2023-02-13-causal-inference-with-logistic-regression/#compute-operatornamemathbbe-left-p_i1--mathbfbar-c-mathbf-dm-right---operatornamemathbbe-left-p_i0--mathbfbar-c-mathbf-dm-right-from-glm2), we going to want to make a custom function to compute the modes for a few variables.
 
@@ -747,7 +747,7 @@ Or just use `avg_comparisons()`.
 avg_comparisons(fit4, newdata = nd, variables = "tx")
 ```
 
-In the [last post](https://timely-flan-2986f4.netlify.app/blog/2023-02-13-causal-inference-with-logistic-regression/#compute-mathbb-e-p_i1---p_i0--mathbf-c_i-mathbf-d_i-from-glm2), we showcased the diversity among the $\tau_i$'s with a coefficient plot. Here's how to make the analogous plot for the Bayesian version of the model, using a `fitted()`-based work flow.
+In the [last post](https://timely-flan-2986f4.netlify.app/blog/2023-02-13-causal-inference-with-logistic-regression/#compute-mathbb-e-p_i1---p_i0--mathbf-c_i-mathbf-d_i-from-glm2), we showcased the diversity among the $p_i^1 - p_i^0$ contrasts with a coefficient plot. Here's how to make the analogous plot for the Bayesian version of the model, using a `fitted()`-based work flow.
 
 ```{r, fig.width = 8, fig.height = 5}
 fitted(fit4,
@@ -774,12 +774,12 @@ fitted(fit4,
   ggplot(aes(x = tau, xmin = .lower, xmax = .upper, y = rank)) +
   geom_pointrange(linewidth = 1/10, fatten = 1/10) +
   scale_y_continuous(NULL, breaks = NULL) +
-  labs(title = "Behold the diversity among the individual treatment effect estimates.",
-       x = expression(hat(tau)[italic(i)]~("i.e., "*hat(italic(p))[italic(i)]^1-hat(italic(p))[italic(i)]^0))) +
+  labs(title = "Behold the diversity among the individual probability contrasts.",
+       x = expression(hat(italic(p))[italic(i)]^1-hat(italic(p))[italic(i)]^0)) +
   coord_cartesian(xlim = c(-0.1, 0.4))
 ```
 
-If you compare this plot with the original maximum-likelihood version from the [last post](https://timely-flan-2986f4.netlify.app/blog/2023-02-13-causal-inference-with-logistic-regression/#compute-mathbb-e-p_i1---p_i0--mathbf-c_i-mathbf-d_i-from-glm2), you'll note our priors have reigned some of the posteriors in a bit, particularly the $\tau_i$'s with the lowest rank. I don't know that one solution is more correct than the other, but priors do change the model.
+If you compare this plot with the original maximum-likelihood version from the [last post](https://timely-flan-2986f4.netlify.app/blog/2023-02-13-causal-inference-with-logistic-regression/#compute-mathbb-e-p_i1---p_i0--mathbf-c_i-mathbf-d_i-from-glm2), you'll note our priors have reigned some of the posteriors in a bit, particularly the $p_i^1 - p_i^0$ contrasts with the lowest rank. I don't know that one solution is more correct than the other, but priors do change the model.
 
 Since we're plotting, we might also show the whole posterior distribution for the resulting $\tau_\text{ATE}$. Here we'll base our wrangling workflow on the `add_epred_draws()` method, and then plot the results with help from the `stat_halfeye()` function.
 
@@ -810,7 +810,7 @@ In this post, some of the main points we covered were:
   - an `as_draws_df()`-based approach, or
   - a `predictions()`/`avg_comparisons()`-based approach.
 
-In the next post, we'll explore how our causal inference methods work with a gamma regression model. Until then, happy modeling, friends!
+In the [next post](https://timely-flan-2986f4.netlify.app/blog/2023-03-03-causal-inference-with-count-regression/), we'll explore how our causal inference methods work with Poisson and negative-binomial models. Until then, happy modeling, friends!
 
 ## Session information
 
