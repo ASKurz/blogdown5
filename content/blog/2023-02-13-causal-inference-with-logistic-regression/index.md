@@ -31,9 +31,6 @@ csl: /Users/solomonkurz/Dropbox/blogdown5/content/blog/apa.csl
 link-citations: yes
 ---
 
-<link href="{{< blogdown/postref >}}index_files/tabwid/tabwid.css" rel="stylesheet" />
-<link href="{{< blogdown/postref >}}index_files/tabwid/tabwid.css" rel="stylesheet" />
-
 So far in this series, we’ve been been using ordinary least squares (OLS) to analyze and make causal inferences from our experimental data. Though OLS is an applied statistics workhorse and performs admirably in some cases, there are many contexts in which it’s just not appropriate. In medical trials, for example, many of the outcome variables are binary. Some typical examples are whether a patient still has the disease (coded `1`) or not (coded `0`), or whether a participant has died (coded `1`) or is still alive (coded `0`). In these cases, we want to model our data with a likelihood function that can handle binary data, and the go-to solution is the binomial[^1]. As we will see, some of the nice qualities from the OLS paradigm fall apart when we want to make causal inferences with binomial models. But no fear; we have solutions.
 
 ## We need data
@@ -44,7 +41,7 @@ In this post, we’ll be borrowing data from Wilson et al. ([2017](#ref-wilson20
 # packages
 library(tidyverse)
 library(marginaleffects)
-library(flextable)
+# library(flextable)
 library(broom)
 library(ggdist)
 library(patchwork)
@@ -178,7 +175,7 @@ We’ve already introduced our binary outcome variable `anytest` and the experim
 
 Further down in the Method (p. 7), we learn all these variables were used as covariates in the primary analysis[^3], in addition to ethnicity[^4].
 
-To get a sense of these covariates, we’ll make a Table 1 type table of the categorical variables for our randomized subset.
+To get a sense of these covariates, we’ll make a Table 1 type table[^5] of the categorical variables for our randomized subset.
 
 ``` r
 wilson2017 %>% 
@@ -186,61 +183,41 @@ wilson2017 %>%
                names_to = "variable", values_to = "category") %>% 
   group_by(variable) %>% 
   count(category) %>% 
-  mutate(`%` = round(100 * n / sum(n), digits = 1)) %>% 
-  # these last 4 lines make the flextable-based table
-  as_grouped_data(groups = c("variable")) %>% 
-  flextable() %>% 
-  autofit() %>% 
-  italic(j = 3, part = "header")
+  mutate(`%` = round(100 * n / sum(n), digits = 1))
 ```
 
-<template id="0cd3cb3c-c428-44bc-95b2-b9cb2776380c"><style>
-.tabwid table{
-  border-spacing:0px !important;
-  border-collapse:collapse;
-  line-height:1;
-  margin-left:auto;
-  margin-right:auto;
-  border-width: 0;
-  border-color: transparent;
-  caption-side: top;
-}
-.tabwid-caption-bottom table{
-  caption-side: bottom;
-}
-.tabwid_left table{
-  margin-left:0;
-}
-.tabwid_right table{
-  margin-right:0;
-}
-.tabwid td, .tabwid th {
-    padding: 0;
-}
-.tabwid a {
-  text-decoration: none;
-}
-.tabwid thead {
-    background-color: transparent;
-}
-.tabwid tfoot {
-    background-color: transparent;
-}
-.tabwid table tr {
-background-color: transparent;
-}
-.katex-display {
-    margin: 0 0 !important;
-}
-</style><div class="tabwid"><style>.cl-c0964c74{}.cl-c07f062c{font-family:'Helvetica';font-size:11pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(0, 0, 0, 1.00);background-color:transparent;}.cl-c07f0640{font-family:'Helvetica';font-size:11pt;font-weight:normal;font-style:italic;text-decoration:none;color:rgba(0, 0, 0, 1.00);background-color:transparent;}.cl-c090e0fe{margin:0;text-align:left;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:5pt;padding-right:5pt;line-height: 1;background-color:transparent;}.cl-c090e112{margin:0;text-align:right;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:5pt;padding-right:5pt;line-height: 1;background-color:transparent;}.cl-c090f77e{width:0.914in;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 2pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f788{width:1.907in;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 2pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f792{width:0.54in;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 2pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f793{width:0.583in;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 2pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f79c{width:0.914in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f79d{width:1.907in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f79e{width:0.54in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f79f{width:0.583in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f7a0{width:0.914in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f7a6{width:1.907in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f7a7{width:0.54in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f7a8{width:0.583in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f7a9{width:0.914in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f7b0{width:1.907in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f7b1{width:0.54in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f7b2{width:0.583in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f7b3{width:0.914in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f7b4{width:1.907in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f7ba{width:0.54in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f7bb{width:0.583in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f7bc{width:0.914in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f7c4{width:1.907in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f7c5{width:0.54in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f7c6{width:0.583in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f7ce{width:0.914in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f7cf{width:1.907in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f7d8{width:0.54in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f7d9{width:0.583in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f7da{width:0.914in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f7e2{width:1.907in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f7e3{width:0.54in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f7e4{width:0.583in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f7ec{width:0.914in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f7ed{width:1.907in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f7ee{width:0.54in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f7ef{width:0.583in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f7f6{width:0.914in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f7f7{width:1.907in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f7f8{width:0.54in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f800{width:0.583in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f801{width:0.914in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f802{width:1.907in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f803{width:0.54in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f80a{width:0.583in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f80b{width:0.914in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f80c{width:1.907in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f814{width:0.54in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f815{width:0.583in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f81e{width:0.914in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f81f{width:1.907in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f820{width:0.54in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f828{width:0.583in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f829{width:0.914in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f82a{width:1.907in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f832{width:0.54in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f833{width:0.583in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f834{width:0.914in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f83c{width:1.907in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f83d{width:0.54in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f83e{width:0.583in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f83f{width:0.914in;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f840{width:1.907in;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f846{width:0.54in;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c090f847{width:0.583in;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table class='cl-c0964c74'><thead><tr style="overflow-wrap:break-word;"><th class="cl-c090f77e"><p class="cl-c090e0fe"><span class="cl-c07f062c">variable</span></p></th><th class="cl-c090f788"><p class="cl-c090e0fe"><span class="cl-c07f062c">category</span></p></th><th class="cl-c090f792"><p class="cl-c090e112"><span class="cl-c07f0640">n</span></p></th><th class="cl-c090f793"><p class="cl-c090e112"><span class="cl-c07f062c">%</span></p></th></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-c090f79c"><p class="cl-c090e0fe"><span class="cl-c07f062c">ethnicgrp</span></p></td><td class="cl-c090f79d"><p class="cl-c090e0fe"><span class="cl-c07f062c"></span></p></td><td class="cl-c090f79e"><p class="cl-c090e112"><span class="cl-c07f062c"></span></p></td><td class="cl-c090f79f"><p class="cl-c090e112"><span class="cl-c07f062c"></span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c090f7a0"><p class="cl-c090e0fe"><span class="cl-c07f062c"></span></p></td><td class="cl-c090f7a6"><p class="cl-c090e0fe"><span class="cl-c07f062c">White/ White British</span></p></td><td class="cl-c090f7a7"><p class="cl-c090e112"><span class="cl-c07f062c">293</span></p></td><td class="cl-c090f7a8"><p class="cl-c090e112"><span class="cl-c07f062c">73.2</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c090f7a0"><p class="cl-c090e0fe"><span class="cl-c07f062c"></span></p></td><td class="cl-c090f7a6"><p class="cl-c090e0fe"><span class="cl-c07f062c">Asian/ Asian British</span></p></td><td class="cl-c090f7a7"><p class="cl-c090e112"><span class="cl-c07f062c">24</span></p></td><td class="cl-c090f7a8"><p class="cl-c090e112"><span class="cl-c07f062c">6.0</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c090f7a0"><p class="cl-c090e0fe"><span class="cl-c07f062c"></span></p></td><td class="cl-c090f7a6"><p class="cl-c090e0fe"><span class="cl-c07f062c">Black/ Black British</span></p></td><td class="cl-c090f7a7"><p class="cl-c090e112"><span class="cl-c07f062c">35</span></p></td><td class="cl-c090f7a8"><p class="cl-c090e112"><span class="cl-c07f062c">8.8</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c090f7a9"><p class="cl-c090e0fe"><span class="cl-c07f062c"></span></p></td><td class="cl-c090f7b0"><p class="cl-c090e0fe"><span class="cl-c07f062c">Mixed/ Multiple ethnicity</span></p></td><td class="cl-c090f7b1"><p class="cl-c090e112"><span class="cl-c07f062c">44</span></p></td><td class="cl-c090f7b2"><p class="cl-c090e112"><span class="cl-c07f062c">11.0</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c090f7b3"><p class="cl-c090e0fe"><span class="cl-c07f062c"></span></p></td><td class="cl-c090f7b4"><p class="cl-c090e0fe"><span class="cl-c07f062c">Other</span></p></td><td class="cl-c090f7ba"><p class="cl-c090e112"><span class="cl-c07f062c">4</span></p></td><td class="cl-c090f7bb"><p class="cl-c090e112"><span class="cl-c07f062c">1.0</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c090f79c"><p class="cl-c090e0fe"><span class="cl-c07f062c">gender</span></p></td><td class="cl-c090f79d"><p class="cl-c090e0fe"><span class="cl-c07f062c"></span></p></td><td class="cl-c090f79e"><p class="cl-c090e112"><span class="cl-c07f062c"></span></p></td><td class="cl-c090f79f"><p class="cl-c090e112"><span class="cl-c07f062c"></span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c090f7bc"><p class="cl-c090e0fe"><span class="cl-c07f062c"></span></p></td><td class="cl-c090f7c4"><p class="cl-c090e0fe"><span class="cl-c07f062c">Female</span></p></td><td class="cl-c090f7c5"><p class="cl-c090e112"><span class="cl-c07f062c">241</span></p></td><td class="cl-c090f7c6"><p class="cl-c090e112"><span class="cl-c07f062c">60.2</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c090f7bc"><p class="cl-c090e0fe"><span class="cl-c07f062c"></span></p></td><td class="cl-c090f7c4"><p class="cl-c090e0fe"><span class="cl-c07f062c">Male</span></p></td><td class="cl-c090f7c5"><p class="cl-c090e112"><span class="cl-c07f062c">159</span></p></td><td class="cl-c090f7c6"><p class="cl-c090e112"><span class="cl-c07f062c">39.8</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c090f7ce"><p class="cl-c090e0fe"><span class="cl-c07f062c">msm</span></p></td><td class="cl-c090f7cf"><p class="cl-c090e0fe"><span class="cl-c07f062c"></span></p></td><td class="cl-c090f7d8"><p class="cl-c090e112"><span class="cl-c07f062c"></span></p></td><td class="cl-c090f7d9"><p class="cl-c090e112"><span class="cl-c07f062c"></span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c090f7da"><p class="cl-c090e0fe"><span class="cl-c07f062c"></span></p></td><td class="cl-c090f7e2"><p class="cl-c090e0fe"><span class="cl-c07f062c">other</span></p></td><td class="cl-c090f7e3"><p class="cl-c090e112"><span class="cl-c07f062c">341</span></p></td><td class="cl-c090f7e4"><p class="cl-c090e112"><span class="cl-c07f062c">85.2</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c090f7ec"><p class="cl-c090e0fe"><span class="cl-c07f062c"></span></p></td><td class="cl-c090f7ed"><p class="cl-c090e0fe"><span class="cl-c07f062c">msm</span></p></td><td class="cl-c090f7ee"><p class="cl-c090e112"><span class="cl-c07f062c">59</span></p></td><td class="cl-c090f7ef"><p class="cl-c090e112"><span class="cl-c07f062c">14.8</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c090f7f6"><p class="cl-c090e0fe"><span class="cl-c07f062c">partners</span></p></td><td class="cl-c090f7f7"><p class="cl-c090e0fe"><span class="cl-c07f062c"></span></p></td><td class="cl-c090f7f8"><p class="cl-c090e112"><span class="cl-c07f062c"></span></p></td><td class="cl-c090f800"><p class="cl-c090e112"><span class="cl-c07f062c"></span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c090f801"><p class="cl-c090e0fe"><span class="cl-c07f062c"></span></p></td><td class="cl-c090f802"><p class="cl-c090e0fe"><span class="cl-c07f062c">1</span></p></td><td class="cl-c090f803"><p class="cl-c090e112"><span class="cl-c07f062c">121</span></p></td><td class="cl-c090f80a"><p class="cl-c090e112"><span class="cl-c07f062c">30.2</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c090f80b"><p class="cl-c090e0fe"><span class="cl-c07f062c"></span></p></td><td class="cl-c090f80c"><p class="cl-c090e0fe"><span class="cl-c07f062c">2</span></p></td><td class="cl-c090f814"><p class="cl-c090e112"><span class="cl-c07f062c">68</span></p></td><td class="cl-c090f815"><p class="cl-c090e112"><span class="cl-c07f062c">17.0</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c090f81e"><p class="cl-c090e0fe"><span class="cl-c07f062c"></span></p></td><td class="cl-c090f81f"><p class="cl-c090e0fe"><span class="cl-c07f062c">3</span></p></td><td class="cl-c090f820"><p class="cl-c090e112"><span class="cl-c07f062c">56</span></p></td><td class="cl-c090f828"><p class="cl-c090e112"><span class="cl-c07f062c">14.0</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c090f7ec"><p class="cl-c090e0fe"><span class="cl-c07f062c"></span></p></td><td class="cl-c090f7ed"><p class="cl-c090e0fe"><span class="cl-c07f062c">4</span></p></td><td class="cl-c090f7ee"><p class="cl-c090e112"><span class="cl-c07f062c">37</span></p></td><td class="cl-c090f7ef"><p class="cl-c090e112"><span class="cl-c07f062c">9.2</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c090f801"><p class="cl-c090e0fe"><span class="cl-c07f062c"></span></p></td><td class="cl-c090f802"><p class="cl-c090e0fe"><span class="cl-c07f062c">5</span></p></td><td class="cl-c090f803"><p class="cl-c090e112"><span class="cl-c07f062c">41</span></p></td><td class="cl-c090f80a"><p class="cl-c090e112"><span class="cl-c07f062c">10.2</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c090f81e"><p class="cl-c090e0fe"><span class="cl-c07f062c"></span></p></td><td class="cl-c090f81f"><p class="cl-c090e0fe"><span class="cl-c07f062c">6</span></p></td><td class="cl-c090f820"><p class="cl-c090e112"><span class="cl-c07f062c">16</span></p></td><td class="cl-c090f828"><p class="cl-c090e112"><span class="cl-c07f062c">4.0</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c090f829"><p class="cl-c090e0fe"><span class="cl-c07f062c"></span></p></td><td class="cl-c090f82a"><p class="cl-c090e0fe"><span class="cl-c07f062c">7</span></p></td><td class="cl-c090f832"><p class="cl-c090e112"><span class="cl-c07f062c">12</span></p></td><td class="cl-c090f833"><p class="cl-c090e112"><span class="cl-c07f062c">3.0</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c090f7ec"><p class="cl-c090e0fe"><span class="cl-c07f062c"></span></p></td><td class="cl-c090f7ed"><p class="cl-c090e0fe"><span class="cl-c07f062c">8</span></p></td><td class="cl-c090f7ee"><p class="cl-c090e112"><span class="cl-c07f062c">4</span></p></td><td class="cl-c090f7ef"><p class="cl-c090e112"><span class="cl-c07f062c">1.0</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c090f834"><p class="cl-c090e0fe"><span class="cl-c07f062c"></span></p></td><td class="cl-c090f83c"><p class="cl-c090e0fe"><span class="cl-c07f062c">9</span></p></td><td class="cl-c090f83d"><p class="cl-c090e112"><span class="cl-c07f062c">5</span></p></td><td class="cl-c090f83e"><p class="cl-c090e112"><span class="cl-c07f062c">1.2</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c090f83f"><p class="cl-c090e0fe"><span class="cl-c07f062c"></span></p></td><td class="cl-c090f840"><p class="cl-c090e0fe"><span class="cl-c07f062c">10+</span></p></td><td class="cl-c090f846"><p class="cl-c090e112"><span class="cl-c07f062c">40</span></p></td><td class="cl-c090f847"><p class="cl-c090e112"><span class="cl-c07f062c">10.0</span></p></td></tr></tbody></table></div></template>
-<div class="flextable-shadow-host" id="20aff683-53e5-413f-a401-a351e73b924f"></div>
-<script>
-var dest = document.getElementById("20aff683-53e5-413f-a401-a351e73b924f");
-var template = document.getElementById("0cd3cb3c-c428-44bc-95b2-b9cb2776380c");
-var fantome = dest.attachShadow({mode: 'open'});
-var templateContent = template.content;
-fantome.appendChild(templateContent);
-</script>
+    ## # A tibble: 19 × 4
+    ## # Groups:   variable [4]
+    ##    variable  category                      n   `%`
+    ##    <chr>     <fct>                     <int> <dbl>
+    ##  1 ethnicgrp White/ White British        293  73.2
+    ##  2 ethnicgrp Asian/ Asian British         24   6  
+    ##  3 ethnicgrp Black/ Black British         35   8.8
+    ##  4 ethnicgrp Mixed/ Multiple ethnicity    44  11  
+    ##  5 ethnicgrp Other                         4   1  
+    ##  6 gender    Female                      241  60.2
+    ##  7 gender    Male                        159  39.8
+    ##  8 msm       other                       341  85.2
+    ##  9 msm       msm                          59  14.8
+    ## 10 partners  1                           121  30.2
+    ## 11 partners  2                            68  17  
+    ## 12 partners  3                            56  14  
+    ## 13 partners  4                            37   9.2
+    ## 14 partners  5                            41  10.2
+    ## 15 partners  6                            16   4  
+    ## 16 partners  7                            12   3  
+    ## 17 partners  8                             4   1  
+    ## 18 partners  9                             5   1.2
+    ## 19 partners  10+                          40  10
+
+``` r
+# %>%
+#   # these last 4 lines make the flextable-based table
+#   as_grouped_data(groups = c("variable")) %>%
+#   flextable() %>%
+#   autofit() %>%
+#   italic(j = 3, part = "header")
+```
 
 Though we’ll be using the standardized version of `age` in the model, here are the basic descriptive statistics for `age`.
 
@@ -400,7 +377,7 @@ tidy(glm1, conf.int = T) %>%
     ##      <dbl>    <dbl>     <dbl>
     ## 1     2.39     1.56      3.70
 
-Odds ratios range from 0 to positive infinity, and have an inflection point at 1. Though I don’t care for them, odds ratios seem to be popular effect sizes among medical researchers[^5]. To each their own. But if you’re like me, you want to convert the results of the model to the metric of a difference in probability[^6]. A naïve data analyst might try to convert `\(\beta_1\)` out of the log-odds metric into the probability metric with the base **R** `plogis()`.
+Odds ratios range from 0 to positive infinity, and have an inflection point at 1. Though I don’t care for them, odds ratios seem to be popular effect sizes among medical researchers[^6]. To each their own. But if you’re like me, you want to convert the results of the model to the metric of a difference in probability[^7]. A naïve data analyst might try to convert `\(\beta_1\)` out of the log-odds metric into the probability metric with the base **R** `plogis()`.
 
 ``` r
 tidy(glm1, conf.int = T) %>% 
@@ -568,57 +545,21 @@ Within the context of our ANOVA-type binomial model, the `\(\mathbb E (y_i^1 - y
 ``` r
 crossing(y0 = 0:1, 
          y1 = 0:1) %>% 
-  mutate(tau = y1 - y0) %>% 
-  flextable()
+  mutate(tau = y1 - y0) 
 ```
 
-<template id="cfae90c8-4ef3-4c22-9a1a-2b31a86e0f19"><style>
-.tabwid table{
-  border-spacing:0px !important;
-  border-collapse:collapse;
-  line-height:1;
-  margin-left:auto;
-  margin-right:auto;
-  border-width: 0;
-  border-color: transparent;
-  caption-side: top;
-}
-.tabwid-caption-bottom table{
-  caption-side: bottom;
-}
-.tabwid_left table{
-  margin-left:0;
-}
-.tabwid_right table{
-  margin-right:0;
-}
-.tabwid td, .tabwid th {
-    padding: 0;
-}
-.tabwid a {
-  text-decoration: none;
-}
-.tabwid thead {
-    background-color: transparent;
-}
-.tabwid tfoot {
-    background-color: transparent;
-}
-.tabwid table tr {
-background-color: transparent;
-}
-.katex-display {
-    margin: 0 0 !important;
-}
-</style><div class="tabwid"><style>.cl-c0e3e790{}.cl-c0ddb33e{font-family:'Helvetica';font-size:11pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(0, 0, 0, 1.00);background-color:transparent;}.cl-c0e054fe{margin:0;text-align:right;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:5pt;padding-right:5pt;line-height: 1;background-color:transparent;}.cl-c0e065ac{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 2pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c0e065b6{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c0e065b7{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table class='cl-c0e3e790'><thead><tr style="overflow-wrap:break-word;"><th class="cl-c0e065ac"><p class="cl-c0e054fe"><span class="cl-c0ddb33e">y0</span></p></th><th class="cl-c0e065ac"><p class="cl-c0e054fe"><span class="cl-c0ddb33e">y1</span></p></th><th class="cl-c0e065ac"><p class="cl-c0e054fe"><span class="cl-c0ddb33e">tau</span></p></th></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-c0e065b6"><p class="cl-c0e054fe"><span class="cl-c0ddb33e">0</span></p></td><td class="cl-c0e065b6"><p class="cl-c0e054fe"><span class="cl-c0ddb33e">0</span></p></td><td class="cl-c0e065b6"><p class="cl-c0e054fe"><span class="cl-c0ddb33e">0</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c0e065b6"><p class="cl-c0e054fe"><span class="cl-c0ddb33e">0</span></p></td><td class="cl-c0e065b6"><p class="cl-c0e054fe"><span class="cl-c0ddb33e">1</span></p></td><td class="cl-c0e065b6"><p class="cl-c0e054fe"><span class="cl-c0ddb33e">1</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c0e065b6"><p class="cl-c0e054fe"><span class="cl-c0ddb33e">1</span></p></td><td class="cl-c0e065b6"><p class="cl-c0e054fe"><span class="cl-c0ddb33e">0</span></p></td><td class="cl-c0e065b6"><p class="cl-c0e054fe"><span class="cl-c0ddb33e">-1</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c0e065b7"><p class="cl-c0e054fe"><span class="cl-c0ddb33e">1</span></p></td><td class="cl-c0e065b7"><p class="cl-c0e054fe"><span class="cl-c0ddb33e">1</span></p></td><td class="cl-c0e065b7"><p class="cl-c0e054fe"><span class="cl-c0ddb33e">0</span></p></td></tr></tbody></table></div></template>
-<div class="flextable-shadow-host" id="866cd85b-1134-4a63-8098-5396381beaaa"></div>
-<script>
-var dest = document.getElementById("866cd85b-1134-4a63-8098-5396381beaaa");
-var template = document.getElementById("cfae90c8-4ef3-4c22-9a1a-2b31a86e0f19");
-var fantome = dest.attachShadow({mode: 'open'});
-var templateContent = template.content;
-fantome.appendChild(templateContent);
-</script>
+    ## # A tibble: 4 × 3
+    ##      y0    y1   tau
+    ##   <int> <int> <int>
+    ## 1     0     0     0
+    ## 2     0     1     1
+    ## 3     1     0    -1
+    ## 4     1     1     0
+
+``` r
+# %>% 
+#   flextable()
+```
 
 Imbens and Rubin discussed this kind of scenario in Section 1.3 in their ([2015](#ref-imbensCausalInferenceStatistics2015)) text. If we were in a context where we could compute the raw `\(y_i^1 - y_i^0\)` contrasts with synthetic data, the average of those values,
 
@@ -709,12 +650,13 @@ nd %>%
     ##   <dbl>
     ## 1 0.158
 
-At first glance, this might look like a failure. 0.158 is a much lower value than 0.19 from above. But keep in mind that this was a summary of a single iteration of a random process. In the next code block, we’ll expand the initial data set so that each participant has 1,000 iterations of both `\(\hat y_i^1\)` and `\(\hat y_i^0\)` values. We’ll compute `\(\mathbb E (y_i^1 - y_i^0)\)` within each iteration, and them summarize the results from the 1,000 iterations by their mean and standard deviation.
+At first glance, this might look like a failure. 0.158 is a much lower value than 0.19 from above. But keep in mind that this was a summary of a single iteration of a random process. In the next code block, we’ll expand the initial data set so that each participant has 1,000 iterations of both `\(\hat y_i^1\)` and `\(\hat y_i^0\)` values. We’ll compute `\(\mathbb E (y_i^1 - y_i^0)\)` within each iteration, visualize the distribution in a histogram, and then summarize the results from the 1,000 iterations by their mean and standard deviation.
 
 ``` r
+# simulate
 set.seed(1)
 
-nd %>% 
+sim <- nd %>% 
   mutate(p = predict(glm1, newdata = nd, type = "response")) %>% 
   # make 1,000 iterations
   expand_grid(iteration = 1:1000) %>% 
@@ -723,8 +665,20 @@ nd %>%
   pivot_wider(names_from = tx, values_from = y) %>% 
   group_by(iteration) %>% 
   # summarize within iterations
-  summarise(ate_iteration = mean(`1` - `0`)) %>% 
-  # summarize across the iterations
+  summarise(ate_iteration = mean(`1` - `0`))
+
+# visualize
+sim %>% 
+  ggplot(aes(x = ate_iteration)) +
+  geom_histogram(binwidth = 0.01) +
+  ggtitle("Distribution of model-based simulated ATE's")
+```
+
+<img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-26-1.png" width="672" />
+
+``` r
+# summarize across the iterations
+sim %>% 
   summarise(mean = mean(ate_iteration),
             sd = sd(ate_iteration))
 ```
@@ -734,7 +688,7 @@ nd %>%
     ##   <dbl>  <dbl>
     ## 1 0.192 0.0321
 
-The mean[^7] of our random process is a pretty good approximation of `\(\tau_\text{ATE}\)` computed from the `avg_comparisons()` function, above.
+The mean[^8] of our random process is a pretty good approximation of `\(\tau_\text{ATE}\)` computed from the `avg_comparisons()` function, above.
 
 Backing up a bit, we might want to get a better sense of all those `\(p_i^1\)`, `\(p_i^0\)`, and `\((p_i^1 - p_i^0)\)` estimates we’ve been averaging over. Like in the last post, we’ll display them in a couple plots. To keep down the clutter, we’ll restrict ourselves to a random `\(n = 50\)` subset of the 400 cases in the `wilson2017` data.
 
@@ -820,7 +774,7 @@ $$
 
 where `\(p_i^1\)` and `\(p_i^0\)` are the counterfactual probabilities for each of the `\(i\)` cases, estimated in light of their covariate values.
 
-Whether we have continuous covariates, discrete covariates, or a combination of both, the standardization method works the same. However, this is no longer the case when using the difference in population means approach, the covariate-adjusted version of `\(\mathbb E (y_i^1) - \mathbb E (y_i^0)\)`. One complication is we might not be able to mean-center the discrete covariates in our `\(\mathbf D\)` vector. Sometimes people will mean center dummy variables, which can lead to awkward interpretive issues[^8]. But even this approach will not generalize well to multi-categorical nominal variables, like ethnicity. Another solution is to set discrete covariates at their modes (see [Muller & MacLehose, 2014](#ref-muller2014estimating)), which we’ll denote `\(\mathbf D^m\)`. This gives us a new estimand:
+Whether we have continuous covariates, discrete covariates, or a combination of both, the standardization method works the same. However, this is no longer the case when using the difference in population means approach, the covariate-adjusted version of `\(\mathbb E (y_i^1) - \mathbb E (y_i^0)\)`. One complication is we might not be able to mean-center the discrete covariates in our `\(\mathbf D\)` vector. Sometimes people will mean center dummy variables, which can lead to awkward interpretive issues[^9]. But even this approach will not generalize well to multi-categorical nominal variables, like ethnicity. Another solution is to set discrete covariates at their modes (see [Muller & MacLehose, 2014](#ref-muller2014estimating)), which we’ll denote `\(\mathbf D^m\)`. This gives us a new estimand:
 
 `$$\tau_\text{TEMM} = \operatorname{\mathbb{E}} \left (y_i^1 \mid \mathbf{\bar C}, \mathbf D^m \right) - \operatorname{\mathbb{E}} \left (y_i^0 \mid \mathbf{\bar C}, \mathbf D^m \right),$$`
 
@@ -1317,11 +1271,15 @@ p5 + p6 +
                   subtitle = "Based on 2,250 possible combinations of covariate values.")
 ```
 
-<img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-43-1.png" width="768" />
+<img src="{{< blogdown/postref >}}index_files/figure-html/CATE_distributions-1.png" width="768" />
 
 The ATE is still near the middle of the distribution of point estimates for the CATE’s. However, the standard error for the ATE is well lower than the bulk of the standard errors for the various versions of the CATE. If you have designed and powered a study to compute the ATE, be very cautious about switching your focus to the CATE. You might not have the right data set to answer questions like that.
 
 In case you were wondering, all those counterfactual cases with near-zero point estimates and near-zero standard errors had `Other` as the value for `ethnicgrp`. If you look back up to the model summary for `glm2`, you’ll notice the coefficient for that category has a very low point estimate and an extremely large standard error. This is what can happen when you include a categorical variables with only a handful of cases for one of the categories in a frequentist logistic regression model. Happily, this will be a much smaller problem when we adopt a Bayesian framework in the next post.
+
+## Words are hard
+
+Before we wrap up, y’all should beware the language of *ATE* is not uniformly used among researchers who use logistic regression for causal inference. For example, Gelman and colleagues used the language of “the difference in probabilities” on page 225 of their ([2020](#ref-gelmanRegressionOtherStories2020)) textbook. McCabe et al. ([2022](#ref-mccabe2022interpreting)) used the language of *discrete differences* “to define a marginal effect as the difference between two points on a regression function” (p. 247), which is what we’re doing in the special case of a randomized experiment. Agresti & Tarantola ([2018](#ref-agresti2018simple)) used the term *discrete change* for discrete variables and *average marginal effect* for continuous ones. Mood ([2010](#ref-mood2010logistic)), differentiated discrete and continuous models by calling the ATE from a logistic regression model `\(\Delta{P}\)`, and using the term *average marginal effect* when computing the ATE from a conventional Gaussian model.
 
 ## Acknowledgments
 
@@ -1351,7 +1309,7 @@ In the [next post](https://timely-flan-2986f4.netlify.app/blog/2023-02-15-causal
 sessionInfo()
 ```
 
-    ## R version 4.2.2 (2022-10-31)
+    ## R version 4.2.3 (2023-03-15)
     ## Platform: x86_64-apple-darwin17.0 (64-bit)
     ## Running under: macOS Big Sur ... 10.16
     ## 
@@ -1366,34 +1324,34 @@ sessionInfo()
     ## [1] stats     graphics  grDevices utils     datasets  methods   base     
     ## 
     ## other attached packages:
-    ##  [1] patchwork_1.1.2            ggdist_3.2.1.9000          broom_1.0.2               
-    ##  [4] flextable_0.8.3            marginaleffects_0.9.0.9014 forcats_0.5.1             
-    ##  [7] stringr_1.4.1              dplyr_1.1.0                purrr_1.0.1               
-    ## [10] readr_2.1.2                tidyr_1.2.1                tibble_3.1.8              
-    ## [13] ggplot2_3.4.0              tidyverse_1.3.2           
+    ##  [1] patchwork_1.1.2            ggdist_3.2.1.9000          broom_1.0.4               
+    ##  [4] marginaleffects_0.9.0.9014 lubridate_1.9.2            forcats_1.0.0             
+    ##  [7] stringr_1.5.0              dplyr_1.1.0                purrr_1.0.1               
+    ## [10] readr_2.1.4                tidyr_1.3.0                tibble_3.2.0              
+    ## [13] ggplot2_3.4.1              tidyverse_2.0.0           
     ## 
     ## loaded via a namespace (and not attached):
-    ##  [1] fs_1.5.2             lubridate_1.8.0      insight_0.19.0       httr_1.4.4           tools_4.2.2         
-    ##  [6] backports_1.4.1      bslib_0.4.0          utf8_1.2.2           R6_2.5.1             DBI_1.1.3           
-    ## [11] colorspace_2.1-0     withr_2.5.0          tidyselect_1.2.0     curl_4.3.2           compiler_4.2.2      
-    ## [16] cli_3.6.0            rvest_1.0.2          xml2_1.3.3           officer_0.4.4        labeling_0.4.2      
-    ## [21] bookdown_0.28        sass_0.4.2           checkmate_2.1.0      scales_1.2.1         systemfonts_1.0.4   
-    ## [26] digest_0.6.31        rmarkdown_2.16       katex_1.4.0          base64enc_0.1-3      pkgconfig_2.0.3     
-    ## [31] htmltools_0.5.3      highr_0.9            dbplyr_2.2.1         fastmap_1.1.0        rlang_1.0.6         
-    ## [36] readxl_1.4.1         rstudioapi_0.13      jquerylib_0.1.4      farver_2.1.1         generics_0.1.3      
-    ## [41] jsonlite_1.8.4       zip_2.2.0            googlesheets4_1.0.1  distributional_0.3.1 magrittr_2.0.3      
-    ## [46] Rcpp_1.0.9           munsell_0.5.0        fansi_1.0.4          gdtools_0.2.4        lifecycle_1.0.3     
-    ## [51] stringi_1.7.8        yaml_2.3.5           MASS_7.3-58.1        grid_4.2.2           crayon_1.5.2        
-    ## [56] haven_2.5.1          hms_1.1.1            knitr_1.40           pillar_1.8.1         uuid_1.1-0          
-    ## [61] reprex_2.0.2         xslt_1.4.3           glue_1.6.2           evaluate_0.18        blogdown_1.15       
-    ## [66] V8_4.2.1             data.table_1.14.6    modelr_0.1.8         vctrs_0.5.2          tzdb_0.3.0          
-    ## [71] cellranger_1.1.0     gtable_0.3.1         assertthat_0.2.1     cachem_1.0.6         xfun_0.35           
-    ## [76] equatags_0.2.0       viridisLite_0.4.1    googledrive_2.0.0    gargle_1.2.0         beeswarm_0.4.0      
-    ## [81] ellipsis_0.3.2
+    ##  [1] beeswarm_0.4.0       tidyselect_1.2.0     xfun_0.37            bslib_0.4.0          colorspace_2.1-0    
+    ##  [6] vctrs_0.6.0          generics_0.1.3       viridisLite_0.4.1    htmltools_0.5.3      yaml_2.3.5          
+    ## [11] utf8_1.2.3           rlang_1.1.0          jquerylib_0.1.4      pillar_1.8.1         glue_1.6.2          
+    ## [16] withr_2.5.0          readxl_1.4.2         distributional_0.3.1 lifecycle_1.0.3      cellranger_1.1.0    
+    ## [21] munsell_0.5.0        blogdown_1.16        gtable_0.3.2         evaluate_0.18        labeling_0.4.2      
+    ## [26] knitr_1.42           tzdb_0.3.0           fastmap_1.1.0        fansi_1.0.4          highr_0.9           
+    ## [31] checkmate_2.1.0      scales_1.2.1         backports_1.4.1      cachem_1.0.6         jsonlite_1.8.4      
+    ## [36] farver_2.1.1         hms_1.1.2            digest_0.6.31        stringi_1.7.8        insight_0.19.0      
+    ## [41] bookdown_0.28        grid_4.2.3           cli_3.6.0            tools_4.2.3          magrittr_2.0.3      
+    ## [46] sass_0.4.2           pkgconfig_2.0.3      MASS_7.3-58.2        ellipsis_0.3.2       data.table_1.14.8   
+    ## [51] timechange_0.2.0     rmarkdown_2.20       rstudioapi_0.14      R6_2.5.1             compiler_4.2.3
 
 ## References
 
 <div id="refs" class="references csl-bib-body hanging-indent" line-spacing="2">
+
+<div id="ref-agresti2018simple" class="csl-entry">
+
+Agresti, A., & Tarantola, C. (2018). Simple ways to interpret effects in modeling ordinal categorical data. *Statistica Neerlandica*, *72*(3), 210–223. <https://doi.org/10.1111/stan.12130>
+
+</div>
 
 <div id="ref-albuquerque2023logisticRegression" class="csl-entry">
 
@@ -1431,6 +1389,12 @@ Ford, I., & Norrie, J. (2002). The role of covariates in estimating treatment ef
 
 </div>
 
+<div id="ref-gelmanRegressionOtherStories2020" class="csl-entry">
+
+Gelman, A., Hill, J., & Vehtari, A. (2020). *Regression and other stories*. Cambridge University Press. <https://doi.org/10.1017/9781139161879>
+
+</div>
+
 <div id="ref-harrell2021avoiding" class="csl-entry">
 
 Harrell, F. (2021, June 28). *Avoiding one-number summaries of treatment effects for RCTs with binary outcomes*. <https://www.fharrell.com/post/rdist/>
@@ -1446,6 +1410,18 @@ Imbens, G. W., & Rubin, D. B. (2015). *Causal inference in statistics, social, a
 <div id="ref-kent2007limitations" class="csl-entry">
 
 Kent, D. M., & Hayward, R. A. (2007). Limitations of applying summary results of clinical trials to individual patients: The need for risk stratification. *JAMA : The Journal of the American Medical Association*, *298*(10), 1209–1212. <https://doi.org/10.1001/jama.298.10.1209>
+
+</div>
+
+<div id="ref-mccabe2022interpreting" class="csl-entry">
+
+McCabe, C. J., Halvorson, M. A., King, K. M., Cao, X., & Kim, D. S. (2022). Interpreting interaction effects in generalized linear models of nonlinear probabilities and counts. *Multivariate Behavioral Research*, *57*(2-3), 243–263. <https://doi.org/10.1080/00273171.2020.1868966>
+
+</div>
+
+<div id="ref-mood2010logistic" class="csl-entry">
+
+Mood, C. (2010). Logistic regression: Why we cannot do what we think we can do, and what we can do about it. *European Sociological Review*, *26*(1), 67–82. <https://doi.org/10.1093/esr/jcp006>
 
 </div>
 
@@ -1489,10 +1465,12 @@ Wilson, E., Free, C., Morris, T. P., Syred, J., Ahamed, I., Menon-Johansson, A. 
 
 [^4]: At this point, one might ask: *Which covariates should I include in my ANCOVA?* At the moment, I’m in large agreement with Raab et al. ([2000](#ref-raab2000HowToSelect)), who recommend you condition on covariates that are theorized or have been empirically shown to be strongly predictive of the outcome, and/or where used to balance during the randomization process. They further added researchers would do well by planning their covariate set before data collection, and publicly reporting their plan in some kind of pre-registration report, which would help reduce `\(p\)`-hacking and other such nonsense.
 
-[^5]: There are numerous effect sizes one could compute from a logistic regression model. For a more exhaustive list, as applied within our causal inference framework, see Section 3.3 in Brumback ([2022](#ref-brumback2022Fundamentals)).
+[^5]: At the moment (03-26-2023), it appears the **flextable** package (0.9.0) isn’t playing nicely with **blogdown** (1.16). Sadly, I don’t have the technical abilities to understand why, but I get insurmountable error warnings when trying to render. For now I’m leaving the **flextable** code in, in the hopes the conflict will find resolution, soon.
 
-[^6]: In some parts of the literature, probabilities are called “risks” and differences in probabilities are called “risk differences” (e.g., [Morris et al., 2022](#ref-morris2022planning)). We will not be using the jargon of “risk” in this blog series.
+[^6]: There are numerous effect sizes one could compute from a logistic regression model. For a more exhaustive list, as applied within our causal inference framework, see Section 3.3 in Brumback ([2022](#ref-brumback2022Fundamentals)).
 
-[^7]: Note that the standard deviation, here, isn’t quite the same thing as a standard error. We’d need to do something more akin to bootstrapping, for that. However, this kind of a workflow does have some things in common with the Monte-Carlo-based Bayesian methods we’ll be practicing later in this series.
+[^7]: In some parts of the literature, probabilities are called “risks” and differences in probabilities are called “risk differences” (e.g., [Morris et al., 2022](#ref-morris2022planning)). We will not be using the jargon of “risk” in this blog series.
 
-[^8]: For example, say you have a dummy variable called `male`, which is a zero for women and a one for men. One way to interpret a model using the centered version of `male` is it returns the contrast weighted by the proportion of women/men in the sample or population. Another interpretation is this returns the contrast for someone who is in the middle of the female-male spectrum–which is what? Intersex? Non-binary? Transgender? It might be possible to interpret such a computation with skill and care, but such an approach might also leave one’s audience confused or offended.
+[^8]: Note that the standard deviation, here, isn’t quite the same thing as a standard error. We’d need to do something more akin to bootstrapping, for that. However, this kind of a workflow does have some things in common with the Monte-Carlo-based Bayesian methods we’ll be practicing later in this series.
+
+[^9]: For example, say you have a dummy variable called `male`, which is a zero for women and a one for men. One way to interpret a model using the centered version of `male` is it returns the contrast weighted by the proportion of women/men in the sample or population. Another interpretation is this returns the contrast for someone who is in the middle of the female-male spectrum–which is what? Intersex? Non-binary? Transgender? It might be possible to interpret such a computation with skill and care, but such an approach might also leave one’s audience confused or offended.

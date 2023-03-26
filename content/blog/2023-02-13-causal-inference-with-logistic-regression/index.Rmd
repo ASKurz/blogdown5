@@ -46,7 +46,7 @@ In this post, we'll be borrowing data from @wilson2017internet, *Internet-access
 # packages
 library(tidyverse)
 library(marginaleffects)
-library(flextable)
+# library(flextable)
 library(broom)
 library(ggdist)
 library(patchwork)
@@ -133,7 +133,7 @@ We've already introduced our binary outcome variable `anytest` and the experimen
  
 Further down in the Method (p. 7), we learn all these variables were used as covariates in the primary analysis[^3], in addition to ethnicity[^4].
 
-To get a sense of these covariates, we'll make a Table 1 type table of the categorical variables for our randomized subset.
+To get a sense of these covariates, we'll make a Table 1 type table[^5] of the categorical variables for our randomized subset.
 
 ```{r}
 wilson2017 %>% 
@@ -141,12 +141,13 @@ wilson2017 %>%
                names_to = "variable", values_to = "category") %>% 
   group_by(variable) %>% 
   count(category) %>% 
-  mutate(`%` = round(100 * n / sum(n), digits = 1)) %>% 
-  # these last 4 lines make the flextable-based table
-  as_grouped_data(groups = c("variable")) %>% 
-  flextable() %>% 
-  autofit() %>% 
-  italic(j = 3, part = "header")
+  mutate(`%` = round(100 * n / sum(n), digits = 1))
+# %>%
+#   # these last 4 lines make the flextable-based table
+#   as_grouped_data(groups = c("variable")) %>%
+#   flextable() %>%
+#   autofit() %>%
+#   italic(j = 3, part = "header")
 ```
 
 Though we'll be using the standardized version of `age` in the model, here are the basic descriptive statistics for `age`.
@@ -226,7 +227,7 @@ tidy(glm1, conf.int = T) %>%
   mutate_all(exp)
 ```
 
-Odds ratios range from 0 to positive infinity, and have an inflection point at 1. Though I don't care for them, odds ratios seem to be popular effect sizes among medical researchers[^5]. To each their own. But if you're like me, you want to convert the results of the model to the metric of a difference in probability[^6]. A naïve data analyst might try to convert $\beta_1$ out of the log-odds metric into the probability metric with the base **R** `plogis()`.
+Odds ratios range from 0 to positive infinity, and have an inflection point at 1. Though I don't care for them, odds ratios seem to be popular effect sizes among medical researchers[^6]. To each their own. But if you're like me, you want to convert the results of the model to the metric of a difference in probability[^7]. A naïve data analyst might try to convert $\beta_1$ out of the log-odds metric into the probability metric with the base **R** `plogis()`.
 
 ```{r}
 tidy(glm1, conf.int = T) %>% 
@@ -352,8 +353,9 @@ Within the context of our ANOVA-type binomial model, the $\mathbb E (y_i^1 - y_i
 ```{r}
 crossing(y0 = 0:1, 
          y1 = 0:1) %>% 
-  mutate(tau = y1 - y0) %>% 
-  flextable()
+  mutate(tau = y1 - y0) 
+# %>% 
+#   flextable()
 ```
 
 Imbens and Rubin discussed this kind of scenario in Section 1.3 in their [-@imbensCausalInferenceStatistics2015] text. If we were in a context where we could compute the raw $y_i^1 - y_i^0$ contrasts with synthetic data, the average of those values,
@@ -420,12 +422,13 @@ nd %>%
   summarise(ate = mean(`1` - `0`))
 ```
 
-At first glance, this might look like a failure. 0.158 is a much lower value than 0.19 from above. But keep in mind that this was a summary of a single iteration of a random process. In the next code block, we'll expand the initial data set so that each participant has 1,000 iterations of both $\hat y_i^1$ and $\hat y_i^0$ values. We'll compute $\mathbb E (y_i^1 - y_i^0)$ within each iteration, and them summarize the results from the 1,000 iterations by their mean and standard deviation.
+At first glance, this might look like a failure. 0.158 is a much lower value than 0.19 from above. But keep in mind that this was a summary of a single iteration of a random process. In the next code block, we'll expand the initial data set so that each participant has 1,000 iterations of both $\hat y_i^1$ and $\hat y_i^0$ values. We'll compute $\mathbb E (y_i^1 - y_i^0)$ within each iteration, visualize the distribution in a histogram, and then summarize the results from the 1,000 iterations by their mean and standard deviation.
 
 ```{r}
+# simulate
 set.seed(1)
 
-nd %>% 
+sim <- nd %>% 
   mutate(p = predict(glm1, newdata = nd, type = "response")) %>% 
   # make 1,000 iterations
   expand_grid(iteration = 1:1000) %>% 
@@ -434,13 +437,21 @@ nd %>%
   pivot_wider(names_from = tx, values_from = y) %>% 
   group_by(iteration) %>% 
   # summarize within iterations
-  summarise(ate_iteration = mean(`1` - `0`)) %>% 
-  # summarize across the iterations
+  summarise(ate_iteration = mean(`1` - `0`))
+
+# visualize
+sim %>% 
+  ggplot(aes(x = ate_iteration)) +
+  geom_histogram(binwidth = 0.01) +
+  ggtitle("Distribution of model-based simulated ATE's")
+
+# summarize across the iterations
+sim %>% 
   summarise(mean = mean(ate_iteration),
             sd = sd(ate_iteration))
 ```
 
-The mean[^7] of our random process is a pretty good approximation of $\tau_\text{ATE}$ computed from the `avg_comparisons()` function, above.
+The mean[^8] of our random process is a pretty good approximation of $\tau_\text{ATE}$ computed from the `avg_comparisons()` function, above.
 
 Backing up a bit, we might want to get a better sense of all those $p_i^1$, $p_i^0$, and $(p_i^1 - p_i^0)$ estimates we've been averaging over. Like in the last post, we'll display them in a couple plots. To keep down the clutter, we'll restrict ourselves to a random $n = 50$ subset of the 400 cases in the `wilson2017` data.
 
@@ -525,7 +536,7 @@ $$
 
 where $p_i^1$ and $p_i^0$ are the counterfactual probabilities for each of the $i$ cases, estimated in light of their covariate values. 
 
-Whether we have continuous covariates, discrete covariates, or a combination of both, the standardization method works the same. However, this is no longer the case when using the difference in population means approach, the covariate-adjusted version of $\mathbb E (y_i^1) - \mathbb E (y_i^0)$. One complication is we might not be able to mean-center the discrete covariates in our $\mathbf D$ vector. Sometimes people will mean center dummy variables, which can lead to awkward interpretive issues[^8]. But even this approach will not generalize well to multi-categorical nominal variables, like ethnicity. Another solution is to set discrete covariates at their modes [see @muller2014estimating], which we'll denote $\mathbf D^m$. This gives us a new estimand:
+Whether we have continuous covariates, discrete covariates, or a combination of both, the standardization method works the same. However, this is no longer the case when using the difference in population means approach, the covariate-adjusted version of $\mathbb E (y_i^1) - \mathbb E (y_i^0)$. One complication is we might not be able to mean-center the discrete covariates in our $\mathbf D$ vector. Sometimes people will mean center dummy variables, which can lead to awkward interpretive issues[^9]. But even this approach will not generalize well to multi-categorical nominal variables, like ethnicity. Another solution is to set discrete covariates at their modes [see @muller2014estimating], which we'll denote $\mathbf D^m$. This gives us a new estimand:
 
 $$\tau_\text{TEMM} = \operatorname{\mathbb{E}} \left (y_i^1 \mid \mathbf{\bar C}, \mathbf D^m \right) - \operatorname{\mathbb{E}} \left (y_i^0 \mid \mathbf{\bar C}, \mathbf D^m \right),$$
 
@@ -828,7 +839,7 @@ glimpse(nd)
 
 Now we'll summarize the results with a plot of the point estimates (left), and a plot their standard errors (right).
 
-```{r, fig.width = 8, fig.height = 4.25}
+```{r CATE_distributions, fig.width = 8, fig.height = 4.25}
 # compute/save the point estimate and standard error for the ATE
 ate_est <- avg_comparisons(glm2, variables = "tx") %>% pull(estimate)
 ate_se <- avg_comparisons(glm2, variables = "tx") %>% pull(std.error)
@@ -893,6 +904,10 @@ wilson2017 %>%
 # answer: it's 4
 ```
 
+## Words are hard
+
+Before we wrap up, y'all should beware the language of *ATE* is not uniformly used among researchers who use logistic regression for causal inference. For example, Gelman and colleagues used the language of "the difference in probabilities" on page 225 of their [-@gelmanRegressionOtherStories2020] textbook. @mccabe2022interpreting used the language of *discrete differences* "to define a marginal effect as the difference between two points on a regression function" (p. 247), which is what we're doing in the special case of a randomized experiment. @agresti2018simple used the term *discrete change* for discrete variables and *average marginal effect* for continuous ones. @mood2010logistic, differentiated discrete and continuous models by calling the ATE from a logistic regression model $\Delta{P}$, and using the term *average marginal effect* when computing the ATE from a conventional Gaussian model.
+
 ## Acknowledgments
 
 I became aware of @wilson2017internet through the follow-up paper by @morris2022planning. Morris and colleagues compared several ways to analyze these data, one of which was the standardization approach for logistic regression, such as we have done here. However, Morris and colleagues used a STATA-based workflow for their paper, and it was [A. Jordan Nafa](https://www.ajordannafa.com/)'s kind efforts (see [here](https://github.com/ajnafa/morris-et-al-2022-replication)) which helped me understand how to use these methods in **R**.
@@ -917,7 +932,7 @@ In the [next post](https://timely-flan-2986f4.netlify.app/blog/2023-02-15-causal
 
 ## Session information
 
-```{r}
+```{r sessionInfo}
 sessionInfo()
 ```
 
@@ -931,13 +946,15 @@ sessionInfo()
 
 [^4]: At this point, one might ask: *Which covariates should I include in my ANCOVA?* At the moment, I'm in large agreement with @raab2000HowToSelect, who recommend you condition on covariates that are theorized or have been empirically shown to be strongly predictive of the outcome, and/or where used to balance during the randomization process. They further added researchers would do well by planning their covariate set before data collection, and publicly reporting their plan in some kind of pre-registration report, which would help reduce $p$-hacking and other such nonsense.
 
-[^5]: There are numerous effect sizes one could compute from a logistic regression model. For a more exhaustive list, as applied within our causal inference framework, see Section 3.3 in @brumback2022Fundamentals.
+[^5]: At the moment (03-26-2023), it appears the **flextable** package (0.9.0) isn't playing nicely with **blogdown** (1.16). Sadly, I don't have the technical abilities to understand why, but I get insurmountable error warnings when trying to render. For now I'm leaving the **flextable** code in, in the hopes the conflict will find resolution, soon.
 
-[^6]: In some parts of the literature, probabilities are called "risks" and differences in probabilities are called "risk differences" [e.g., @morris2022planning]. We will not be using the jargon of "risk" in this blog series.
+[^6]: There are numerous effect sizes one could compute from a logistic regression model. For a more exhaustive list, as applied within our causal inference framework, see Section 3.3 in @brumback2022Fundamentals.
 
-[^7]: Note that the standard deviation, here, isn't quite the same thing as a standard error. We'd need to do something more akin to bootstrapping, for that. However, this kind of a workflow does have some things in common with the Monte-Carlo-based Bayesian methods we'll be practicing later in this series.
+[^7]: In some parts of the literature, probabilities are called "risks" and differences in probabilities are called "risk differences" [e.g., @morris2022planning]. We will not be using the jargon of "risk" in this blog series.
 
-[^8]: For example, say you have a dummy variable called `male`, which is a zero for women and a one for men. One way to interpret a model using the centered version of `male` is it returns the contrast weighted by the proportion of women/men in the sample or population. Another interpretation is this returns the contrast for someone who is in the middle of the female-male spectrum--which is what? Intersex? Non-binary? Transgender? It might be possible to interpret such a computation with skill and care, but such an approach might also leave one's audience confused or offended.
+[^8]: Note that the standard deviation, here, isn't quite the same thing as a standard error. We'd need to do something more akin to bootstrapping, for that. However, this kind of a workflow does have some things in common with the Monte-Carlo-based Bayesian methods we'll be practicing later in this series.
+
+[^9]: For example, say you have a dummy variable called `male`, which is a zero for women and a one for men. One way to interpret a model using the centered version of `male` is it returns the contrast weighted by the proportion of women/men in the sample or population. Another interpretation is this returns the contrast for someone who is in the middle of the female-male spectrum--which is what? Intersex? Non-binary? Transgender? It might be possible to interpret such a computation with skill and care, but such an approach might also leave one's audience confused or offended.
 
 ```{r, fig.width = 4, fig.height = 4, echo = F, eval = F}
 comparisons(glm2, variables = "tx") %>% 
@@ -955,3 +972,4 @@ comparisons(glm2, variables = "tx") %>%
 
 ggsave("tau-i-featured.jpg", width = 3.5, height = 3.5, units = "in")
 ```
+
