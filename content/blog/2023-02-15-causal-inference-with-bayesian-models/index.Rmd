@@ -10,7 +10,7 @@ tags:
   - ATE
   - Bayesian
   - binary
-  - binonial
+  - binomial
   - CATE
   - causal inference
   - g-computation
@@ -48,7 +48,7 @@ load("fits/fit3.rda")
 load("fits/fit4.rda")
 ```
 
-In the first two posts of this series, we relied on ordinary least squares (OLS). In the third post, we expanded to maximum likelihood for a couple logistic regression models. In all cases, we approached inference from a frequentist perspective. In this post, we'll refit the models from the previous posts with the Bayesian **brms** package [@R-brms; @burknerBrmsPackageBayesian2017; @burknerAdvancedBayesianMultilevel2018], and show how to compute our primary estimates when working with posterior draws. This post will be very light on theory, and heavy on methods. So if you don't love that Bayes, you can feel free to skip this one.
+In the first two posts of this series, we relied on ordinary least squares (OLS). In the third post, we expanded to maximum likelihood for a couple logistic regression models. In all cases, we approached inference from a frequentist perspective. In this post, we'll refit the Gaussian and binomial models from the previous posts with the Bayesian **brms** package [@R-brms; @burknerBrmsPackageBayesian2017; @burknerAdvancedBayesianMultilevel2018], and show how to compute our primary estimates, such as the ATE, when working with posterior draws. Along the way, we will also discuss different approaches to priors, and practice writing the Bayesian models with formal statistical notation. This post will be very light on theory, and heavy on methods. So if you don't love that Bayes, you can feel free to skip this one. I should also clarify that if you are a new Bayesian, or are unfamiliar with the **brms** package, this is not the post for you. I will be assuming my readers have basic fluency with both throughout. If you need to firm up your foundations, check out the resources listed [here](http://localhost:4321/blog/2023-02-06-boost-your-power-with-baseline-covariates/#i-make-assumptions).
 
 ## Gaussian models as a Bayesian
 
@@ -93,7 +93,7 @@ The prior for $\beta_0$ is centered on 156.5 because according to the Centers fo
 
 The prior for $\beta_1$ is centered on 0 to weakly regularize the estimate for the experimental difference towards smaller values. However, we continue to use a fairly permissive standard deviation of 15 to allow for somewhat large treatment effects. That is, there could be a difference between the groups as large as 30 pounds either way, but smaller differences are more plausible than larger ones.
 
-When switching to the likelihoodist framework, we speak in terms of $\sigma$, rather than $\epsilon$. Since $\sigma$ must be positive, we have used the exponential distribution. The $\lambda$ parameter in the exponential distribution is the reciprocal of the mean. Though I'm no weight or weight loss researcher, my first blind guess at a standard deviation for women's weights is somewhere around 15, which means a rate of about 0.067.
+When switching to the likelihoodist framework, we speak in terms of $\sigma$, rather than $\epsilon$. Since $\sigma$ must be positive, we have used the exponential distribution for the prior[^1]. The exponential distribution has a single parameter, $\lambda$, which is the reciprocal of the mean[^2]. Though I'm no weight or weight loss researcher, my first blind guess at a standard deviation for women's weights is somewhere around 15, which we can express by setting the rate to about 0.067.
 
 ```{r}
 1 / 15  # the exponential rate is the reciprocal of the mean
@@ -128,7 +128,7 @@ $$
 
 where the new parameter $\beta_2$ accounts for our baseline covariate, the mean-centered weights before the intervention (`prec`). For simplicity, the priors for $\beta_0$ and $\beta_1$ are the same as before.
 
-The prior for our new parameter $\beta_2$ is more certain than the others. This is because, even as someone who does not do weight loss research, I am very confident that a variable like weight will have a strong positive correlation before and after an 8-week period. Thus, we should expect $\beta_2$ to be somewhere betwen about 0.5 and 1. Here's what the $\operatorname{Normal}(0.75, 0.25)$ prior looks like:
+The prior for our new parameter $\beta_2$ is more certain than the others. This is because, even as someone who does not do weight loss research, I am very confident that a variable like weight will have a strong positive correlation before and after an 8-week period[^3]. Thus, we should expect $\beta_2$ to be somewhere betwen about 0.5 and 1. Here's what the $\operatorname{Normal}(0.75, 0.25)$ prior looks like:
 
 ```{r, fig.width = 5.5, fig.height = 3}
 prior(normal(0.75, 0.25), class = sd) %>% 
@@ -162,7 +162,7 @@ prior(exponential(0.133), class = sd) %>%
        subtitle = "The point and horizontal line mark the mean and 95% interval.")
 ```
 
-My guess is a proper weight loss researcher could come up with better priors. But I'm comfortable using these for the sake of a blog. Here's how to fit these two models with the `brm()` function from **brms**.
+My guess is a proper weight loss researcher could come up with better priors. But I'm comfortable using these for the sake of a blog. Here's how to fit these two models with the `brm()` function from **brms**. Note the use of the `seed` argument, which makes the results more reproducible.
 
 ```{r, eval = F}
 # Bayesian Gaussian ANOVA
@@ -189,7 +189,9 @@ fit2 <- brm(
 )
 ```
 
-In this case, the parameter summaries for these two models are pretty close to their OLS analogues from earlier posts.
+For **brms** users not used to the `0 + Intercept` syntax, read through my discussions [here](https://bookdown.org/content/3890/horoscopes-insights.html#use-the-0-intercept-syntax) or [here](https://bookdown.org/content/4857/horoscopes-insights.html#consider-using-the-0-intercept-syntax), and study the `set_prior` and `brmsformula` sections of the **brms** reference manual [@brms2023RM]. In short, if you have not mean-centered all of your predictor variables, you might should use the `0 + Intercept` syntax.
+
+In this case, the parameter summaries for these two models are pretty close to their OLS analogues from earlier posts. We can view them with either the `print()` or `summary()` funcitons.
 
 ```{r}
 print(fit1)
@@ -260,7 +262,7 @@ In Arel-Bundock's [-@arelBundock2023BayesianAnalysis] vignette, *Bayesian analys
 options(marginaleffects_posterior_center = mean)
 ```
 
-Now notice the change in the output.
+The change in the output is subtle. The column labels all look the same, but the summary statistics in the `Estimate` column is now the mean, rather than the median.
 
 ```{r}
 # predicted means
@@ -285,30 +287,43 @@ nd <- horan1971 %>%
 glimpse(nd)
 ```
 
-Notice that unlike what we've done before, we added a `row` index. This will help us join our `nd` data to the `fitted()` output, below. Speaking of which, here's the ATE.
+Notice that unlike what we've done before, we added a `row` index. This will help us join our `nd` data to the `fitted()` output, below. Speaking of which, here's how we might compute the posterior summaries for the ATE. Since this is a long block of code, I'll provide more annotation than usual.
 
 ```{r}
+# compute the posterior predictions
 fitted(fit1,
        newdata = nd,
        summary = F) %>% 
+  # convert the results to a data frame
   data.frame() %>% 
+  # rename the columns
   set_names(pull(nd, row)) %>% 
+  # add a numeric index for the MCMC draws
   mutate(draw = 1:n()) %>% 
+  # convert to the long format
   pivot_longer(-draw) %>% 
+  # convert the row column from the character to the numeric format
   mutate(row = as.double(name)) %>% 
+  # join the nd predictor grid to the output
   left_join(nd, by = "row") %>% 
+  # drop two of the unnecessary columns
   select(-name, -row) %>% 
+  # convert to a wider format so we can compute the contrast
   pivot_wider(names_from = experimental, values_from = value) %>% 
+  # compute the ATE contrast
   mutate(tau = `1` - `0`) %>% 
-  # first compute the ATE within each MCMC draw
+  # compute the average ATE value within each MCMC draw
   group_by(draw) %>% 
   summarise(ate = mean(tau)) %>% 
+  # remove the draw index column
   select(ate) %>% 
   # now summarize the ATE across the MCMC draws
   brms_summary()
 ```
 
-Returning to the equation from a two sections up, the `group_by()` and `summarise()` lines were how we computed $\mathbb E_j (y_{ij}^1 - y_{ij}^0)$ for each of the $J$ MCMC draws. It was then in the final `brms_summary()` line where we summarized the vector of all those resulting $\tau_{\text{ATE}_j}$ results. We can make the same computation with the `marginaleffects::avg_comparisons()` function.
+Returning to the equation from a two sections up, the `group_by()` and `summarise()` lines were how we computed $\mathbb E_j (y_{ij}^1 - y_{ij}^0)$ for each of the $J$ MCMC draws. It was then in the final `brms_summary()` line where we summarized the vector of all those resulting $\tau_{\text{ATE}_j}$ results. If you're confused by why we included the `group_by()` and `summarise()` lines before the final summary, I was too at first. It turns out that for the Gaussian and/or ANOVA models, those intermediary steps are not necessary. However, they are necessary for non-Gaussian ANCOVA models. So my recommendation is you just get into the habit of this approach. If you'd like more on the topic, check out Section 19.4 from @gelmanRegressionOtherStories2020.
+
+We can make the same computation with the `marginaleffects::avg_comparisons()` function.
 
 ```{r}
 avg_comparisons(fit1, variables = list(experimental = 0:1))
@@ -320,7 +335,7 @@ Not only are the results from the `fitted()`- and `avg_comparisons()`-based appr
 
 #### Compute $\mathbb E (y_i^1 \mid \bar c) - \mathbb E (y_i^0 \mid \bar c)$ from `fit2`.
 
-We need to redefine our `nd` predictor grid, which now includes the mean of `prec`.
+Before we can use the $\mathbb E (y_i^1 \mid \bar c) - \mathbb E (y_i^0 \mid \bar c)$ method, we need to redefine our `nd` predictor grid, which now includes the mean of `prec`.
 
 ```{r}
 nd <- horan1971 %>% 
@@ -331,7 +346,7 @@ nd <- horan1971 %>%
 print(nd)
 ```
 
-The `fitted()`-based workflow is much the same as before.
+The `fitted()`-based workflow is much the same as with the previous section. After the basic computation, we convert the output to a data fame, rename the columns, use simple subtraction to compute an `ate` column, and summarize as desired.
 
 ```{r}
 fitted(fit2,
@@ -343,7 +358,7 @@ fitted(fit2,
   brms_summary()
 ```
 
-The `predictions()` version of the code remains simple, too.
+The thrifty `predictions()` version of the code remains much the same as before, too.
 
 ```{r}
 # predicted means
@@ -352,9 +367,11 @@ predictions(fit2, newdata = nd, by = "experimental")
 predictions(fit2, newdata = nd, by = "experimental", hypothesis = "revpairwise")
 ```
 
+Happily, the results are the same whether you use a `fitted()`- or `predictions()`-based workflow. One workflow is explicit, but requires many more lines. The other workflow is more opaque, but very convenient.
+
 #### Compute $\mathbb E (y_i^1 - y_i^0 \mid c_i)$ from `fit2`.
 
-Redefine the `nd` predictor grid, which once again includes a `row` index.
+To prepare for the $\mathbb E (y_i^1 - y_i^0 \mid c_i)$ method, we need to redefine the `nd` predictor grid, which once again includes a `row` index.
 
 ```{r}
 nd <- horan1971 %>% 
@@ -395,7 +412,7 @@ Now confirm it works with the `avg_comparisons()` approach.
 avg_comparisons(fit2, variables = list(experimental = 0:1))
 ```
 
-Note how these results are identical to the posterior summary for the $\beta_1$ parameter.
+Whether using a `fitted()`- or `avg_comparisons()`-based workflow, the results are identical to the posterior summary for the $\beta_1$ parameter.
 
 ```{r, warning = F}
 # retrieve the MCMC draws
@@ -406,9 +423,11 @@ as_draws_df(fit2) %>%
   brms_summary()
 ```
 
+Just as we learned with the earlier frequentist analyses of these data, the $\beta_1$ parameter is the same as the ATE when using the Gaussian likelihood with the conventional identity link. This convenient property, however, will not extend to other contexts.
+
 ## Logistic regression
 
-For the second half of this post, let's revisit the @wilson2017internet data from the last post.
+For the second half of this post, let's revisit the @wilson2017internet data from the last post. Here we load the data, subset, and wrangle them just like before.
 
 ```{r}
 wilson2017 <- readxl::read_excel("data/S1Data.xls", sheet = "data")
@@ -437,9 +456,11 @@ wilson2017 <- wilson2017 %>%
 glimpse(wilson2017)
 ```
 
+Even though the full data set has responses from more than 2,000 people, the 400-case subset is plenty for our purposes.
+
 ### Binomial models.
 
-Here's what are Binomial ANOVA-type model for the `anytest` variable might look like when including our Bayesian priors:
+Here's what the binomial[^4] ANOVA-type model for the `anytest` variable might look like when including our Bayesian priors:
 
 $$
 \begin{align*}
@@ -450,11 +471,11 @@ $$
 \end{align*}
 $$
 
-Since I'm not a medical researcher, I'm switching to a more generic weakly-regularizing approach to the priors for this model and the next. When you're using the logit link, the $\operatorname{Normal}(0, 1.25)$ prior will gently nudge the $\beta_0$ posterior toward the middle of the probability space, while allowing for estimates anywhere along the possible range. To give you a sense, here are 100,000 draws from $\operatorname{Normal}(0, 1.25)$, which are then converted back to the probability space with the inverse logit function.
+Since I'm not a medical researcher, I'm switching to a more generic weakly-regularizing approach to the priors for this model and the next. When you're using the conventional logit link, the $\operatorname{Normal}(0, 1.25)$ prior will gently nudge the $\beta_0$ posterior toward the middle of the probability space, while allowing for estimates anywhere along the possible range. To give you a sense, here are 100,000 draws from $\operatorname{Normal}(0, 1.25)$, which are then converted back to the probability space with the inverse logit function.
 
 ```{r, fig.width = 4, fig.height = 2.75}
 set.seed(4)
-tibble(n = rnorm(1e5, 0, 1.25)) %>% 
+tibble(n = rnorm(n = 1e5, mean = 0, sd = 1.25)) %>% 
   mutate(p = inv_logit_scaled(n)) %>% 
   ggplot(aes(p)) +
   geom_histogram(boundary = 0, binwidth = 0.025) +
@@ -526,7 +547,7 @@ The overall format in the next few sections will follow the same sensibilities a
 
 #### Compute $p^1 - p^0$ from `fit3`.
 
-When working with a `brm()` binomial model, the `fitted()` default is to return the posterior draws on the probability scale.
+When working with a `brm()` binomial model, the `fitted()` default is to return the posterior draws on the probability scale. Thus our first two columns will be the posterior draws for $p^0$ and $p^1$.
 
 ```{r}
 nd <- tibble(tx = 0:1)
@@ -552,7 +573,9 @@ nd %>%
   brms_summary()
 ```
 
-The `predictions()` function works much the same as before.
+If you haven't used it before, the `add_epred_draws()` function from **tidybayes** works similarly to `fitted()`. But it returns the output in a long and tidy format, which can sometimes make for much thriftier code. Though that wasn't particularly true in this case, it will be for others.
+
+As to the `predictions()` function from the **marginaleffects** package, it works much the same as before.
 
 ```{r}
 # predicted probabilities
@@ -561,9 +584,11 @@ predictions(fit3, newdata = nd, by = "tx")
 predictions(fit3, newdata = nd, by = "tx", hypothesis = "revpairwise")
 ```
 
+Our three workflows based around functions from three different packages all returned the same summary results for $p^0$, $p^1$, and $\tau_\text{ATE}$.
+
 #### Compute $\mathbb E (p_i^1 - p_i^0)$ from `fit3`.
 
-Note how once again, we include a `row` index for the `nd` data grid when using any variant of the $\mathbb E (y_i^1 - y_i^0)$ approach for computing the ATE.
+Note how once again, we include a `row` index for the `nd` data grid when using any variant of the $\mathbb E (y_i^1 - y_i^0)$ approach for computing the ATE. This will help us join the `nd` data to the much longer output from `fitted()` when using `summary = FALSE`.
 
 ```{r}
 nd <- wilson2017 %>% 
@@ -575,7 +600,7 @@ nd <- wilson2017 %>%
 glimpse(nd)
 ```
 
-Now compute the ATE with `fitted()`.
+With our updated `nd` predictor grid, we're ready to compute the ATE with `fitted()`.
 
 ```{r}
 fitted(fit3,
@@ -598,7 +623,7 @@ fitted(fit3,
   brms_summary()
 ```
 
-Here's the `add_epred_draws()` alternative.
+Here's the `add_epred_draws()`-based alternative version of the code.
 
 ```{r}
 nd %>% 
@@ -615,19 +640,19 @@ nd %>%
   brms_summary()
 ```
 
-Here's the `avg_comparisons()` approach.
+Now we practice with the `avg_comparisons()` approach.
 
 ```{r}
 avg_comparisons(fit3, variables = list(tx = 0:1))
 ```
 
-Each time, the results are exactly the same.
+Each time, the results are exactly the same. Choose the code that suits your needs. Sometimes you just want the results. Other times, you want to explicitly document the computation process.
 
 ### Counterfactual interventions, with covariates, with the binomial.
 
 #### Compute $\left (p^1 \mid \mathbf{\bar C}, \mathbf D^m \right) - \left (p^0 \mid \mathbf{\bar C}, \mathbf D^m \right)$ from `fit4`.
 
-As in the [last post](https://timely-flan-2986f4.netlify.app/blog/2023-02-13-causal-inference-with-logistic-regression/#compute-operatornamemathbbe-left-p_i1--mathbfbar-c-mathbf-dm-right---operatornamemathbbe-left-p_i0--mathbfbar-c-mathbf-dm-right-from-glm2), we going to want to make a custom function to compute the modes for a few variables.
+As in the [last post](https://timely-flan-2986f4.netlify.app/blog/2023-02-13-causal-inference-with-logistic-regression/#compute-operatornamemathbbe-left-p_i1--mathbfbar-c-mathbf-dm-right---operatornamemathbbe-left-p_i0--mathbfbar-c-mathbf-dm-right-from-glm2), we going to want to make a custom function to compute the modes for a few of the baseline covariates.
 
 ```{r}
 get_mode <- function(x) {
@@ -636,7 +661,7 @@ get_mode <- function(x) {
 }
 ```
 
-Now we have `get_mode()`, let's define our predictor grid to contain the mean for `agez`, the only variable in our $\mathbf{C}$ vector, and the modes for the remaining discrete variables, all in the $\mathbf{D}$ vector.
+Now we have our `get_mode()` function, let's define our predictor grid to contain the mean for `agez`, the only variable in our $\mathbf{C}$ vector, and the modes for the remaining discrete variables, all in the $\mathbf{D}$ vector.
 
 ```{r}
 nd <- wilson2017 %>% 
@@ -651,7 +676,7 @@ nd <- wilson2017 %>%
 print(nd)
 ```
 
-We're ready to compute the treatment effect at the means/modes with `fitted()`.
+We're ready to use the $\left (p^1 \mid \mathbf{\bar C}, \mathbf D^m \right) - \left (p^0 \mid \mathbf{\bar C}, \mathbf D^m \right)$ method to compute the treatment effect at the means/modes with `fitted()`.
 
 ```{r}
 fitted(fit4,
@@ -663,7 +688,7 @@ fitted(fit4,
   brms_summary()
 ```
 
-Here's how to compute that $\tau_\text{TEMM}$ with `add_epred_draws()`.
+Here's how to compute that $\tau_\text{TEMM}$ with the `add_epred_draws()` function.
 
 ```{r}
 nd %>% 
@@ -675,7 +700,7 @@ nd %>%
   brms_summary()
 ```
 
-Here's $\tau_\text{TEMM}$ via `predictions()`.
+Here's how to compute the posterior summaries for $\tau_\text{TEMM}$ with the `predictions()` function.
 
 ```{r}
 # conditional probabilities
@@ -685,11 +710,11 @@ predictions(fit4, newdata = nd, by = "tx")
 predictions(fit4, newdata = nd, by = "tx", hypothesis = "revpairwise")
 ```
 
-For the sake of brevity, I'm going to skip the other $\tau_\text{CATE}$ example from the [last post](https://timely-flan-2986f4.netlify.app/blog/2023-02-13-causal-inference-with-logistic-regression/#compute-operatornamemathbbe-p_i1--mathbf-c--mathbf-c-mathbf-d--mathbf-d---operatornamemathbbe-p_i0--mathbf-c--mathbf-c-mathbf-d--mathbf-d-from-glm2). The workflow is nearly the same. You just need to put different covariate vales into the `nd` predictor grid.
+For the sake of brevity, I'm going to skip the other $\tau_\text{CATE}$ example from the [last post](https://timely-flan-2986f4.netlify.app/blog/2023-02-13-causal-inference-with-logistic-regression/#compute-operatornamemathbbe-p_i1--mathbf-c--mathbf-c-mathbf-d--mathbf-d---operatornamemathbbe-p_i0--mathbf-c--mathbf-c-mathbf-d--mathbf-d-from-glm2). The workflow is nearly the same. You just need to put different covariate values into the `nd` predictor grid. Then summarize to with the workflow that suits your needs.
 
 #### Compute $\mathbb E (p_i^1 - p_i^0 \mid \mathbf C_i, \mathbf D_i)$ from `fit4`.
 
-Update the `nd` predictor grid, with the good old `row` index.
+Once again we update the `nd` predictor grid to include that handy `row` index.
 
 ```{r}
 nd <- wilson2017 %>% 
@@ -701,7 +726,7 @@ nd <- wilson2017 %>%
 glimpse(nd)
 ```
 
-Use the $\mathbb E (p_i^1 - p_i^0 \mid \mathbf C_i, \mathbf D_i)$ method to compute the ATE with `fitted()`.
+Now we use the $\mathbb E (p_i^1 - p_i^0 \mid \mathbf C_i, \mathbf D_i)$ method to compute the ATE with `fitted()` with our `nd` predictor grid.
 
 ```{r}
 fitted(fit4,
@@ -724,7 +749,9 @@ fitted(fit4,
   brms_summary()
 ```
 
-Compute the same with the `add_epred_draws()` alternative.
+As I alluded to above, this was the first time the intermediary `group_by()` and `summarise()` lines made a difference for the output. Curious readers might try the code with and without those steps and compare the difference. If you do, pay special attention to the posterior $\textit{SD}$'s and 95% intervals. Note which workflow matches the results from the `avg_comparisons()` output, two blocks down.
+
+Here's how to compute the same with the `add_epred_draws()` alternative.
 
 ```{r}
 nd %>% 
@@ -819,6 +846,14 @@ sessionInfo()
 ```
 
 ## References
+
+[^1]: The exponential distribution is constrained to the positive real numbers, making it a good candidate prior distribution for $\sigma$ parameters. The gamma and lognormal distributions are other fine alternatives. For more discussion on the exponential prior, see @mcelreathStatisticalRethinkingBayesian2020, chapter 4.
+
+[^2]: The $\lambda$ parameter for the exponential distribution is often called the *rate*. There is an alternative parameterization which uses $\beta$, often called the *scale*. These parameters are reciprocals of one another, meaning $\beta = 1 / \lambda$, which also makes the *scale* the same as the mean. However, **brms** follows the base-**R** convention by using the $\lambda$ parameterization.
+
+[^3]: *Why the confidence?* Bear in mind I'm a psychology researcher. It's my experience that continuous behavioral variables tend to have strong positive correlations over time. Granted, weight isn't just a behavioral variable; it's physiological too. Even still, I'm a human who has weighed himself many times over the years, and I've observed the gross trends in other peoples proportions. Even within the context of a weight-loss intervention, weight at baseline is going to have a strong positive correlation with post-intervention weight.
+
+[^4]: Unlike with the frequentist base-**R** `glm()` function, `brms::brm()` also supports Bernoulli regression for binary data. Just set `family = bernoulli`. Personally, I prefer the binomial likelihood because of how it seamlessly generalizes to aggregated binomial counts.
 
 ```{r, eval = F, echo = F}
 wilson2017 %>% 
