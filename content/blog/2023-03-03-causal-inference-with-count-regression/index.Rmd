@@ -25,7 +25,7 @@ tags:
 draft: false
 layout: single
 featured: no
-bibliography: /Users/solomonkurz/Dropbox/blogdown5/content/blog/my_blog.json
+bibliography: /Users/solomonkurz/Dropbox/blogdown5/content/blog/my_blog.bib
 biblio-style: apalike
 csl: /Users/solomonkurz/Dropbox/blogdown5/content/blog/apa.csl  
 link-citations: yes
@@ -44,7 +44,7 @@ load("fits/brm1.rda")
 load("fits/brm2.rda")
 ```
 
-In the [third post](https://timely-flan-2986f4.netlify.app/blog/2023-02-13-causal-inference-with-logistic-regression/) in this series, we extended out counterfactual causal-inference framework to binary outcome data. We saw how logistic regression complicated the approach, particularly when using baseline covariates. In this post, we'll practice causal inference with unbounded count data.
+In the [third post](https://timely-flan-2986f4.netlify.app/blog/2023-02-13-causal-inference-with-logistic-regression/) in this series, we extended out counterfactual causal-inference framework to binary outcome data. We saw how logistic regression complicated the approach, particularly when using baseline covariates. In this post, we'll practice causal inference with *un*bounded count data, using the Poisson and negative-binomial likelihoods.
 
 ## We need data
 
@@ -54,7 +54,7 @@ In this post, we'll be working with a subset of the `epilepsy` data from the **b
 # packages
 library(tidyverse)
 library(brms)
-library(flextable)
+# library(flextable)
 library(GGally)
 library(broom)
 library(ggdist)
@@ -106,9 +106,11 @@ epilepsy %>%
             variance = var(count),
             min = min(count),
             max = max(count)) %>% 
-  mutate_if(is.double, round, digits = 1) %>% 
-  as_grouped_data(groups = c("Trt")) %>% 
-  flextable()
+  mutate_if(is.double, round, digits = 1)
+# temporarily commented out until flextable updates
+# %>% 
+#   as_grouped_data(groups = c("Trt")) %>% 
+#   flextable()
 ```
 
 ### Subset, wrangle, inspect.
@@ -132,7 +134,7 @@ ep4 %>%
 
 The `glimpse()` output helps clarify there were 59 unique participants in this study. If you use the `count()` function, you'll find $n = 28$ are in the placebo condition, and the remaining $n = 31$ got the active treatment. The data, both `epilepsy` and `ep4`, also contain information from the baseline assessment. The `Base` column has the epileptic seizure counts during the 8-week period before the baseline assessment. Bear in mind the counts in the `count` column were for a 2-week period, which means we'd expect the values in `Base` to be at least 4 times larger than those in `count`. But since they're all seizure counts, we'd still expect the two variables to have a strong positive correlation. The other baseline covariate in the data, and considered by @thall1990some, is age measured in years (`Age`). The **brms** package also includes standardized version of these variables in the `zBase` and `zAge` columns. Thall and Vail, however, used log-transformed versions of these variables, which is what we'll do in this blog post. Thus, our new variable `lcBase` is the log-transformed and mean-centered version of `Base`, and `lcAge` is the log-transformed and mean-centered version of `Age`.
 
-Since it can be difficult to think in terms of the mean values of log-transformed variables, here are what the means of those log-transformed values are, when exponentiated back into their original metric.
+Since it can be difficult to think in terms of the mean values of log-transformed variables, here are what the means of those log-transformed values are, when exponentiated back into their original metric[^3].
 
 ```{r}
 ep4 %>% 
@@ -171,7 +173,7 @@ ep4 %>%
 
 ## Model framework
 
-Our focal variable `count` is an unbounded count. Technically all count variables are bounded in that their lower limit is always zero[^3]. By unbounded count, I mean there is no clearly-defined upper limit, the way there is with binomial data. When you have unbounded counts, the two most popular likelihoods are the Poisson and the negative-binomial. The Poisson likelihood is parsimonious in that it contains a single parameter $\lambda$, which is both the mean and the variance. As such, the Poisson likelihood assumes the variance scales perfectly with the mean, which is often called the *equidispersion* assumption. If you look back above at the sample statistics, you'll notice the variances for `count` were a lot larger than the means at all time points and for both conditions, which doesn't bode well for that equidispersion assumption[^4]. Happily, the negative-binomial likelihood provides an alternative where its second parameter, $\phi$, accounts for additional variance above what we'd expect from the Poisson. Thus in this blog post, we'll analyze these data from both frequentist and Bayesian perspectives, and also with the Poisson and negative-binomial likelihoods. 
+Our focal variable `count` is an unbounded count. Technically all count variables are bounded in that their lower limit is always zero[^4]. By unbounded count, I mean there is no clearly-defined upper limit, the way there is with binomial data. When you have unbounded counts, the two most popular likelihoods are the Poisson and the negative-binomial. The Poisson likelihood is parsimonious in that it contains a single parameter $\lambda$, which is both the mean and the variance. As such, the Poisson likelihood assumes the variance scales perfectly with the mean, which is often called the *equidispersion* assumption. If you look back above at the sample statistics, you'll notice the variances for `count` were a lot larger than the means at all time points and for both conditions, which doesn't bode well for that equidispersion assumption[^5]. Happily, the negative-binomial likelihood provides an alternative where its second parameter, $\phi$, accounts for additional variance above what we'd expect from the Poisson. Thus in this blog post, we'll analyze these data from both frequentist and Bayesian perspectives, and also with the Poisson and negative-binomial likelihoods. 
 
 To complicate matters even further, we'll also analyze the data with ANOVA- and ANCOVA-type frameworks. Butting all three binaries together, we'll end up fitting and post-processing 6 models in total:
 
@@ -181,9 +183,11 @@ tibble(
   framework = rep(c("frequentist", "Bayesian"), times = c(4, 2)),
   model = rep(c("ANOVA", "ANCOVA", "ANOVA", "ANCOVA"), times = c(2, 2, 1, 1)),
   likelihood = c("Poisson", "negative-binomial", "Poisson", "negative-binomial", "negative-binomial", "Poisson")
-) %>% 
-  flextable() %>% 
-  autofit()
+) 
+# temporarily commented out until flextable updates
+# %>% 
+#   flextable() %>% 
+#   autofit()
 ```
 
 For the sake of space, well only fit two Bayesian models. My hope is by the time we're in that section, you'll get the gist of what's going on. For the frequentist models, we'll also discuss the issue of *robust* standard errors, which won't apply to our Bayesian models. We start as frequentists.
@@ -262,9 +266,11 @@ For the sake of space, I'm not going to show all the `summary()` output for thes
 bind_rows(tidy(fit1), tidy(fit2), tidy(fit3), tidy(fit4)) %>% 
   mutate(fit = rep(str_c("fit", 1:4), times = c(2, 2, 4, 4))) %>% 
   select(fit, everything()) %>% 
-  mutate_if(is.double, round, digits = 3) %>% 
-  as_grouped_data(groups = c("fit")) %>% 
-  flextable()
+  mutate_if(is.double, round, digits = 3)
+# temporarily commented out until flextable updates
+# %>% 
+#   as_grouped_data(groups = c("fit")) %>% 
+#   flextable()
 ```
 
 We should note that the standard errors in that table are all based on conventional maximum likelihood estimation, which are typically fine defaults, to my eye. However, that equidispersion assumption for the Poisson models can result in very small standard errors, relative to those from their negative-binomial alternatives. Sometimes researchers prefer using so-called *robust* standard errors, instead. We can compute those with help from the `coeftest()` function from the **lmtest** package [@R-lmtest; @lmtest2002]. By setting `vcov = vcovHC`, we are requesting the so-called HC3 *sandwich* standard errors, via the **sandwich** package [@R-sandwich; @zeileis2020various; @zeileis2004econometric; @zeileis2006object]. Here's how all this works for our Poisson ANOVA model `fit1`, within the context of the `tidy()` function.
@@ -989,7 +995,7 @@ I'll leave it up to the interested reader to practice the same with a `fitted()`
 
 #### What about those "robust" *SE*'s?
 
-The whole *robust* sandwich standard error issue only applies to frequentist models. I'm not aware of any analogue for our Bayesian models. If you don't like the assumptions inherent in your likelihood function, think hard about alternative likelihoods. If you're aware of another Bayesian alternative, tell me all about it in the comments section, below.
+The whole *robust* sandwich standard error issue mainly applies to frequentist models. Some are starting to propose similar methods for Bayesian models [e.g., @szpiro2010model], but I am not aware those solutions are available with **brms** (see [this](https://discourse.mc-stan.org/t/model-robust-regression-and-a-bayesian-sandwich-estimator/28882) discussion). If you don't like the assumptions inherent in your likelihood function, think hard about alternative likelihoods. If you're aware of another Bayesian alternative, tell me all about it in the comments section, below.
 
 ## Recap
 
@@ -1025,9 +1031,11 @@ sessionInfo()
 
 [^2]: For ideas on what that might look like, execute `?epilepsy` and scroll down to the bottom of the help page.
 
-[^3]: Okay, technically you can have a censored or truncated count, which complicates how you think about the lower limit. In this post, we're not focusing on those issues. Thus, our lower limit is the conventional value zero.
+[^3]: Careful readers will note those sample statistics end up closer to the medians, rather than the means, of the original un-transformed variables. Logs are tricky, friends.
 
-[^4]: Clever readers will note our quick-and-dirty sample-statistic analysis is a lot like checking for equidispersion without controlling for the baseline covariates `Base` and `Age`. Maybe it'd be okay to presume equidispersion after conditioning on the baseline covariates. See how tricky this all gets?
+[^4]: Okay, technically you can have a censored or truncated count, which complicates how you think about the lower limit. In this post, we're not focusing on those issues. Thus, our lower limit is the conventional value zero.
+
+[^5]: Clever readers will note our quick-and-dirty sample-statistic analysis is a lot like checking for equidispersion without controlling for the baseline covariates `Base` and `Age`. Maybe it'd be okay to presume equidispersion after conditioning on the baseline covariates. See how tricky this all gets?
 
 ```{r, fig.width = 4, fig.height = 4, echo = F, eval = F}
 likelihoods <- c("Poisson", "Negative binomial")
