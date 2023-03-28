@@ -25,8 +25,6 @@ csl: /Users/solomonkurz/Dropbox/blogdown5/content/blog/apa.csl
 link-citations: yes
 ---
 
-<link href="{{< blogdown/postref >}}index_files/tabwid/tabwid.css" rel="stylesheet" />
-
 One of the nice things about the simple OLS models we fit in the last post is they’re easy to interpret. The various `\(\beta\)` parameters were valid estimates of the population effects for one treatment group relative to the wait-list control[^1]. However, this nice property won’t hold in many cases where the nature of our dependent variables and/or research design requires us to fit other kinds of models from the broader generalized linear mixed model (GLMM) framework. Another issue at stake is if you’ve spent most of your statistical analysis career using the OLS framework, there’s a good chance there are concepts that are undifferentiated in your mind. As is turns out, some of these concepts are important when we want to make valid causal inferences. Our task in this post is to start differentiating the undifferentiated.
 
 ## Reload and refit
@@ -38,7 +36,7 @@ In post, we’ll be continuing on with our `horan1971` data set form the last po
 ``` r
 # packages
 library(tidyverse)
-library(flextable)
+# library(flextable)
 library(marginaleffects)
 library(ggdist)
 library(patchwork)
@@ -110,7 +108,7 @@ summary(ols1)
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
     ## Residual standard error: 17.23 on 39 degrees of freedom
-    ## Multiple R-squared:  0.005424,   Adjusted R-squared:  -0.02008 
+    ## Multiple R-squared:  0.005424,	Adjusted R-squared:  -0.02008 
     ## F-statistic: 0.2127 on 1 and 39 DF,  p-value: 0.6472
 
 We also learned the ANCOVA model for these data follows the form
@@ -152,7 +150,7 @@ summary(ols2)
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
     ## Residual standard error: 6.379 on 38 degrees of freedom
-    ## Multiple R-squared:  0.8672, Adjusted R-squared:  0.8602 
+    ## Multiple R-squared:  0.8672,	Adjusted R-squared:  0.8602 
     ## F-statistic: 124.1 on 2 and 38 DF,  p-value: < 2.2e-16
 
 As expected, the `\(\beta\)` coefficients in the ANCOVA model all have smaller standard errors than those in the ANOVA model. Hurray! Statistics works!
@@ -178,57 +176,28 @@ horan1971 %>%
   slice_sample(n = 10) %>% 
   mutate(y1 = ifelse(treatment == "experimental", post, NA),
          y0 = ifelse(treatment == "delayed", post, NA)) %>% 
-  select(sn, treatment, post, y1, y0) %>% 
-  flextable()
+  select(sn, treatment, post, y1, y0)
 ```
 
-<template id="66332bed-00e0-491d-a453-918f380c9056"><style>
-.tabwid table{
-  border-spacing:0px !important;
-  border-collapse:collapse;
-  line-height:1;
-  margin-left:auto;
-  margin-right:auto;
-  border-width: 0;
-  border-color: transparent;
-  caption-side: top;
-}
-.tabwid-caption-bottom table{
-  caption-side: bottom;
-}
-.tabwid_left table{
-  margin-left:0;
-}
-.tabwid_right table{
-  margin-right:0;
-}
-.tabwid td, .tabwid th {
-    padding: 0;
-}
-.tabwid a {
-  text-decoration: none;
-}
-.tabwid thead {
-    background-color: transparent;
-}
-.tabwid tfoot {
-    background-color: transparent;
-}
-.tabwid table tr {
-background-color: transparent;
-}
-.katex-display {
-    margin: 0 0 !important;
-}
-</style><div class="tabwid"><style>.cl-4457524c{}.cl-443f9ef4{font-family:'Helvetica';font-size:11pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(0, 0, 0, 1.00);background-color:transparent;}.cl-4452fc06{margin:0;text-align:right;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:5pt;padding-right:5pt;line-height: 1;background-color:transparent;}.cl-4452fc10{margin:0;text-align:left;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:5pt;padding-right:5pt;line-height: 1;background-color:transparent;}.cl-4453120e{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 2pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-4453120f{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 2pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-44531218{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-44531222{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-44531223{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-44531224{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table class='cl-4457524c'><thead><tr style="overflow-wrap:break-word;"><th class="cl-4453120e"><p class="cl-4452fc06"><span class="cl-443f9ef4">sn</span></p></th><th class="cl-4453120f"><p class="cl-4452fc10"><span class="cl-443f9ef4">treatment</span></p></th><th class="cl-4453120e"><p class="cl-4452fc06"><span class="cl-443f9ef4">post</span></p></th><th class="cl-4453120e"><p class="cl-4452fc06"><span class="cl-443f9ef4">y1</span></p></th><th class="cl-4453120e"><p class="cl-4452fc06"><span class="cl-443f9ef4">y0</span></p></th></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-44531218"><p class="cl-4452fc06"><span class="cl-443f9ef4">21</span></p></td><td class="cl-44531222"><p class="cl-4452fc10"><span class="cl-443f9ef4">delayed</span></p></td><td class="cl-44531218"><p class="cl-4452fc06"><span class="cl-443f9ef4">194.00</span></p></td><td class="cl-44531218"><p class="cl-4452fc06"><span class="cl-443f9ef4"></span></p></td><td class="cl-44531218"><p class="cl-4452fc06"><span class="cl-443f9ef4">194.00</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-44531218"><p class="cl-4452fc06"><span class="cl-443f9ef4">15</span></p></td><td class="cl-44531222"><p class="cl-4452fc10"><span class="cl-443f9ef4">delayed</span></p></td><td class="cl-44531218"><p class="cl-4452fc06"><span class="cl-443f9ef4">163.75</span></p></td><td class="cl-44531218"><p class="cl-4452fc06"><span class="cl-443f9ef4"></span></p></td><td class="cl-44531218"><p class="cl-4452fc06"><span class="cl-443f9ef4">163.75</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-44531218"><p class="cl-4452fc06"><span class="cl-443f9ef4">6</span></p></td><td class="cl-44531222"><p class="cl-4452fc10"><span class="cl-443f9ef4">delayed</span></p></td><td class="cl-44531218"><p class="cl-4452fc06"><span class="cl-443f9ef4">145.25</span></p></td><td class="cl-44531218"><p class="cl-4452fc06"><span class="cl-443f9ef4"></span></p></td><td class="cl-44531218"><p class="cl-4452fc06"><span class="cl-443f9ef4">145.25</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-44531218"><p class="cl-4452fc06"><span class="cl-443f9ef4">78</span></p></td><td class="cl-44531222"><p class="cl-4452fc10"><span class="cl-443f9ef4">experimental</span></p></td><td class="cl-44531218"><p class="cl-4452fc06"><span class="cl-443f9ef4">174.75</span></p></td><td class="cl-44531218"><p class="cl-4452fc06"><span class="cl-443f9ef4">174.75</span></p></td><td class="cl-44531218"><p class="cl-4452fc06"><span class="cl-443f9ef4"></span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-44531218"><p class="cl-4452fc06"><span class="cl-443f9ef4">71</span></p></td><td class="cl-44531222"><p class="cl-4452fc10"><span class="cl-443f9ef4">experimental</span></p></td><td class="cl-44531218"><p class="cl-4452fc06"><span class="cl-443f9ef4">160.50</span></p></td><td class="cl-44531218"><p class="cl-4452fc06"><span class="cl-443f9ef4">160.50</span></p></td><td class="cl-44531218"><p class="cl-4452fc06"><span class="cl-443f9ef4"></span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-44531218"><p class="cl-4452fc06"><span class="cl-443f9ef4">8</span></p></td><td class="cl-44531222"><p class="cl-4452fc10"><span class="cl-443f9ef4">delayed</span></p></td><td class="cl-44531218"><p class="cl-4452fc06"><span class="cl-443f9ef4">147.00</span></p></td><td class="cl-44531218"><p class="cl-4452fc06"><span class="cl-443f9ef4"></span></p></td><td class="cl-44531218"><p class="cl-4452fc06"><span class="cl-443f9ef4">147.00</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-44531218"><p class="cl-4452fc06"><span class="cl-443f9ef4">17</span></p></td><td class="cl-44531222"><p class="cl-4452fc10"><span class="cl-443f9ef4">delayed</span></p></td><td class="cl-44531218"><p class="cl-4452fc06"><span class="cl-443f9ef4">153.00</span></p></td><td class="cl-44531218"><p class="cl-4452fc06"><span class="cl-443f9ef4"></span></p></td><td class="cl-44531218"><p class="cl-4452fc06"><span class="cl-443f9ef4">153.00</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-44531218"><p class="cl-4452fc06"><span class="cl-443f9ef4">68</span></p></td><td class="cl-44531222"><p class="cl-4452fc10"><span class="cl-443f9ef4">experimental</span></p></td><td class="cl-44531218"><p class="cl-4452fc06"><span class="cl-443f9ef4">142.50</span></p></td><td class="cl-44531218"><p class="cl-4452fc06"><span class="cl-443f9ef4">142.50</span></p></td><td class="cl-44531218"><p class="cl-4452fc06"><span class="cl-443f9ef4"></span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-44531218"><p class="cl-4452fc06"><span class="cl-443f9ef4">74</span></p></td><td class="cl-44531222"><p class="cl-4452fc10"><span class="cl-443f9ef4">experimental</span></p></td><td class="cl-44531218"><p class="cl-4452fc06"><span class="cl-443f9ef4">135.50</span></p></td><td class="cl-44531218"><p class="cl-4452fc06"><span class="cl-443f9ef4">135.50</span></p></td><td class="cl-44531218"><p class="cl-4452fc06"><span class="cl-443f9ef4"></span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-44531223"><p class="cl-4452fc06"><span class="cl-443f9ef4">12</span></p></td><td class="cl-44531224"><p class="cl-4452fc10"><span class="cl-443f9ef4">delayed</span></p></td><td class="cl-44531223"><p class="cl-4452fc06"><span class="cl-443f9ef4">134.50</span></p></td><td class="cl-44531223"><p class="cl-4452fc06"><span class="cl-443f9ef4"></span></p></td><td class="cl-44531223"><p class="cl-4452fc06"><span class="cl-443f9ef4">134.50</span></p></td></tr></tbody></table></div></template>
-<div class="flextable-shadow-host" id="7a0e4b4a-5658-48ae-89c0-276a2c95cd36"></div>
-<script>
-var dest = document.getElementById("7a0e4b4a-5658-48ae-89c0-276a2c95cd36");
-var template = document.getElementById("66332bed-00e0-491d-a453-918f380c9056");
-var fantome = dest.attachShadow({mode: 'open'});
-var templateContent = template.content;
-fantome.appendChild(templateContent);
-</script>
+    ## # A tibble: 10 × 5
+    ##       sn treatment     post    y1    y0
+    ##    <int> <fct>        <dbl> <dbl> <dbl>
+    ##  1    21 delayed       194    NA   194 
+    ##  2    15 delayed       164.   NA   164.
+    ##  3     6 delayed       145.   NA   145.
+    ##  4    78 experimental  175.  175.   NA 
+    ##  5    71 experimental  160.  160.   NA 
+    ##  6     8 delayed       147    NA   147 
+    ##  7    17 delayed       153    NA   153 
+    ##  8    68 experimental  142.  142.   NA 
+    ##  9    74 experimental  136.  136.   NA 
+    ## 10    12 delayed       134.   NA   134.
+
+``` r
+# commented out until flextable updates (it's currently not playing nice with blogdown)
+# %>% 
+#   flextable()
+```
 
 Within the `mutate()` function, I computed each participants’ `y1` and `y0` score, based on a combination of her `treatment` and `post` values. That last `flextable()` line converted the results to a nice table format, with help from the **flextable** package ([Gohel, 2023](#ref-gohelUsingFlextable2023), [2022](#ref-R-flextable)). Because none of the participants have values for both `y1` and `y0`, we cannot use the raw data to compute their individual treatment effects. What we can do, however, is compute the *average treatment effect* (ATE) with the formula:
 
@@ -328,7 +297,7 @@ summary(ols1)
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
     ## Residual standard error: 17.23 on 39 degrees of freedom
-    ## Multiple R-squared:  0.005424,   Adjusted R-squared:  -0.02008 
+    ## Multiple R-squared:  0.005424,	Adjusted R-squared:  -0.02008 
     ## F-statistic: 0.2127 on 1 and 39 DF,  p-value: 0.6472
 
 Notice that the summary for our `\(\beta_1\)` parameter is the same as the `\(\tau_\text{ATE}\)` from above. When you have a simple OLS-type Gaussian model without a fancy link function, the `\(\tau_\text{ATE}\)` will be the same as the `\(\beta\)` coefficient for the treatment dummy. As we will see in the next post, this will not generalize to other kinds GLM’s.
@@ -492,9 +461,9 @@ which, in words, means that the average treatment effect in the population is th
 
 `$$\tau_\text{ATE} = \mathbb E (y_i^1 - y_i^0 \mid \mathbf C_i).$$`
 
-Though we won’t consider more complex data examples in this blog post, we will want to keep the `\(\mathbf C\)` vector insights in the backs of our minds for the blog posts to come. In the literature, this method is often called *standardization* or *g-computation*. To my knowledge, these terms have their origins in different parts of the literature, but they’re really the same thing when used in the ways I’ll be highlighting in this blog series. For a way into this literature, you might check out Snowden et al. ([2011](#ref-snowden2011implementation)), Muller & MacLehose ([2014](#ref-muller2014estimating)), or Wang et al. ([2017](#ref-wang2017gcomputation)).
+Though we won’t consider more complex data examples in this blog post, we will want to keep the `\(\mathbf C\)` vector insights in the backs of our minds for the blog posts to come. In the literature, this method is often called *standardization* or *g-computation*. To my knowledge, these terms have their origins in different parts of the literature, but they’re really the same thing when used in the ways I’ll be highlighting in this blog series[^6]. For a way into this literature, you might check out Snowden et al. ([2011](#ref-snowden2011implementation)), Muller & MacLehose ([2014](#ref-muller2014estimating)), or Wang et al. ([2017](#ref-wang2017gcomputation)).
 
-Anyway, an alternative approach is to use the mean[^6] value of the covariate, `\(\bar c\)`, to compute the conditional predicted values for the two levels of treatment, and then take their difference:
+Anyway, an alternative approach is to use the mean[^7] value of the covariate, `\(\bar c\)`, to compute the conditional predicted values for the two levels of treatment, and then take their difference:
 
 `$$\tau_\text{ATE} = \mathbb E (y_i^1 \mid \bar c) - \mathbb E (y_i^0 \mid \bar c).$$`
 
@@ -596,7 +565,7 @@ summary(ols2)
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
     ## Residual standard error: 6.379 on 38 degrees of freedom
-    ## Multiple R-squared:  0.8672, Adjusted R-squared:  0.8602 
+    ## Multiple R-squared:  0.8672,	Adjusted R-squared:  0.8602 
     ## F-statistic: 124.1 on 2 and 38 DF,  p-value: < 2.2e-16
 
 When you fit an OLS-type ANCOVA model with the conventional identity link, `\(\mathbb{E}(y_i^1 \mid \bar c) - \mathbb{E}(y_i^0 \mid \bar c)\)` will be the same as the `\(\beta\)` coefficient for the treatment dummy. They’re both estimators of the estimand `\(\tau_\text{ATE}\)`.
@@ -815,7 +784,7 @@ See you in the next one, friends!
 sessionInfo()
 ```
 
-    ## R version 4.2.2 (2022-10-31)
+    ## R version 4.2.3 (2023-03-15)
     ## Platform: x86_64-apple-darwin17.0 (64-bit)
     ## Running under: macOS Big Sur ... 10.16
     ## 
@@ -831,28 +800,23 @@ sessionInfo()
     ## 
     ## other attached packages:
     ##  [1] patchwork_1.1.2            ggdist_3.2.1.9000          marginaleffects_0.9.0.9014
-    ##  [4] flextable_0.8.3            forcats_0.5.1              stringr_1.4.1             
-    ##  [7] dplyr_1.1.0                purrr_1.0.1                readr_2.1.2               
-    ## [10] tidyr_1.2.1                tibble_3.1.8               ggplot2_3.4.0             
-    ## [13] tidyverse_1.3.2           
+    ##  [4] lubridate_1.9.2            forcats_1.0.0              stringr_1.5.0             
+    ##  [7] dplyr_1.1.0                purrr_1.0.1                readr_2.1.4               
+    ## [10] tidyr_1.3.0                tibble_3.2.0               ggplot2_3.4.1             
+    ## [13] tidyverse_2.0.0           
     ## 
     ## loaded via a namespace (and not attached):
-    ##  [1] fs_1.5.2             lubridate_1.8.0      insight_0.19.0       httr_1.4.4           tools_4.2.2         
-    ##  [6] backports_1.4.1      bslib_0.4.0          utf8_1.2.2           R6_2.5.1             DBI_1.1.3           
-    ## [11] colorspace_2.1-0     withr_2.5.0          tidyselect_1.2.0     curl_4.3.2           compiler_4.2.2      
-    ## [16] cli_3.6.0            rvest_1.0.2          xml2_1.3.3           officer_0.4.4        labeling_0.4.2      
-    ## [21] bookdown_0.28        sass_0.4.2           scales_1.2.1         checkmate_2.1.0      systemfonts_1.0.4   
-    ## [26] digest_0.6.31        rmarkdown_2.16       katex_1.4.0          base64enc_0.1-3      pkgconfig_2.0.3     
-    ## [31] htmltools_0.5.3      highr_0.9            dbplyr_2.2.1         fastmap_1.1.0        rlang_1.0.6         
-    ## [36] readxl_1.4.1         rstudioapi_0.13      jquerylib_0.1.4      farver_2.1.1         generics_0.1.3      
-    ## [41] jsonlite_1.8.4       zip_2.2.0            googlesheets4_1.0.1  distributional_0.3.1 magrittr_2.0.3      
-    ## [46] Rcpp_1.0.9           munsell_0.5.0        fansi_1.0.4          gdtools_0.2.4        lifecycle_1.0.3     
-    ## [51] stringi_1.7.8        yaml_2.3.5           grid_4.2.2           crayon_1.5.2         haven_2.5.1         
-    ## [56] hms_1.1.1            knitr_1.40           pillar_1.8.1         uuid_1.1-0           reprex_2.0.2        
-    ## [61] xslt_1.4.3           glue_1.6.2           evaluate_0.18        blogdown_1.15        V8_4.2.1            
-    ## [66] data.table_1.14.6    modelr_0.1.8         vctrs_0.5.2          tzdb_0.3.0           cellranger_1.1.0    
-    ## [71] gtable_0.3.1         assertthat_0.2.1     cachem_1.0.6         xfun_0.35            broom_1.0.2         
-    ## [76] equatags_0.2.0       viridisLite_0.4.1    googledrive_2.0.0    gargle_1.2.0         ellipsis_0.3.2
+    ##  [1] tidyselect_1.2.0     xfun_0.37            bslib_0.4.0          colorspace_2.1-0     vctrs_0.6.0         
+    ##  [6] generics_0.1.3       viridisLite_0.4.1    htmltools_0.5.3      yaml_2.3.5           utf8_1.2.3          
+    ## [11] rlang_1.1.0          jquerylib_0.1.4      pillar_1.8.1         glue_1.6.2           withr_2.5.0         
+    ## [16] distributional_0.3.1 lifecycle_1.0.3      munsell_0.5.0        blogdown_1.16        gtable_0.3.2        
+    ## [21] evaluate_0.18        labeling_0.4.2       knitr_1.42           tzdb_0.3.0           fastmap_1.1.0       
+    ## [26] fansi_1.0.4          highr_0.9            backports_1.4.1      scales_1.2.1         checkmate_2.1.0     
+    ## [31] cachem_1.0.6         jsonlite_1.8.4       farver_2.1.1         hms_1.1.2            digest_0.6.31       
+    ## [36] stringi_1.7.8        insight_0.19.0       bookdown_0.28        grid_4.2.3           cli_3.6.0           
+    ## [41] tools_4.2.3          magrittr_2.0.3       sass_0.4.2           pkgconfig_2.0.3      ellipsis_0.3.2      
+    ## [46] data.table_1.14.8    timechange_0.2.0     rmarkdown_2.20       rstudioapi_0.14      R6_2.5.1            
+    ## [51] compiler_4.2.3
 
 ## References
 
@@ -900,6 +864,12 @@ Imbens, G. W., & Rubin, D. B. (2015). *Causal inference in statistics, social, a
 
 </div>
 
+<div id="ref-lane1982analysis" class="csl-entry">
+
+Lane, P. W., & Nelder, J. A. (1982). Analysis of covariance and standardization as instances of prediction. *Biometrics. Journal of the International Biometric Society*, *38*(3), 613–621. <https://doi.org/10.2307/2530043>
+
+</div>
+
 <div id="ref-lin2013agnostic" class="csl-entry">
 
 Lin, W. (2013). *Agnostic notes on regression adjustments to experimental data: Reexamining Freedman’s critique*. *7*(1), 295–318. <https://doi.org/10.1214/12-AOAS583>
@@ -909,6 +879,18 @@ Lin, W. (2013). *Agnostic notes on regression adjustments to experimental data: 
 <div id="ref-muller2014estimating" class="csl-entry">
 
 Muller, C. J., & MacLehose, R. F. (2014). Estimating predicted probabilities from logistic regression: Different methods correspond to different target populations. *International Journal of Epidemiology*, *43*(3), 962–970. <https://doi.org/10.1093/ije/dyu029>
+
+</div>
+
+<div id="ref-nelder1972generalized" class="csl-entry">
+
+Nelder, J. A., & Wedderburn, R. W. (1972). Generalized linear models. *Journal of the Royal Statistical Society: Series A (General)*, *135*(3), 370–384. <https://doi.org/10.2307/2344614>
+
+</div>
+
+<div id="ref-robins1986new" class="csl-entry">
+
+Robins, J. (1986). A new approach to causal inference in mortality studies with a sustained exposure periodapplication to control of the healthy worker survivor effect. *Mathematical Modelling*, *7*(9-12), 1393–1512. <https://doi.org/10.1016/0270-0255(86)90088-6>
 
 </div>
 
@@ -948,4 +930,6 @@ Wang, A., Nianogo, R. A., & Arah, O. A. (2017). G-computation of average treatme
 
 [^5]: Don Rubin isn’t a huge fan of equating *counterfactuals* with *potential outcomes* (see [Rubin, 2005, p. 325](#ref-rubin2005causal)). To my mind, this is the kind of nuanced distinction that may be of interest to philosophers or causal inference scholars, but has little importance for the kinds of applied statistical methods we’re highlighting in this series.
 
-[^6]: In addition to the sample mean, you could also use the mode (see [Muller & MacLehose, 2014](#ref-muller2014estimating)), or some other value of theoretical interest. The mode can be a particularly good option when working with categorical covariates, and we’ll cover this possibility in a future post. You could even use different strategies for different covariates in your covariate set.
+[^6]: I’m still getting my footing in this literature, so please forgive any mistakes in my documentation. To my knowledge, *g-computation* has its origins in the lengthy technical work by Robins ([1986](#ref-robins1986new)), an epidemiologist interested in causal inference with observational data. To my inexpert eye, the practice of *standardization* has a long history among epidemiologist and demographers. I believe *marginal standardization* has its proximal origins in the ([1982](#ref-lane1982analysis)) paper by statisticians Lane and Nelder. Fun fact: Nelder was the principle author of, you know, the *generalized linear model* ([Nelder & Wedderburn, 1972](#ref-nelder1972generalized)). No big deal.
+
+[^7]: In addition to the sample mean, you could also use the mode (see [Muller & MacLehose, 2014](#ref-muller2014estimating)), or some other value of theoretical interest. The mode can be a particularly good option when working with categorical covariates, and we’ll cover this possibility in a future post. You could even use different strategies for different covariates in your covariate set.

@@ -41,7 +41,7 @@ In post, we'll be continuing on with our `horan1971` data set form the last post
 ```{r, warning = F, message = F}
 # packages
 library(tidyverse)
-library(flextable)
+# library(flextable)
 library(marginaleffects)
 library(ggdist)
 library(patchwork)
@@ -133,8 +133,10 @@ horan1971 %>%
   slice_sample(n = 10) %>% 
   mutate(y1 = ifelse(treatment == "experimental", post, NA),
          y0 = ifelse(treatment == "delayed", post, NA)) %>% 
-  select(sn, treatment, post, y1, y0) %>% 
-  flextable()
+  select(sn, treatment, post, y1, y0)
+# commented out until flextable updates (it's currently not playing nice with blogdown)
+# %>% 
+#   flextable()
 ```
 
 Within the `mutate()` function, I computed each participants' `y1` and `y0` score, based on a combination of her `treatment` and `post` values. That last `flextable()` line converted the results to a nice table format, with help from the **flextable** package [@R-flextable; @gohelUsingFlextable2023]. Because none of the participants have values for both `y1` and `y0`, we cannot use the raw data to compute their individual treatment effects. What we can do, however, is compute the *average treatment effect* (ATE) with the formula:
@@ -317,9 +319,9 @@ which, in words, means that the average treatment effect in the population is th
 
 $$\tau_\text{ATE} = \mathbb E (y_i^1 - y_i^0 \mid \mathbf C_i).$$
 
-Though we won't consider more complex data examples in this blog post, we will want to keep the $\mathbf C$ vector insights in the backs of our minds for the blog posts to come. In the literature, this method is often called *standardization* or *g-computation*. To my knowledge, these terms have their origins in different parts of the literature, but they're really the same thing when used in the ways I'll be highlighting in this blog series. For a way into this literature, you might check out @snowden2011implementation, @muller2014estimating, or @wang2017gcomputation.
+Though we won't consider more complex data examples in this blog post, we will want to keep the $\mathbf C$ vector insights in the backs of our minds for the blog posts to come. In the literature, this method is often called *standardization* or *g-computation*. To my knowledge, these terms have their origins in different parts of the literature, but they're really the same thing when used in the ways I'll be highlighting in this blog series[^6]. For a way into this literature, you might check out @snowden2011implementation, @muller2014estimating, or @wang2017gcomputation.
 
-Anyway, an alternative approach is to use the mean[^6] value of the covariate, $\bar c$, to compute the conditional predicted values for the two levels of treatment, and then take their difference:
+Anyway, an alternative approach is to use the mean[^7] value of the covariate, $\bar c$, to compute the conditional predicted values for the two levels of treatment, and then take their difference:
 
 $$\tau_\text{ATE} = \mathbb E (y_i^1 \mid \bar c) - \mathbb E (y_i^0 \mid \bar c).$$
 
@@ -537,7 +539,9 @@ sessionInfo()
 
 [^5]: Don Rubin isn't a huge fan of equating *counterfactuals* with *potential outcomes* [see @rubin2005causal, p. 325]. To my mind, this is the kind of nuanced distinction that may be of interest to philosophers or causal inference scholars, but has little importance for the kinds of applied statistical methods we're highlighting in this series.
 
-[^6]: In addition to the sample mean, you could also use the mode [see @muller2014estimating], or some other value of theoretical interest. The mode can be a particularly good option when working with categorical covariates, and we'll cover this possibility in a future post. You could even use different strategies for different covariates in your covariate set.
+[^6]: I'm still getting my footing in this literature, so please forgive any mistakes in my documentation. To my knowledge, *g-computation* has its origins in the lengthy technical work by @robins1986new, an epidemiologist interested in causal inference with observational data. To my inexpert eye, the practice of *standardization* has a long history among epidemiologist and demographers. I believe *marginal standardization* has its proximal origins in the [-@lane1982analysis] paper by statisticians Lane and Nelder. Fun fact: Nelder was the principle author of, you know, the *generalized linear model* [@nelder1972generalized]. No big deal.
+
+[^7]: In addition to the sample mean, you could also use the mode [see @muller2014estimating], or some other value of theoretical interest. The mode can be a particularly good option when working with categorical covariates, and we'll cover this possibility in a future post. You could even use different strategies for different covariates in your covariate set.
 
 ```{r, eval = F, echo = F}
 tibble(x = 0, y = 0, label = "tau[ATE]") %>% 
