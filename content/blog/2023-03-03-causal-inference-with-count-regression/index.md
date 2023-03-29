@@ -884,7 +884,7 @@ $$
 \end{align*}`
 $$
 
-where the priors for `\(\beta_0\)` and `\(\beta_1\)` are the same as in the previous model. However, because we’ve added the two baseline covariates, the `\(\beta_0\)` and `\(\beta_1\)` parameters are now conditional on the covariates at zero, which is their mean value back in their original metrics. To the extent those covariate values change how you thik about `\(\beta_0\)` and `\(\beta_1\)`, consider changing their priors accordingly.
+where the priors for `\(\beta_0\)` and `\(\beta_1\)` are the same as in the previous model. However, because we’ve added the two baseline covariates, the `\(\beta_0\)` and `\(\beta_1\)` parameters are now conditional on the covariates at zero, which is their mean value back in their original metrics. To the extent those covariate values change how you think about `\(\beta_0\)` and `\(\beta_1\)`, consider changing their priors accordingly.
 
 I expect a strong positive correlation with the dependent variable and baseline counts (log-transformed and mean centered), and therefore the `\(\operatorname{Normal}(1, 0.5)\)` prior is designed to convey that expectation. My expectations are less certain for our dependent variable and age, and thus I defaulted to the more conservative and regularizing `\(\operatorname{Normal}(0, 0.5)\)`.
 
