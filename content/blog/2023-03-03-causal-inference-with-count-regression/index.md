@@ -1290,7 +1290,7 @@ In this post, some of the main points we covered were:
 - For Poisson or negative-binomial ANCOVA models, there can be many different values for the conditional average treatment effect, `\(\tau_\text{CATE}\)`, depending which values one uses for the covariates.
 - Sometimes frequentists prefer sandwich standard errors over the conventional ML standard errors for their count models. For Bayesians, the posterior `\(\textit{SD}\)` is just the posterior `\(\textit{SD}\)`. If you don’t like it, think harder about your likelihood.
 
-Until next time, happy modeling, friends!
+In the [next post](https://timely-flan-2986f4.netlify.app/blog/2023-03-28-causal-inference-with-gamma-regression-or-the-problem-is-the-link-function-not-the-likelihood/), we’ll explore how our causal inference methods work with gamma regression models. Until then, happy modeling, friends!
 
 ## Session info
 
