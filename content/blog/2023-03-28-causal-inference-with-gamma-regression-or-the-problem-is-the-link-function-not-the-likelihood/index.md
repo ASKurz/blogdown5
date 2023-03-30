@@ -655,7 +655,7 @@ bind_rows(
   scale_shape_manual(NULL, values = c(20, 18),
               labels = scales::parse_format()) +
   scale_y_discrete(breaks = NULL) +
-  labs(subtitle = "counterfactual predictions",
+  labs(title = "Counterfactual predictions",
        x = "post",
        y = "sn (ranked)") +
   coord_cartesian(xlim = c(120, 200)) +
@@ -686,7 +686,7 @@ bind_rows(
                 size = 1/5) +
   geom_point() +
   scale_y_discrete(breaks = NULL) +
-  labs(subtitle = "treatment effects",
+  labs(title = "treatment effects",
        x = expression(hat(tau)[italic(i)]~("i.e., "*hat(italic(y))[italic(i)]^1-hat(italic(y))[italic(i)]^0)),
        y = NULL) +
   xlim(-40, 40) +
@@ -959,7 +959,7 @@ avg_comparisons(brm1, variables = "experimental") %>%
 
 <img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-35-1.png" width="480" />
 
-It’s a thing of beauty, isn’t it? For more details on how to use **marginaleffects** functions to work with `brm()` models, check out Arel-Bundock’s ([2023](#ref-arelBundock2023BayesianAnalysis)) vignette, *Bayesian analysis with brms*.
+It’s a thing of beauty, isn’t it? For more details on how to use **marginaleffects** functions to work with `brm()` models, check out Arel-Bundock’s ([2023](#ref-arelBundock2023BayesianAnalysis)) vignette, *Bayesian analysis with brms*. To see how to make the same computation with a `fitted()`- or `add_epred_draws()`-based workflow, go back to the [fourth post](https://timely-flan-2986f4.netlify.app/blog/2023-02-15-causal-inference-with-bayesian-models/) in this series.
 
 ## Recap
 
