@@ -40,7 +40,6 @@ library(tidyverse)
 library(broom)
 library(marginaleffects)
 library(ggdist)
-library(patchwork)
 library(brms)
 
 # adjust the global theme
@@ -996,12 +995,11 @@ sessionInfo()
     ## [1] stats     graphics  grDevices utils     datasets  methods   base     
     ## 
     ## other attached packages:
-    ##  [1] brms_2.19.0                Rcpp_1.0.10                patchwork_1.1.2           
-    ##  [4] ggdist_3.2.1.9000          marginaleffects_0.9.0.9014 broom_1.0.4               
-    ##  [7] lubridate_1.9.2            forcats_1.0.0              stringr_1.5.0             
-    ## [10] dplyr_1.1.0                purrr_1.0.1                readr_2.1.4               
-    ## [13] tidyr_1.3.0                tibble_3.2.0               ggplot2_3.4.1             
-    ## [16] tidyverse_2.0.0           
+    ##  [1] brms_2.19.0                Rcpp_1.0.10                ggdist_3.2.1.9000         
+    ##  [4] marginaleffects_0.9.0.9014 broom_1.0.4                lubridate_1.9.2           
+    ##  [7] forcats_1.0.0              stringr_1.5.0              dplyr_1.1.0               
+    ## [10] purrr_1.0.1                readr_2.1.4                tidyr_1.3.0               
+    ## [13] tibble_3.2.0               ggplot2_3.4.1              tidyverse_2.0.0           
     ## 
     ## loaded via a namespace (and not attached):
     ##   [1] backports_1.4.1      plyr_1.8.7           igraph_1.3.4         splines_4.2.3        crosstalk_1.2.0     

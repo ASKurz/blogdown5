@@ -51,7 +51,6 @@ library(tidyverse)
 library(broom)
 library(marginaleffects)
 library(ggdist)
-library(patchwork)
 library(brms)
 
 # adjust the global theme
