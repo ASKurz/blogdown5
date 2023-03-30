@@ -569,7 +569,7 @@ prior(lognormal(5.053056, 0.09562761)) %>%
   ggplot(aes(xdist = .dist_obj, y = prior)) + 
   stat_halfeye(.width = c(.5, .95), p_limits = c(.0001, .9999)) +
   scale_y_discrete(NULL, breaks = NULL, expand = expansion(add = 0.1)) +
-  labs(title = "Logormal(5.053056, 0.09562761)",
+  labs(title = "Lognormal(5.053056, 0.09562761)",
        subtitle = "A normal prior on the log link is like a lognormal prior on the identity link.",
        x = expression(exp(italic(p)(beta[0])))) +
   coord_cartesian(xlim = c(100, 250))
