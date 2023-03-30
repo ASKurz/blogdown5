@@ -686,7 +686,7 @@ bind_rows(
                 size = 1/5) +
   geom_point() +
   scale_y_discrete(breaks = NULL) +
-  labs(title = "treatment effects",
+  labs(title = "Treatment effects",
        x = expression(hat(tau)[italic(i)]~("i.e., "*hat(italic(y))[italic(i)]^1-hat(italic(y))[italic(i)]^0)),
        y = NULL) +
   xlim(-40, 40) +
