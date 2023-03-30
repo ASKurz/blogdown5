@@ -311,7 +311,7 @@ bind_rows(
     ## 3      Gamma identity -2.489234  5.396532 -13.06624  8.087774
     ## 4      Gamma      log -2.489234  5.396802 -13.06677  8.088303
 
-The results are very similar across all summary measures, but they’re most notably different for the standard errors and 95% intervals. I don’t know that there’s an easy to decide which way is the *best*. The models differ in their underlying assumptions. To my mind, the gamma model with the log link seems pretty cool; the gamma likelihood naturally accounts for any right skew in the data (there is a little right skew[^2]), and the log link insures the model will never predict non-positive weights. Your preferences may vary.
+The results are very similar across all summary measures, but they’re most notably different for the standard errors and 95% intervals. I don’t know that there’s an easy way to decide which model is the *best*. The models differ in their underlying assumptions. To my eye, the gamma model with the log link seems pretty attractive; the gamma likelihood naturally accounts for any right skew in the data (there is indeed a little right skew[^2]), and the log link insures the model will never predict non-positive weights. Your preferences may vary.
 
 Given how these are all ANOVA-type models (i.e., they have no covariates beyond the experimental grouping variable), we know the case-wise predictions will all be identical when using the `\(\mathbb E (y_i^1 - y_i^0)\)` method for computing our estimates for `\(\tau_\text{ATE}\)`. Thus, we might jump directly to the `avg_comparisons()` function, which will automatically average all the case-wise results.
 
@@ -358,7 +358,7 @@ bind_rows(
 
 <img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-13-1.png" width="576" />
 
-When you look at the results in the context of a plot like this, the subtle differences in their point estimates and 95% intervals look pretty trivial, don’t they?
+When you look at the results in the context of a plot like this, the subtle differences in their point estimates and 95% intervals seem trivial, don’t they?
 
 ### ANCOVA makes it hard.
 
@@ -376,7 +376,6 @@ where `\(\beta_2\)` is the coefficient for our baseline covariate `prec`, which 
 Before we fit the models, we might want to make one more adjustment to the data. The `prec` covariate makes a lot of sense for the models using the identity link. However, it might make more sense to use a mean-centered version of the log of `pre` for the two models using the log link. That way, the pre- and post-intervention weights will both be on the same log scale in the model, and the covariate will still have that desirable mean center. We’ll call this new version of the variable `prelc`.
 
 ``` r
-# wrangle a bit
 horan1971 <- horan1971 %>% 
   mutate(prelc = log(pre) - mean(log(pre)))
 ```
@@ -563,7 +562,7 @@ bind_rows(
     ## 1 Gaussian   identity    -4.57      2.00    -8.50    -0.648
     ## 2 Gamma      identity    -4.31      1.95    -8.12    -0.498
 
-Even though their numeric summaries are more notably different, now, both model’s version of `\(\beta_1\)` is still an estimator of the ATE. The estimators are just founded upon different distributional assumptions. Make your assumptions with care, friends.
+Even though their numeric summaries are more notably different, now, both models’ version of `\(\beta_1\)` is still an estimator of the ATE. The estimators are just founded upon different distributional assumptions. Make your assumptions with care, friends.
 
 The picture differs for the ANCOVA models using the log link. To my knowledge, there is no direct way to compute the ATE from their `\(\beta_1\)` coefficients, alone. The best we could do is use a combination of all three `\(\beta\)` coefficients and tricky exponentiation to compute some version of the CATE. But since the goal of this blog series is to focus on the ATE, we’ll avoid that kind of digression for now.
 
@@ -604,7 +603,7 @@ bind_rows(
     ## 3      Gamma identity      ATE   -4.315     1.946   -8.128    -0.502
     ## 4      Gamma      log     CATE   -4.437     1.963   -8.284    -0.589
 
-This can be hard to catch because the estimates are all so similar, but slightly different. The results in the first and third rows are for the ATE. However, the results in the second and fourth rows are for versions of the CATE. The second row is the CATE for cases with a mean value for `pre`. The fourth row is the CATE for cases with a mean value for log-transformed `pre`. Here are what those mean values are on the `pre` scale.
+This can be hard to catch because the estimates are all so similar, but slightly different. The results in the first and third rows are for the ATE. However, the results in the second and fourth rows are for different versions of the CATE. The second row is the CATE for cases with a mean value for `pre`. The fourth row is the CATE for cases with a mean value for log-transformed `pre`. Here are what those mean values are on the `pre` scale.
 
 ``` r
 horan1971 %>% 
@@ -619,9 +618,9 @@ horan1971 %>%
     ## 1 mean_pre                    155.
     ## 2 exponentiated_mean_log_pre  154.
 
-Note that even these look like integer values, that’s only because the output was rounded in the process of rendering this file into the format you see on the blog. Both summary numbers have a log trail of decimal digits.
+Even though these look like integer values, that’s only because the output was rounded in the process of rendering this file into the format you see on the blog. Both summary numbers have a log trail of decimal digits.
 
-Anyway, whether you’re using the Gaussian or gamma likelihood, you cannot use the `\(\mathbb E (y_i^1 \mid \bar c) - \mathbb E (y_i^0 \mid \bar c)\)` method to compute the ATE if you use the log link. If you prefer that method, you can only compute some version of the CATE.
+Anyway, whether you’re using the Gaussian or gamma likelihood, you *cannot* use the `\(\mathbb E (y_i^1 \mid \bar c) - \mathbb E (y_i^0 \mid \bar c)\)` method to compute the ATE if you use the log link. If you prefer that method, you can only compute some version of the CATE.
 
 Regardless of the link function, it’s the `\(\mathbb E (y_i^1 - y_i^0 \mid c_i)\)` method that will return an estimate for the ATE across ANCOVA-type models. That is, we compute each case’s `\(y_i^1\)` and `\(y_i^0\)` estimate, conditional on their baseline covariate value, take the difference in those estimates, and average across all cases. Before we do all that in one step with the handy `avg_comparisons()` function, it’s worth first showing the case-level predictions and their contrasts in a plot. Here are the case-level predictions from the four ANCOVA models.
 
@@ -761,13 +760,13 @@ $$
 \end{align*}`
 $$
 
-Note that in **brms**, the gamma likelihood is parameterized in terms of the mean `\((\mu)\)` and the shape `\((\alpha)\)`. If desired, we could compute the more familiar scale parameter `\(\theta\)` with the equation
+Note that with **brms**, the gamma likelihood is parameterized in terms of the mean `\((\mu)\)` and the shape `\((\alpha)\)`. If desired, we could compute the more familiar scale parameter `\((\theta)\)` with the equation
 
 `$$\theta = \frac{\mu}{\alpha}.$$`
 
 Anyway, my priors may look oddly specific. Let me walk them out.
 
-Recall that in the [fourth post](https://timely-flan-2986f4.netlify.app/blog/2023-02-15-causal-inference-with-bayesian-models/), we used `\(\operatorname{Normal}(156.5, 15)\)` as the prior for the intercept `\(\beta_0\)`, in the Gaussian model with the conventional identity link. Since we’re now using the log link, we need to set our priors with the conditional mean on the log scale. Did you know that if you take the log of a normal distribution, you end up with a lognormal distribution? The lognormal is a 2-parameter distribution over the positive real values, which has a nice right skew. The lognormal is odd in that its two parameters, `\(\mu\)` and `\(\sigma\)`, are the population mean and standard deviation of the normal distribution you’d get after log-transforming the lognormal distribution. The math gets a little hairy, but if you wanted a lognormal distribution with a given mean and standard deviation on its own scale, you’d ned to use the equations
+Recall that in the [fourth post](https://timely-flan-2986f4.netlify.app/blog/2023-02-15-causal-inference-with-bayesian-models/), we used `\(\operatorname{Normal}(156.5, 15)\)` as the prior for the `\(\beta_0\)` intercept in the Gaussian model with the conventional identity link. Since we’re now using the log link, we need to set our priors with the conditional mean on the log scale. Did you know that if you take the log of a normal distribution, you end up with a lognormal distribution? The lognormal is a 2-parameter distribution over the positive real values, which has a nice right skew. The lognormal is odd in that its two parameters, `\(\mu\)` and `\(\sigma\)`, are the population mean and standard deviation of the normal distribution you’d get after log-transforming the lognormal distribution. The math gets a little hairy, but if you wanted a lognormal distribution with a given mean and standard deviation on its own scale, you’d need to use the equations
 
 $$
 `\begin{align*}
@@ -786,7 +785,7 @@ s <- 15     # desired SD
 mu    <- log(m / sqrt(s^2 / m^2 + 1))
 sigma <- sqrt(log(s^2 / m^2 + 1))
 
-# what are the parameter values?
+# what are the lognormal parameter values?
 mu; sigma
 ```
 
@@ -823,9 +822,9 @@ exp(5.053056 + c(-0.5, 0.5))
 
 That’s a wide spread, and frankly it suggests we could easily justify an even more conservative prior.
 
-As to our `\(\operatorname{Normal}(0.75, 0.25)\)` prior for `\(\beta_2\)`, this is suggesting the pre- and post-interventions weights scale close together, even when they’re on the log scale. In my experience, this is a good rule of thumb for behavioral data. If you’re not as confident as I am, adjust your prior accordingly.
+As to our `\(\operatorname{Normal}(0.75, 0.25)\)` prior for `\(\beta_2\)`, this is suggesting the pre- and post-intervention weights scale close together, even when they’re on the log scale. In my experience, this is a good rule of thumb for behavioral data. If you’re not as confident as I am, adjust your prior accordingly.
 
-The `\(\operatorname{Gamma}(0.01, 0.01)\)` prior for the shape parameter `\(\alpha\)` is the `brm()` default. You might use the `get_prior()` function to check this for yourself. If you’re going to be fitting a lot of Bayesian gamma regression models, you’re going to want to learn how to go beyond the default prior for your `\(\alpha\)` parameters. Since this is just a small point in a much larger story, I’m not going to dive much deeper into the topic, here. But if you wanted to start somewhere, keep in mind that when a gamma distribution’s `\(\mu = \alpha\)`, the population mean and variance are the same[^3]; and with `\(\mu\)` held constant, larger values of `\(\alpha\)` make for *smaller* variances.
+The `\(\operatorname{Gamma}(0.01, 0.01)\)` prior for the shape parameter `\(\alpha\)` is the `brm()` default. You might use the `get_prior()` function to check this for yourself. If you’re going to be fitting a lot of Bayesian gamma regression models, you’re going to want to learn how to go beyond the default prior for your `\(\alpha\)` parameters. Since this is just a small point in a much larger story, I’m not going to dive much deeper into the topic, here. But if you wanted to start somewhere, keep in mind that when a gamma distribution’s `\(\mu = \alpha\)`, the population mean and variance are the same[^3]; and with `\(\mu\)` held constant, larger values of `\(\alpha\)` make for *smaller* variances[^4].
 
 Okay, here’s how to fit the model with `brm()`.
 
@@ -969,7 +968,8 @@ In this post, some of the main points we covered were:
 
 - The gamma likelihood is a fine option for modeling right-skewed continuous variables with a lower limit of zero.
 - The inverse function is the canonical link for gamma regression, but the log and identity links are popular alternatives.
-- Whether you use the identity or log links for either the Gaussian or the gamma ANOVA, the `\(\beta_1\)` parameter, the `\(\mathbb E (y_i^1 - y_i^0)\)` method, and the `\(\mathbb E (y_i^1) - \mathbb E (y_i^0)\)` method are all valid estimators of `\(\tau_\text{ATE}\)`.
+- When you use the identity link for either the Gaussian or the gamma ANOVA, the `\(\beta_1\)` parameter, the `\(\mathbb E (y_i^1 - y_i^0)\)` method, and the `\(\mathbb E (y_i^1) - \mathbb E (y_i^0)\)` method are all valid estimators of `\(\tau_\text{ATE}\)`.
+- When you use the log link for either the Gaussian or the gamma ANOVA, only the `\(\mathbb E (y_i^1 - y_i^0)\)` method and the `\(\mathbb E (y_i^1) - \mathbb E (y_i^0)\)` method are all valid estimators of `\(\tau_\text{ATE}\)`.
 - When you use the identity link for either the Gaussian or the gamma ANCOVA, the `\(\beta_1\)` parameter, the `\(\mathbb E (y_i^1 - y_i^0 \mid c_i)\)` method, and the `\(\mathbb E (y_i^1 \mid \bar c) - \mathbb E (y_i^0 \mid \bar c)\)` method are all valid estimators of `\(\tau_\text{ATE}\)`.
 - When you use the log link for either the Gaussian or the gamma ANCOVA, only the `\(\mathbb E (y_i^1 - y_i^0 \mid c_i)\)` method can return a valid estimate for `\(\tau_\text{ATE}\)`.
 
@@ -1076,3 +1076,5 @@ Revelle, W. (2022). *<span class="nocase">psych</span>: Procedures for psycholog
 [^2]: You don’t have to believe me. Check it for yourself. You might do a visual check with a histogram or density plot. Or you could compute the sample skewness statistic with the `skew()` function from the **psych** package ([Revelle, 2022](#ref-R-psych)).
 
 [^3]: *Why would I assume the mean and variance would be the same?* you ask. Well, you might not. But bear in mind that the popular likelihood for unbounded counts, the Poisson, assumes the mean and variance are the same. Granted, the Poisson likelihood often underestimates the variance in real-world sample data, and we might not expect our positive-real skewed continuous data will behave like unbounded counts. But you have to start somewhere, friends. Why not appeal to one of the devils you already know?
+
+[^4]: Within the context of a fixed `\(\mu\)`, you might think of `\(\alpha\)` as a *concentration* parameter. The higher the `\(\alpha\)`, the more concentrated the distribution gets around the mean.
