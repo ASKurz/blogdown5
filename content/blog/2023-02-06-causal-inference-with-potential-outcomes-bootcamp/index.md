@@ -231,7 +231,7 @@ Anyway, next we’ll learn how to actually compute `\(\tau_\text{ATE}\)` within 
 
 #### Compute `\(\mathbb E (y_i^1) - \mathbb E (y_i^0)\)` from `ols1`.
 
-Sometimes the authors of introductory causal inference textbooks have readers practice computing these values by hand, which can have its pedagogical value. But in your role as a professional scientist, you’ll be computing `\(\tau_\text{ATE}\)` within the context of a regression model, so you can properly express the uncertainty of your estimate with 95% intervals, as standard error, or some other measure of uncertainty. To that end, we can compute `\(\mathbb E (y_i^1)\)` and `\(\mathbb E (y_i^0)\)` by inserting our `ols1` model into the base **R** `predict()` function.
+Sometimes the authors of introductory causal inference textbooks have readers practice computing these values by hand, which can have its pedagogical value. But in your role as a professional scientist, you’ll be computing `\(\tau_\text{ATE}\)` within the context of a regression model, so you can properly express the uncertainty of your estimate with 95% intervals, a standard error, or some other measure of uncertainty. To that end, we can compute `\(\mathbb E (y_i^1)\)` and `\(\mathbb E (y_i^0)\)` by inserting our `ols1` model into the base **R** `predict()` function.
 
 ``` r
 nd <- tibble(experimental = 0:1)
