@@ -674,7 +674,7 @@ sim %>%
   ggtitle("Distribution of model-based simulated ATE's")
 ```
 
-<img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-26-1.png" width="672" />
+<img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-26-1.png" width="480" />
 
 ``` r
 # summarize across the iterations
@@ -708,17 +708,17 @@ p1 <- predictions(glm1, newdata = nd) %>%
   
   ggplot(aes(x = estimate, y = reorder(id, estimate), color = y)) +
   geom_interval(aes(xmin = conf.low, xmax = conf.high),
-                position = position_dodge(width = 0.2),
+                position = position_dodge(width = -0.2),
                 size = 1/5) +
   geom_point(aes(shape = y),
              size = 2) +
   scale_color_viridis_d(NULL, option = "A", begin = .3, end = .6,
                         labels = scales::parse_format()) +
   scale_shape_manual(NULL, values = c(20, 18),
-              labels = scales::parse_format()) +
+                     labels = scales::parse_format()) +
   scale_x_continuous(limits = 0:1) +
   scale_y_discrete(breaks = NULL) +
-  labs(subtitle = "counterfactual probabilities",
+  labs(subtitle = "Counterfactual probabilities",
        x = expression(italic(p[i])),
        y = "id (ranked)") +
   theme(legend.background = element_blank(),
@@ -736,7 +736,7 @@ p2 <- comparisons(glm1, newdata = nd, variables = list(tx = 0:1), by = "id") %>%
   geom_point() +
   scale_x_continuous(limits = c(-0.5, 0.5)) +
   scale_y_discrete(breaks = NULL) +
-  labs(subtitle = "contrasts",
+  labs(subtitle = "Contrasts",
        x = expression(hat(italic(p))[italic(i)]^1-hat(italic(p))[italic(i)]^0),
        y = NULL) +
   theme(legend.background = element_blank(),
@@ -1119,17 +1119,17 @@ p3 <- predictions(glm2, newdata = nd) %>%
   
   ggplot(aes(x = estimate, y = reorder(id, estimate), color = y)) +
   geom_interval(aes(xmin = conf.low, xmax = conf.high),
-                position = position_dodge(width = 0.2),
+                position = position_dodge(width = -0.2),
                 size = 1/5) +
   geom_point(aes(shape = y),
              size = 2) +
   scale_color_viridis_d(NULL, option = "A", begin = .3, end = .6,
                         labels = scales::parse_format()) +
   scale_shape_manual(NULL, values = c(20, 18),
-              labels = scales::parse_format()) +
+                     labels = scales::parse_format()) +
   scale_x_continuous(limits = 0:1) +
   scale_y_discrete(breaks = NULL) +
-  labs(subtitle = "counterfactual probabilities",
+  labs(subtitle = "Counterfactual probabilities",
        x = expression(italic(p[i])),
        y = "id (ranked)") +
   theme(legend.background = element_blank(),
@@ -1147,7 +1147,7 @@ p4 <- comparisons(glm2, newdata = nd, variables = "tx") %>%
   geom_point() +
   scale_x_continuous(limits = c(-0.5, 0.5)) +
   scale_y_discrete(breaks = NULL) +
-  labs(subtitle = "contrasts",
+  labs(subtitle = "Contrasts",
        x = expression(hat(italic(p))[italic(i)]^1-hat(italic(p))[italic(i)]^0),
        y = NULL) +
   theme(legend.background = element_blank(),
@@ -1355,13 +1355,13 @@ Agresti, A., & Tarantola, C. (2018). Simple ways to interpret effects in modelin
 
 <div id="ref-albuquerque2023logisticRegression" class="csl-entry">
 
-Albuquerque, A. M., & Arel-Bundock, V. (2023, February 21). *Logistic regression*. <https://vincentarelbundock.github.io/marginaleffects/articles/logit.html>
+Albuquerque, A. M., & Arel-Bundock, V. (2023). *Logistic regression*. <https://vincentarelbundock.github.io/marginaleffects/articles/logit.html>
 
 </div>
 
 <div id="ref-arelBundock2023CausalInference" class="csl-entry">
 
-Arel-Bundock, V. (2023, February 3). *Causal inference with the parametric g-Formula*. <https://vincentarelbundock.github.io/marginaleffects/articles/gformula.html>
+Arel-Bundock, V. (2023). *Causal inference with the parametric g-Formula*. <https://vincentarelbundock.github.io/marginaleffects/articles/gformula.html>
 
 </div>
 
@@ -1397,7 +1397,7 @@ Gelman, A., Hill, J., & Vehtari, A. (2020). *Regression and other stories*. Camb
 
 <div id="ref-harrell2021avoiding" class="csl-entry">
 
-Harrell, F. (2021, June 28). *Avoiding one-number summaries of treatment effects for RCTs with binary outcomes*. <https://www.fharrell.com/post/rdist/>
+Harrell, F. (2021). *Avoiding one-number summaries of treatment effects for RCTs with binary outcomes*. <https://www.fharrell.com/post/rdist/>
 
 </div>
 

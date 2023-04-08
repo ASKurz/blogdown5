@@ -424,7 +424,7 @@ nd %>%
 
 At first glance, this might look like a failure. 0.158 is a much lower value than 0.19 from above. But keep in mind that this was a summary of a single iteration of a random process. In the next code block, we'll expand the initial data set so that each participant has 1,000 iterations of both $\hat y_i^1$ and $\hat y_i^0$ values. We'll compute $\mathbb E (y_i^1 - y_i^0)$ within each iteration, visualize the distribution in a histogram, and then summarize the results from the 1,000 iterations by their mean and standard deviation.
 
-```{r}
+```{r, fig.width = 5, fig.height = 3.25}
 # simulate
 set.seed(1)
 
@@ -471,17 +471,17 @@ p1 <- predictions(glm1, newdata = nd) %>%
   
   ggplot(aes(x = estimate, y = reorder(id, estimate), color = y)) +
   geom_interval(aes(xmin = conf.low, xmax = conf.high),
-                position = position_dodge(width = 0.2),
+                position = position_dodge(width = -0.2),
                 size = 1/5) +
   geom_point(aes(shape = y),
              size = 2) +
   scale_color_viridis_d(NULL, option = "A", begin = .3, end = .6,
                         labels = scales::parse_format()) +
   scale_shape_manual(NULL, values = c(20, 18),
-              labels = scales::parse_format()) +
+                     labels = scales::parse_format()) +
   scale_x_continuous(limits = 0:1) +
   scale_y_discrete(breaks = NULL) +
-  labs(subtitle = "counterfactual probabilities",
+  labs(subtitle = "Counterfactual probabilities",
        x = expression(italic(p[i])),
        y = "id (ranked)") +
   theme(legend.background = element_blank(),
@@ -499,7 +499,7 @@ p2 <- comparisons(glm1, newdata = nd, variables = list(tx = 0:1), by = "id") %>%
   geom_point() +
   scale_x_continuous(limits = c(-0.5, 0.5)) +
   scale_y_discrete(breaks = NULL) +
-  labs(subtitle = "contrasts",
+  labs(subtitle = "Contrasts",
        x = expression(hat(italic(p))[italic(i)]^1-hat(italic(p))[italic(i)]^0),
        y = NULL) +
   theme(legend.background = element_blank(),
@@ -738,17 +738,17 @@ p3 <- predictions(glm2, newdata = nd) %>%
   
   ggplot(aes(x = estimate, y = reorder(id, estimate), color = y)) +
   geom_interval(aes(xmin = conf.low, xmax = conf.high),
-                position = position_dodge(width = 0.2),
+                position = position_dodge(width = -0.2),
                 size = 1/5) +
   geom_point(aes(shape = y),
              size = 2) +
   scale_color_viridis_d(NULL, option = "A", begin = .3, end = .6,
                         labels = scales::parse_format()) +
   scale_shape_manual(NULL, values = c(20, 18),
-              labels = scales::parse_format()) +
+                     labels = scales::parse_format()) +
   scale_x_continuous(limits = 0:1) +
   scale_y_discrete(breaks = NULL) +
-  labs(subtitle = "counterfactual probabilities",
+  labs(subtitle = "Counterfactual probabilities",
        x = expression(italic(p[i])),
        y = "id (ranked)") +
   theme(legend.background = element_blank(),
@@ -766,7 +766,7 @@ p4 <- comparisons(glm2, newdata = nd, variables = "tx") %>%
   geom_point() +
   scale_x_continuous(limits = c(-0.5, 0.5)) +
   scale_y_discrete(breaks = NULL) +
-  labs(subtitle = "contrasts",
+  labs(subtitle = "Contrasts",
        x = expression(hat(italic(p))[italic(i)]^1-hat(italic(p))[italic(i)]^0),
        y = NULL) +
   theme(legend.background = element_blank(),
