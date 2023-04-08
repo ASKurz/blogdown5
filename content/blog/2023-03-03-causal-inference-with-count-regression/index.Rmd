@@ -405,7 +405,7 @@ This, again, is sometimes called *standardization* or *g-computation*, this time
 
 Before we practice computing our $\hat \tau_\text{ATE}$ values, we should spend some time with the counterfactual $\hat \lambda_i^1$, $\hat \lambda_i^0$, $\hat \mu_i^1$, and $\hat \mu_i^0$ values. As we've done in previous posts, we can compute those with the `marginaleffects::predictions()` function. We'll start with the counterfactual predictions from the Poisson models.
 
-```{r, fig.width = 8, fig.height = 5}
+```{r, fig.width = 8, fig.height = 5.5}
 models <- c("ANOVA", "ANCOVA")
 ses <- c("ML", "sandwich")
 
@@ -429,14 +429,14 @@ bind_rows(
   # plot!
   ggplot(aes(x = estimate, y = reorder(patient, estimate))) +
   geom_interval(aes(xmin = conf.low, xmax = conf.high, color = y),
-                position = position_dodge(width = 0.2),
+                position = position_dodge(width = -0.2),
                 size = 1/5) +
   geom_point(aes(color = y, shape = y),
              size = 2) +
   scale_color_viridis_d(NULL, option = "A", begin = .3, end = .6,
                         labels = scales::parse_format()) +
   scale_shape_manual(NULL, values = c(20, 18),
-              labels = scales::parse_format()) +
+                     labels = scales::parse_format()) +
   scale_y_discrete(breaks = NULL) +
   labs(subtitle = "Counterfactual Poisson rates, by model type and standard error method",
        x = expression(lambda[italic(i)]),
@@ -449,7 +449,7 @@ bind_rows(
 
 Unsurprisingly, the ANOVA-based point estimates are the same for all patients. Yet the estimates for the ANCOVA model showed marked diversity among the patients. As to the 95% CI's, they were markedly wider when based on the sandwich standard errors, suggesting the Poisson models did not adequately account for the overdispersion in the data. Now look at the negative-binomial versions of the figure.
 
-```{r, fig.width = 8, fig.height = 5}
+```{r, fig.width = 8, fig.height = 5.5}
 # compute and wrangle
 bind_rows(
   predictions(fit2, newdata = nd),
@@ -465,14 +465,14 @@ bind_rows(
   # plot!
   ggplot(aes(x = estimate, y = reorder(patient, estimate))) +
   geom_interval(aes(xmin = conf.low, xmax = conf.high, color = y),
-                position = position_dodge(width = 0.2),
+                position = position_dodge(width = -0.2),
                 size = 1/5) +
   geom_point(aes(color = y, shape = y),
              size = 2) +
   scale_color_viridis_d(NULL, option = "A", begin = .3, end = .6,
                         labels = scales::parse_format()) +
   scale_shape_manual(NULL, values = c(20, 18),
-              labels = scales::parse_format()) +
+                     labels = scales::parse_format()) +
   scale_y_discrete(breaks = NULL) +
   labs(subtitle = "Counterfactual negative-binomial means, by model type and standard error method",
        x = expression(mu[italic(i)]),
@@ -487,7 +487,7 @@ For the ANOVA models, the negative-binomial point estimates are identical to tho
 
 Now we use the `marginaleffects::comparisons()` function to compute the patient-level treatment effect estimates for each combination of likelihood, model type, and standard error method.
 
-```{r, fig.width = 8, fig.height = 10}
+```{r, fig.width = 8, fig.height = 11}
 # Poisson
 p1 <- bind_rows(
   comparisons(fit1, variables = "Trt"),

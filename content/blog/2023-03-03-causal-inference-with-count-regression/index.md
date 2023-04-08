@@ -529,14 +529,14 @@ bind_rows(
   # plot!
   ggplot(aes(x = estimate, y = reorder(patient, estimate))) +
   geom_interval(aes(xmin = conf.low, xmax = conf.high, color = y),
-                position = position_dodge(width = 0.2),
+                position = position_dodge(width = -0.2),
                 size = 1/5) +
   geom_point(aes(color = y, shape = y),
              size = 2) +
   scale_color_viridis_d(NULL, option = "A", begin = .3, end = .6,
                         labels = scales::parse_format()) +
   scale_shape_manual(NULL, values = c(20, 18),
-              labels = scales::parse_format()) +
+                     labels = scales::parse_format()) +
   scale_y_discrete(breaks = NULL) +
   labs(subtitle = "Counterfactual Poisson rates, by model type and standard error method",
        x = expression(lambda[italic(i)]),
@@ -567,14 +567,14 @@ bind_rows(
   # plot!
   ggplot(aes(x = estimate, y = reorder(patient, estimate))) +
   geom_interval(aes(xmin = conf.low, xmax = conf.high, color = y),
-                position = position_dodge(width = 0.2),
+                position = position_dodge(width = -0.2),
                 size = 1/5) +
   geom_point(aes(color = y, shape = y),
              size = 2) +
   scale_color_viridis_d(NULL, option = "A", begin = .3, end = .6,
                         labels = scales::parse_format()) +
   scale_shape_manual(NULL, values = c(20, 18),
-              labels = scales::parse_format()) +
+                     labels = scales::parse_format()) +
   scale_y_discrete(breaks = NULL) +
   labs(subtitle = "Counterfactual negative-binomial means, by model type and standard error method",
        x = expression(mu[italic(i)]),
