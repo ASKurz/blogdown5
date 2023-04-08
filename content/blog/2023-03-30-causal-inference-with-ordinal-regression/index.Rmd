@@ -482,7 +482,7 @@ p1 <- nd_id %>%
   
   ggplot(aes(x = .linpred, y = reorder(id, .linpred), color = y)) +
   geom_interval(aes(xmin = .lower, xmax = .upper),
-                position = position_dodge(width = 0.2),
+                position = position_dodge(width = -0.2),
                 size = 1/5) +
   geom_point(aes(shape = y),
              size = 2) +
@@ -512,7 +512,7 @@ p2 <- nd_id %>%
   ggplot(aes(x = d, y = reorder(id, d))) +
   geom_vline(xintercept = 0, color = "white") +
   geom_interval(aes(xmin = .lower, xmax = .upper),
-                position = position_dodge(width = 0.25),
+                position = position_dodge(width = -0.25),
                 size = 1/5, color = "black") +
   geom_point() +
   scale_y_discrete(breaks = NULL) +
@@ -597,7 +597,7 @@ predictions(fit2, newdata = nd_cate, type = "link", by = c("case", "protection",
   
   ggplot(aes(x = estimate, y = reorder(case, estimate), color = y)) +
   geom_interval(aes(xmin = conf.low, xmax = conf.high),
-                position = position_dodge(width = 0.2),
+                position = position_dodge(width = -0.2),
                 size = 1/5) +
   geom_point(aes(shape = y),
              size = 2) +
@@ -833,14 +833,14 @@ predictions(fit2,
   # plot!
   ggplot(aes(x = estimate, y = rank)) +
   geom_interval(aes(xmin = conf.low, xmax = conf.high, color = protection),
-                    position = position_dodge(width = 0.2),
+                    position = position_dodge(width = -0.2),
                     size = 1/5) +
   geom_point(aes(color = protection, shape = protection),
              size = 2) +
   scale_color_viridis_d(NULL, option = "A", begin = .3, end = .6,
                         labels = scales::parse_format()) +
   scale_shape_manual(NULL, values = c(20, 18),
-              labels = scales::parse_format()) +
+                     labels = scales::parse_format()) +
   scale_x_continuous(limits = c(0, 1)) +
   scale_y_discrete(breaks = NULL) +
   labs(title = "Some counterfactual probabilities from the cumulative probit ANCOVA",
@@ -1128,7 +1128,7 @@ p1 <- fit2_conditional_probabilities_by_id %>%
   
   ggplot(aes(x = y_hat, y = reorder(id, y_hat), color = y)) +
   geom_interval(aes(xmin = .lower, xmax = .upper),
-                position = position_dodge(width = 0.2),
+                position = position_dodge(width = -0.2),
                 size = 1/5) +
   geom_point(aes(shape = y),
              size = 2) +
