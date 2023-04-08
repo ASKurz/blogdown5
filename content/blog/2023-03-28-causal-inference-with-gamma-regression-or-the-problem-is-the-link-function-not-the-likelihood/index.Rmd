@@ -429,7 +429,7 @@ bind_rows(
   # plot!
   ggplot(aes(x = estimate, y = reorder(sn, estimate))) +
   geom_interval(aes(xmin = conf.low, xmax = conf.high, color = y),
-                    position = position_dodge(width = 0.2),
+                    position = position_dodge(width = -0.2),
                     size = 1/5) +
   geom_point(aes(color = y, shape = y),
              size = 2) +

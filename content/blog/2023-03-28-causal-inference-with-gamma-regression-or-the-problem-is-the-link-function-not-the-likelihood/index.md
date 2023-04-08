@@ -646,7 +646,7 @@ bind_rows(
   # plot!
   ggplot(aes(x = estimate, y = reorder(sn, estimate))) +
   geom_interval(aes(xmin = conf.low, xmax = conf.high, color = y),
-                    position = position_dodge(width = 0.2),
+                    position = position_dodge(width = -0.2),
                     size = 1/5) +
   geom_point(aes(color = y, shape = y),
              size = 2) +
@@ -1039,7 +1039,7 @@ Agresti, A. (2015). *Foundations of linear and generalized linear models*. John 
 
 <div id="ref-arelBundock2023BayesianAnalysis" class="csl-entry">
 
-Arel-Bundock, V. (2023, February 3). *Bayesian analysis with brms*. <https://vincentarelbundock.github.io/marginaleffects/articles/brms.html>
+Arel-Bundock, V. (2023). *Bayesian analysis with brms*. <https://vincentarelbundock.github.io/marginaleffects/articles/brms.html>
 
 </div>
 
