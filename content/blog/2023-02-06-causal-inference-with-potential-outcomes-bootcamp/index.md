@@ -389,14 +389,14 @@ p1 <- predictions(ols1, newdata = nd, by = c("sn", "experimental")) %>%
   
   ggplot(aes(x = estimate, y = reorder(sn, estimate), color = y)) +
   geom_interval(aes(xmin = conf.low, xmax = conf.high),
-                position = position_dodge(width = 0.2),
+                position = position_dodge(width = -0.2),
                 size = 1/5) +
   geom_point(aes(shape = y),
              size = 2) +
   scale_color_viridis_d(NULL, option = "A", begin = .3, end = .6,
                         labels = scales::parse_format()) +
   scale_shape_manual(NULL, values = c(20, 18),
-              labels = scales::parse_format()) +
+                     labels = scales::parse_format()) +
   scale_y_discrete(breaks = NULL) +
   labs(subtitle = "counterfactual predictions",
        x = "post",
@@ -412,7 +412,6 @@ p2 <- comparisons(ols1, variables = list(experimental = 0:1), by = "sn") %>%
   ggplot(aes(x = estimate, y = reorder(sn, estimate))) +
   geom_vline(xintercept = 0, color = "white") +
   geom_interval(aes(xmin = conf.low, xmax = conf.high),
-                position = position_dodge(width = 0.25),
                 size = 1/5) +
   geom_point() +
   scale_y_discrete(breaks = NULL) +
@@ -687,15 +686,15 @@ p3 <- predictions(ols2, newdata = nd, by = c("sn", "experimental", "prec")) %>%
   mutate(y = ifelse(experimental == 0, "hat(italic(y))^0", "hat(italic(y))^1")) %>% 
   
   ggplot(aes(x = estimate, y = reorder(sn, estimate))) +
-  ggdist::geom_interval(aes(xmin = conf.low, xmax = conf.high, color = y),
-                        position = position_dodge(width = 0.2),
-                        size = 1/5) +
+  geom_interval(aes(xmin = conf.low, xmax = conf.high, color = y),
+                position = position_dodge(width = -0.2),
+                size = 1/5) +
   geom_point(aes(color = y, shape = y),
              size = 2) +
   scale_color_viridis_d(NULL, option = "A", begin = .3, end = .6,
                         labels = scales::parse_format()) +
   scale_shape_manual(NULL, values = c(20, 18),
-              labels = scales::parse_format()) +
+                     labels = scales::parse_format()) +
   scale_y_discrete(breaks = NULL) +
   labs(subtitle = "counterfactual predictions",
        x = "post",
@@ -710,9 +709,8 @@ p4 <- comparisons(ols2, variables = list(experimental = 0:1), by = "sn") %>%
   
   ggplot(aes(x = estimate, y = reorder(sn, estimate))) +
   geom_vline(xintercept = 0, color = "white") +
-  ggdist::geom_interval(aes(xmin = conf.low, xmax = conf.high),
-                        position = position_dodge(width = 0.25),
-                        size = 1/5) +
+  geom_interval(aes(xmin = conf.low, xmax = conf.high),
+                size = 1/5) +
   geom_point() +
   scale_y_discrete(breaks = NULL) +
   labs(subtitle = "treatment effects",
@@ -824,7 +822,7 @@ sessionInfo()
 
 <div id="ref-arelBundock2023CausalInference" class="csl-entry">
 
-Arel-Bundock, V. (2023, February 3). *Causal inference with the parametric g-Formula*. <https://vincentarelbundock.github.io/marginaleffects/articles/gformula.html>
+Arel-Bundock, V. (2023). *Causal inference with the parametric g-Formula*. <https://vincentarelbundock.github.io/marginaleffects/articles/gformula.html>
 
 </div>
 
