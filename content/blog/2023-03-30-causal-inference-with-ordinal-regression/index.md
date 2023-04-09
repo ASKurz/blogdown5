@@ -1715,7 +1715,7 @@ In this post, some of the main points we covered were:
   - does benefit from baseline covariates,
   - is methodologically rigorous, but
   - may be confusing to people not obsessed with quantitative methods.
-- my new `\(\tau_y^\text{ATE}\)` is
+- My new `\(\tau_y^\text{ATE}\)` is
   - a univariate estimand,
   - expressed in terms of the average treatment effect after transforming the ordinal model to a continuous scale, which
   - does benefit from baseline covariates,
