@@ -398,7 +398,7 @@ p1 <- predictions(ols1, newdata = nd, by = c("sn", "experimental")) %>%
   scale_shape_manual(NULL, values = c(20, 18),
                      labels = scales::parse_format()) +
   scale_y_discrete(breaks = NULL) +
-  labs(subtitle = "counterfactual predictions",
+  labs(subtitle = "Counterfactual predictions",
        x = "post",
        y = "sn (ranked)") +
   xlim(120, 200) +
@@ -415,7 +415,7 @@ p2 <- comparisons(ols1, variables = list(experimental = 0:1), by = "sn") %>%
                 size = 1/5) +
   geom_point() +
   scale_y_discrete(breaks = NULL) +
-  labs(subtitle = "treatment effects",
+  labs(subtitle = "Treatment effects",
        x = expression(hat(tau)[italic(i)]~("i.e., "*hat(italic(y))[italic(i)]^1-hat(italic(y))[italic(i)]^0)),
        y = NULL) +
   xlim(-40, 40)
@@ -696,7 +696,7 @@ p3 <- predictions(ols2, newdata = nd, by = c("sn", "experimental", "prec")) %>%
   scale_shape_manual(NULL, values = c(20, 18),
                      labels = scales::parse_format()) +
   scale_y_discrete(breaks = NULL) +
-  labs(subtitle = "counterfactual predictions",
+  labs(subtitle = "Counterfactual predictions",
        x = "post",
        y = "sn (ranked)") +
   coord_cartesian(xlim = c(120, 200)) +
@@ -713,7 +713,7 @@ p4 <- comparisons(ols2, variables = list(experimental = 0:1), by = "sn") %>%
                 size = 1/5) +
   geom_point() +
   scale_y_discrete(breaks = NULL) +
-  labs(subtitle = "treatment effects",
+  labs(subtitle = "Treatment effects",
        x = expression(hat(tau)[italic(i)]~("i.e., "*hat(italic(y))[italic(i)]^1-hat(italic(y))[italic(i)]^0)),
        y = NULL) +
   xlim(-40, 40)
