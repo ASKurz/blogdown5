@@ -110,7 +110,7 @@ glimpse(horan1971)
 Horan and Johnson randomly assigned 80 women who were between “20 per cent and 30 per cent overweight” into four groups for weight loss. In the `horan1971` data, these four groups are differentiated in the `treatment` column, which is coded
 
 - `delayed`, a “delayed treatment control” (i.e., wait-list control), the members of which received an active treatment after the study;
-- `placebo`, a minimalist intervention where particulates were given basic information about nutrition and weight-loss strategies;
+- `placebo`, a minimalist intervention where participants were given basic information about nutrition and weight-loss strategies;
 - `scheduled`, an active treatment that added a cognitive element to the information from the `placebo` group; and
 - `experimental`, which added a full behavioral element (based on the Premack principle[^3]) to the `placebo` intervention.
 
@@ -175,7 +175,7 @@ horan1971 %>%
 
 Happily, we have no missing data.
 
-### Center the covariate.
+### Center the baseline covariate.
 
 To make some of the models more interpretable, we’ll want to make a mean-centered version of pre-intervention weight (`pre`). We’ll name the new variable `prec`.
 
@@ -297,7 +297,31 @@ horan1971 %>%
     ## 1 delayed      0.955
     ## 2 experimental 0.909
 
-The correlation is the same whether we use `pre` or the mean-centered version of the variable, `prec`.
+The correlation is the same whether we use `pre` or the mean-centered version of the variable, `prec`. In case you’re curious, here’s what those strong correlations look like in a faceted scatter plot.
+
+``` r
+# for the annotation
+r_text <- horan1971 %>% 
+  group_by(treatment) %>% 
+  summarise(r = cor(pre, post)) %>% 
+  mutate(pre  = 130,
+         post = 190,
+         text = str_c("italic(r)==", round(r, digits = 3)))
+
+# plot!
+horan1971 %>%  
+  ggplot(aes(x = pre, y = post)) +
+  geom_abline(color = "white") +
+  geom_point() +
+  geom_text(data = r_text,
+            aes(label = text),
+            color = "red4", parse = TRUE) +
+  coord_equal(xlim = c(110, 200),
+              ylim = c(110, 200)) +
+  facet_wrap(~ treatment, labeller = label_both)
+```
+
+<img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-14-1.png" width="576" />
 
 Anyway, the ANCOVA model adds one or more baseline covariates to the ANOVA model. For our data, this results in the statistical formula
 
@@ -424,13 +448,13 @@ bind_rows(tidy(ols1, conf.int = TRUE), tidy(ols2, conf.int = TRUE)) %>%
   ylab(NULL)
 ```
 
-<img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-17-1.png" width="576" />
+<img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-18-1.png" width="576" />
 
 Even though the point estimates differ a lot between the ANOVA and ANCOVA models, the 95% interval for the ANOVA model completely overlaps the interval for the ANCOVA model. Both the ANOVA and ANCOVA models are known to produce unbiased estimates of the population parameters, but the ANCOVA model tends to produce estimates that are more precise (e.g., [O’Connell et al., 2017](#ref-oConnell2017methods)). Thus if you have a high-quality baseline covariate laying around, it’s a good idea to throw it into the model[^7].
 
 ## But why?
 
-If you haven’t seen this before, you might wonder why adding covariates tends to make the `\(\beta_1\)` coefficient more precise. A common answer is the additional covariates “explain” more of the residual variance. However, I encourage y’all to hold this explanation lightly. This way of thinking will not generalize well to other likelihood, and one of the big goals of this blog series is to generalize to other likelihoods.
+If you haven’t seen this before, you might wonder why adding covariates tends to make the `\(\beta_1\)` coefficient more precise. A common answer is the additional covariates “explain” more of the residual variance. However, I encourage y’all to hold this explanation lightly. This way of thinking will not generalize well to models using other likelihood functions, and one of the big goals of this blog series is showing a framework that will generalize to other likelihoods.
 
 Instead, I recommend you just notice that this pattern will arise again and again when you use OLS models. Adding baseline covariates will generally shrink your standard errors. It’s like getting statistical power for free. Perhaps a more helpful line of inquiry is: *How can I use this information to better design my studies?*
 
@@ -473,9 +497,9 @@ crossing(n = c(50, 100, 150, 200),
   ggtitle(expression("What can "*(1-rho^2)*italic(N)*" do for you?"))
 ```
 
-<img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-19-1.png" width="576" />
+<img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-20-1.png" width="576" />
 
-When the pre/post correlation `\(\rho\)` is weak, the ANCOVA doesn’t improve much above the ANOVA. But that baseline covariate really starts paying off by the time `\(\rho \approx .4\)` or so. Another way of putting this is the standard error for the `\(\beta_1\)` coefficient in the ANOVA will decrease by a factor of `\(\sqrt{1 - \rho^2}\)` when you switch to an ANCOVA. Here’s what that looks like for our models.
+When the pre/post correlation `\(\rho\)` is weak, the ANCOVA doesn’t improve much above the ANOVA. But that baseline covariate really starts paying off around `\(\rho \approx .4\)` or so. Another way of putting this is the standard error for the `\(\beta_1\)` coefficient in the ANOVA will decrease by a factor of `\(\sqrt{1 - \rho^2}\)` when you switch to an ANCOVA. Here’s what that looks like for our models.
 
 ``` r
 # display the standard errors for beta[1]
@@ -514,7 +538,16 @@ In this post, some of the main points we covered were:
 
 For many of my readers, I imagine most of the material in this post was a review. But this material is designed to set the stage for the posts to come, and I hope at least some of the subsequent material will be more informative. Speaking of which, in the [next post](https://timely-flan-2986f4.netlify.app/blog/2023-02-06-causal-inference-with-potential-outcomes-bootcamp/) we’ll analyze this data from a causal-inference perspective.
 
-See you in the next one, friends!
+## Thank the reviewers
+
+Many of the technical issues in this blog series are new, to me. To help make sure I don’t mislead others (or myself), I asked on twitter who might be interested in reviewing my drafts (see [here](https://twitter.com/SolomonKurz/status/1626250802728951809)), and the statistics community came out in spades. I’d like to publicly acknowledge and thank
+
+- [Isabella R. Ghement](http://www.ghement.ca/),
+- [A. Demetri Pananos](https://dpananos.github.io/),
+- [Chelsea M. Parlett-Pelleriti](https://cmparlettpelleriti.github.io/), and
+- [Stephen J. Wild](https://sjwild.github.io/),
+
+for their kind efforts reviewing the draft of this post. Go team!
 
 ## Session info
 
