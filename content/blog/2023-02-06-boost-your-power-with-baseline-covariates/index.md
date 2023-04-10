@@ -452,7 +452,7 @@ bind_rows(tidy(ols1, conf.int = TRUE), tidy(ols2, conf.int = TRUE)) %>%
 
 Even though the point estimates differ a lot between the ANOVA and ANCOVA models, the 95% interval for the ANOVA model completely overlaps the interval for the ANCOVA model. Both the ANOVA and ANCOVA models are known to produce unbiased estimates of the population parameters, but the ANCOVA model tends to produce estimates that are more precise (e.g., [O’Connell et al., 2017](#ref-oConnell2017methods)). Thus if you have a high-quality baseline covariate laying around, it’s a good idea to throw it into the model[^7].
 
-## But why?
+## But why (and other questions)?
 
 If you haven’t seen this before, you might wonder why adding covariates tends to make the `\(\beta_1\)` coefficient more precise. A common answer is the additional covariates “explain” more of the residual variance. However, I encourage y’all to hold this explanation lightly. This way of thinking will not generalize well to models using other likelihood functions, and one of the big goals of this blog series is showing a framework that will generalize to other likelihoods.
 
@@ -548,6 +548,8 @@ Many of the technical issues in this blog series are new, to me. To help make su
 - [Stephen J. Wild](https://sjwild.github.io/),
 
 for their kind efforts reviewing the draft of this post. Go team!
+
+Do note the final editorial decisions were my own, and I do not think it would be reasonable to assume my reviewers have given blanket endorsements of the final draft of this post.
 
 ## Session info
 
