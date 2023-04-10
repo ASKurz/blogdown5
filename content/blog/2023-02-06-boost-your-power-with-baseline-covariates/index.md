@@ -28,45 +28,57 @@ link-citations: yes
 
 This is the first post in a series on causal inference. Our ultimate goal is to learn how to analyze data from true experiments, such as RCT’s, with various likelihoods from the generalized linear model (GLM), and with techniques from the contemporary causal inference literature. We’ll do so both as frequentists and as Bayesians.
 
-I’m writing this series because, even though I learned a lot about data analysis and research design during my PhD, I did not receive training in the contemporary causal inference literature. Some of my recent data-analysis projects have made it very clear that I need to better understand this framework, and how it works within the broader GLM paradigm. As it turns out, there are some tricky twists and turns, and my hope is this series will help me better clarify this framework for myself, and help bring it to some of y’all’s attention, too. Parts of this blog series will also make their way into my forthcoming book on experimental design and the GLMM (see [here](https://github.com/ASKurz/Experimental-design-and-the-GLMM)).
+I’m writing this series because even though I learned a lot about data analysis and research design during my PhD, I did not receive training in the contemporary causal inference literature[^1]. Some of my recent data-analysis projects have made it very clear that I need to better understand this framework, and how it works within the broader GLM paradigm. As it turns out, there are some tricky twists and turns, and my hope is this series will help me better clarify this framework for myself, and help bring it to some of y’all’s attention, too. Parts of this blog series will also make their way into my forthcoming book on experimental design and the GLMM (see [here](https://github.com/ASKurz/Experimental-design-and-the-GLMM)).
 
-Here’s the running table of table of contents for this series:
+Here’s the running table of contents for this series:
 
 1.  Boost your power with baseline covariates
 2.  Causal inference with potential outcomes bootcamp ([link](https://timely-flan-2986f4.netlify.app/blog/2023-02-06-causal-inference-with-potential-outcomes-bootcamp/))
 3.  Causal inference with logistic regression ([link](https://timely-flan-2986f4.netlify.app/blog/2023-02-13-causal-inference-with-logistic-regression/))
 4.  Causal inference with Bayesian models ([link](https://timely-flan-2986f4.netlify.app/blog/2023-02-15-causal-inference-with-bayesian-models/))
-5.  Causal inference with gamma regression (in preparation)
-6.  Causal inference with distributional models (in preparation)
+5.  Causal inference with count regression ([link](https://timely-flan-2986f4.netlify.app/blog/2023-03-03-causal-inference-with-count-regression//))
+6.  Causal inference with gamma regression ([link](https://timely-flan-2986f4.netlify.app/blog/2023-03-28-causal-inference-with-gamma-regression-or-the-problem-is-the-link-function-not-the-likelihood/))
+7.  Causal inference with ordinal regression ([link](https://timely-flan-2986f4.netlify.app/blog/2023-03-30-causal-inference-with-ordinal-regression/))
+8.  Causal inference with an analysis of heterogeneous covariance (in preparation)
+9.  Causal inference with distributional models (in preparation)
 
-In this first installment, we’ll review a long-established insight from the RCT literature: Baseline covariates help us compare our experimental conditions.
+In this first installment, we’ll review a long-established insight from the RCT literature: Baseline covariates help us compare our experimental conditions[^2].
 
 ### I make assumptions.
 
 This series is an applied tutorial more so than an introduction. I’m presuming you have a passing familiarity with the following:
 
+#### Experimental design.
+
 You should have a basic grounding in group-based experimental design. Given my background in clinical psychology, I recommend Shadish et al. ([2002](#ref-shadish2002Experimental)) or Kazdin ([2017](#ref-kazdin2017ResearchDesign)). You might also check out Taback ([2022](#ref-taback2022DesignAndAnalysis)), and its free companion website at <https://designexptr.org/index.html>.
+
+#### Regression.
 
 You’ll want to be familiar with single-level regression, from the perspective of the GLM. For frequentist resources, I recommend the texts by Ismay & Kim ([2022](#ref-ismay2022StatisticalInference)) and Roback & Legler ([2021](#ref-roback2021beyond)). For the Bayesians in the room, I recommend the texts by Gelman and colleagues ([2020](#ref-gelmanRegressionOtherStories2020)), Kruschke ([2015](#ref-kruschkeDoingBayesianData2015)), or McElreath ([2020](#ref-mcelreathStatisticalRethinkingBayesian2020), [2015](#ref-mcelreathStatisticalRethinkingBayesian2015)).
 
-Though I don’t expect familiarity with contemporary causal inference from the outset, you’ll probably want to read up on the topic at some point. When you’re ready, consider texts like Brumback ([2022](#ref-brumback2022Fundamentals)), Hernán & Robins ([2020](#ref-hernan2020CausalInference)), or Imbens & Rubin ([2015](#ref-imbensCausalInferenceStatistics2015)). If you prefer freely-accessible ebooks, check out Cunningham ([2021](#ref-cunningham2021causal)).
+#### Causal inference.
 
-All code will be in **R** ([R Core Team, 2022](#ref-R-base)). Data wrangling and plotting will rely heavily on the **tidyverse** ([Wickham et al., 2019](#ref-wickhamWelcomeTidyverse2019); [Wickham, 2022](#ref-R-tidyverse)) and **ggdist** ([Kay, 2021](#ref-R-ggdist)). Bayesian models will be fit with [**brms**](https://github.com/paul-buerkner/brms) ([Bürkner, 2017](#ref-burknerBrmsPackageBayesian2017), [2018](#ref-burknerAdvancedBayesianMultilevel2018), [2022](#ref-R-brms)).
-We will post process our models with help packages such as **broom** ([Robinson et al., 2022](#ref-R-broom)), **marginaleffects** ([Arel-Bundock, 2022](#ref-R-marginaleffects)), and [**tidybayes** package](https://mjskay.github.io/tidybayes/) ([Kay, 2022](#ref-R-tidybayes)).
+Though I don’t expect familiarity with contemporary causal inference from the outset, you’ll probably want to read up on the topic at some point. When you’re ready, consider texts like Brumback ([2022](#ref-brumback2022Fundamentals)), Hernán & Robins ([2020](#ref-hernan2020CausalInference)), or Imbens & Rubin ([2015](#ref-imbensCausalInferenceStatistics2015)). If you prefer freely-accessible ebooks, check out Cunningham ([2021](#ref-cunningham2021causal)). But do keep in mind that even though a lot of the contemporary causal inference literature is centered around observational studies, we will only be considering causal inference for fully-randomized experiments in this blog series.
+
+#### **R**.
+
+All code will be in **R** ([R Core Team, 2022](#ref-R-base)). Data wrangling and plotting will rely heavily on the **tidyverse** ([Wickham et al., 2019](#ref-wickhamWelcomeTidyverse2019); [Wickham, 2022](#ref-R-tidyverse)) and **ggdist** ([Kay, 2021](#ref-R-ggdist)). Bayesian models will be fit with **brms** ([Bürkner, 2017](#ref-burknerBrmsPackageBayesian2017), [2018](#ref-burknerAdvancedBayesianMultilevel2018), [2022](#ref-R-brms)). We will post process our models with help packages such as **broom** ([Robinson et al., 2022](#ref-R-broom)), **marginaleffects** ([Arel-Bundock, 2022](#ref-R-marginaleffects)), and **tidybayes**([Kay, 2022](#ref-R-tidybayes)).
 
 Load the primary **R** packages and adjust the global plotting theme.
 
 ``` r
+# packages
 library(tidyverse)
 library(broom)
 
+# adjust the global plotting theme
 theme_set(theme_gray(base_size = 12) +
             theme(panel.grid = element_blank()))
 ```
 
 ## We need data
 
-In this post, we’ll be borrowing data from Horan & Johnson ([1971](#ref-horan1971coverant)), *Coverant conditioning through a self-management application of the Premack principle: Its effect on weight reduction*. We don’t have the original data file, being this paper was from the 70’s and all. However, Horan and Johnson were open-data champions and then listed all the values for their primary outcomes in Table 2 (p. 246). Here we transcribe those data into a tibble named `horan1971`.
+In this post, we’ll be borrowing data from Horan & Johnson ([1971](#ref-horan1971coverant)), *Coverant conditioning through a self-management application of the Premack principle: Its effect on weight reduction*. We don’t have the original data file, being this paper was from the 1970’s and all. However, Horan and Johnson were open-data champions who listed all the values for their primary outcomes in their Table 2 (p. 246). Here we transcribe those data into a tibble called `horan1971`.
 
 ``` r
 horan1971 <- tibble(
@@ -100,15 +112,15 @@ Horan and Johnson randomly assigned 80 women who were between “20 per cent and
 - `delayed`, a “delayed treatment control” (i.e., wait-list control), the members of which received an active treatment after the study;
 - `placebo`, a minimalist intervention where particulates were given basic information about nutrition and weight-loss strategies;
 - `scheduled`, an active treatment that added a cognitive element to the information from the `placebo` group; and
-- `experimental`, which added a full behavioral element (based on the Premack principle[^1]) to the `placebo` intervention.
+- `experimental`, which added a full behavioral element (based on the Premack principle[^3]) to the `placebo` intervention.
 
 Those of you who aren’t in clinical psychology might wonder how we can call an information-based intervention a *placebo*. As it turns out, information-based interventions aren’t great at prompting lasting behavior change. You need to do more than preach.
 
-Anyway, the focal variable of this intervention is body weight, measured in pounds. The `pre` column has each woman’s pre-intervention body weight and the `post` column has their post-intervention weights. As is typical in a weigh-loss study, the goal is to have one or more active interventions show lower average weights at the end of the study (i.e., lower values for `post`).
+Anyway, the focal variable of this intervention is body weight, measured in pounds. The `pre` column has each woman’s pre-intervention body weight and the `post` column has their post-intervention weights. As is typical in a weigh-loss study, the goal is to have one or more active interventions show lower average weights at the end of the study (i.e., lower values for `post`)[^4].
 
 ### Subset.
 
-Though we’ll eventually analyze the full data set with all four groups, it’ll be easier to cover the basics of this material if we focus on only two of the groups. Here subset the data to only include the cases from the `delayed` and `experimental` groups.
+Though we might eventually analyze the full data set with all four groups, it’ll be easier to cover the basics of this material if we focus on only two of the groups. Here we subset the data to only include the cases from the `delayed` and `experimental` groups.
 
 ``` r
 horan1971 <- horan1971 %>% 
@@ -128,6 +140,8 @@ horan1971 %>%
     ## 1 delayed         22
     ## 2 experimental    19
 
+Success!
+
 ### Exploratory data analysis.
 
 To get a sense of the data, here are what the post-intervention weights (`post`) look for the two treatment groups in our data subset.
@@ -142,7 +156,7 @@ horan1971 %>%
 
 <img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-6-1.png" width="576" />
 
-At a basic level, our primary research question is: Which group is better for weight loss? As we move along in this blog series, we’ll find ways to refine that question. In the meantime, here are the basic descriptive statistics.
+At a basic level, our primary research question is: *Which group is better for weight loss?* As we move along in this blog series, we’ll find ways to rephrase that question using terms from the contemporary causal inference paradigm. In the meantime, here are the basic descriptive statistics.
 
 ``` r
 horan1971 %>% 
@@ -173,30 +187,28 @@ horan1971 <- horan1971 %>%
 
 ### We need dummies.
 
-We don’t technically have to do this, but it might help some readers if we break up the four-category `treatment` variable into four dummy variables.
+We don’t technically have to do this, but it might help some readers if we break up the `treatment` factor variable into two dummy variables.
 
 ``` r
 horan1971 <- horan1971 %>% 
   mutate(delayed      = ifelse(treatment == "delayed", 1, 0),
-         placebo      = ifelse(treatment == "placebo", 1, 0),
-         scheduled    = ifelse(treatment == "scheduled", 1, 0),
          experimental = ifelse(treatment == "experimental", 1, 0))
 ```
 
-Here’s how the four dummies relate to `treatment`.
+Here’s how the two dummies relate to `treatment`.
 
 ``` r
 horan1971 %>% 
-  distinct(treatment, delayed, placebo, scheduled, experimental)
+  distinct(treatment, delayed, experimental)
 ```
 
-    ## # A tibble: 2 × 5
-    ##   treatment    delayed placebo scheduled experimental
-    ##   <fct>          <dbl>   <dbl>     <dbl>        <dbl>
-    ## 1 delayed            1       0         0            0
-    ## 2 experimental       0       0         0            1
+    ## # A tibble: 2 × 3
+    ##   treatment    delayed experimental
+    ##   <fct>          <dbl>        <dbl>
+    ## 1 delayed            1            0
+    ## 2 experimental       0            1
 
-In our subsetted version of the `horan1971` data, we have all `0`’s for the `placebo` and `scheduled` dummies. In the analyses to come, our focal variable will be `experimental`, which will make the `delayed` group the default.
+In the analyses to come, our focal variable will be the `experimental` dummy, which will make the `delayed` group the default or reference category.
 
 ## Models
 
@@ -204,14 +216,14 @@ Our friends the methodologists and statisticians have spent the better part of t
 
 In this post, we’ll practice analyzing these data in two basic ways:
 
-1.  The “ANOVA” model[^2]
+1.  The “ANOVA” model[^5]
 2.  The “ANCOVA” model
 
-I hate these names, but they have historical precedents and I hate all the alternative names, too. As we’ll see, the ANCOVA model is generally the way to go.
+I hate these names, but they have historical precedents and I hate all the alternative names, too. As we’ll see, the so-called ANCOVA model is generally the way to go.
 
 ### The simple ANOVA model.
 
-A classical statistical approach to comparing the means of two groups is with a `\(t\)`-test or a one-way ANOVA. On this website we like regression and it turns out the regression-model alternative to the classical approaches is
+A classical statistical approach to comparing the means of two groups is with a `\(t\)`-test or a one-way ANOVA. On this website we like regression, and it turns out the regression-model alternative to those classical approaches is
 
 $$
 `\begin{align*}
@@ -220,7 +232,7 @@ $$
 \end{align*}`
 $$
 
-where `\(\beta_0\)` is the mean for those on the control condition (i.e., `delayed`) and `\(\beta_1\)` is the difference in the mean for those in the treatment condition (i.e., `experimental`), relative to those in the control.
+where `\(\beta_0\)` is the mean for those on the control condition (i.e., `delayed`) and `\(\beta_1\)` is the difference in the mean for those in the treatment condition (i.e., `experimental`), relative to those in the control. The `\(\epsilon_i\)` term stands for the variation not accounted for by the `\(\beta\)` coefficients. As per the conventional OLS assumption, we model `\(\epsilon_i\)` as normally distributed with a mean at zero, and a standard deviation `\(\sigma\)`, which is also sometimes parameterized as `\(\sigma^2\)`–the *residual variance*.
 
 Though we’ll eventually analyze these data as Bayesians, I think it’ll be best if we start with the simpler frequentist OLS paradigm. Thus, here’s how to fit this model with the good-old `lm()` function.
 
@@ -251,10 +263,10 @@ summary(ols1)
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
     ## Residual standard error: 17.23 on 39 degrees of freedom
-    ## Multiple R-squared:  0.005424,   Adjusted R-squared:  -0.02008 
+    ## Multiple R-squared:  0.005424,	Adjusted R-squared:  -0.02008 
     ## F-statistic: 0.2127 on 1 and 39 DF,  p-value: 0.6472
 
-We can get a nice parameter summary with 95% confidence intervals with the `broom::tidy()` function. Here we’ll focus on the `\(\beta_1\)` parameter, which allows us to formally compare the means of the two groups.
+We can get a nice `\(\beta\)`-coefficient summary with 95% confidence intervals (CI’s) by using the `broom::tidy()` function. Here we’ll focus on the `\(\beta_1\)` parameter, which allows us to formally compare the means of the two groups.
 
 ``` r
 tidy(ols1, conf.int = TRUE) %>% 
@@ -267,11 +279,11 @@ tidy(ols1, conf.int = TRUE) %>%
     ##   <chr>           <dbl>     <dbl>     <dbl>   <dbl>    <dbl>     <dbl>
     ## 1 experimental    -2.49       5.4     -0.46    0.65    -13.4      8.43
 
-The 95% CIs are wide and uncertain, as we’d expect from a study with a modest sample size. But the point estimate is negative, suggesting the active treatment condition resulted in greater weight loss, on average, than the wait-list control condition.
+The 95% CI’s are wide and uncertain, as we’d expect from a study with such a modest sample size. But the point estimate is negative, suggesting the active treatment condition resulted in greater weight loss, on average, than the wait-list control condition.
 
 ### The ANCOVA model.
 
-The so-called ANCOVA model adds important baseline covariates to the model. In the case of the `horan1971` data, the only baseline covariate available is `pre`, which is the pre-treatment measure of weight. As it turns out, the pre-treatment measure of an outcome variable is often one of the best choices of covariates you could ask for, given that pre-treatment measurements tend to have strong correlations with post-treatment measurements[^3]. In our case, `pre` and `post` are correlated above .9 in both groups.
+The ANCOVA approach adds important baseline covariates to the model. In the case of the `horan1971` data, the only baseline covariate available is `pre`, which is the pre-treatment measure of weight. As it turns out, the pre-treatment measure of an outcome variable is often one of the best choices of covariates you could ask for, given that pre-treatment measurements tend to have strong correlations with post-treatment measurements[^6]. In our case, `pre` and `post` are correlated above .9 in both groups.
 
 ``` r
 horan1971 %>% 
@@ -310,7 +322,7 @@ horan1971 %>%
     ##      <dbl>  <dbl>   <dbl>
     ## 1     155.   17.5     123
 
-Thus, the intercept `\(\beta_0\)` is now the expected value for those in the wait-list control condition, when they weigh 0 pounds. But none of our adult participants weigh zero pounds, or even near zero pounds. So to make the intercept more meaningful, we can fit an alternative version of the model with the mean-centered of the covariate, `prec`,
+Thus, the intercept `\(\beta_0\)` is now the expected value for those in the wait-list control condition, when they weigh 0 pounds. But none of our adult participants weigh zero pounds, or even near zero pounds. So to make the intercept more meaningful, we can fit an alternative version of the model with the mean-centered of the covariate `prec`,
 
 $$
 `\begin{align*}
@@ -355,7 +367,7 @@ summary(ols2)
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
     ## Residual standard error: 6.379 on 38 degrees of freedom
-    ## Multiple R-squared:  0.8672, Adjusted R-squared:  0.8602 
+    ## Multiple R-squared:  0.8672,	Adjusted R-squared:  0.8602 
     ## F-statistic: 124.1 on 2 and 38 DF,  p-value: < 2.2e-16
 
 ``` r
@@ -380,10 +392,10 @@ summary(ols3)
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
     ## Residual standard error: 6.379 on 38 degrees of freedom
-    ## Multiple R-squared:  0.8672, Adjusted R-squared:  0.8602 
+    ## Multiple R-squared:  0.8672,	Adjusted R-squared:  0.8602 
     ## F-statistic: 124.1 on 2 and 38 DF,  p-value: < 2.2e-16
 
-Other than the results for the intercept `\(\beta_0\)`, the results of the two versions of the ANCOVA model are identical. The ANCOVA point estimate for `\(\beta_1\)` changed a lot from what we saw in the simple ANOVA model `ols1`. Once again, we can use the `tidy()` function to return the 95% confidence intervals in a nice format.
+Other than the summary for the intercept `\(\beta_0\)`, the results of the two versions of the ANCOVA model are identical. The ANCOVA point estimate for `\(\beta_1\)` changed a lot from what we saw in the simple ANOVA model `ols1`. Once again, we can use the `tidy()` function to return the 95% confidence intervals in a nice format.
 
 ``` r
 tidy(ols2, conf.int = TRUE) %>% 
@@ -396,7 +408,7 @@ tidy(ols2, conf.int = TRUE) %>%
     ##   <chr>           <dbl>     <dbl>     <dbl>   <dbl>    <dbl>     <dbl>
     ## 1 experimental    -4.57         2     -2.28    0.03    -8.63     -0.52
 
-Not only is the point estimate notably lower than in the simple ANOVA model, the confidence interval is much narrower. That change in the confidence interval width is a consequence of the much smaller standard error. It’ll probably be easier to see this all in a coefficient plot.
+Not only is the point estimate notably lower than in the simple ANOVA model, the confidence interval is much narrower, too. That change in the confidence interval width is a consequence of the much smaller standard error. It’ll probably be easier to see this all in a coefficient plot.
 
 ``` r
 # wrangle
@@ -414,7 +426,80 @@ bind_rows(tidy(ols1, conf.int = TRUE), tidy(ols2, conf.int = TRUE)) %>%
 
 <img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-17-1.png" width="576" />
 
-Even though the point estimates differ a lot between the ANOVA and ANCOVA models, the 95% interval for the ANOVA model completely overlaps the interval for the ANCOVA model. Both the ANOVA and ANCOVA models are known to produce unbiased estimates of the population parameters, but the ANCOVA model tends to produce estimates that are more precise. Thus if you have a high-quality baseline covariate laying around, it’s a good idea to throw it into the model[^4].
+Even though the point estimates differ a lot between the ANOVA and ANCOVA models, the 95% interval for the ANOVA model completely overlaps the interval for the ANCOVA model. Both the ANOVA and ANCOVA models are known to produce unbiased estimates of the population parameters, but the ANCOVA model tends to produce estimates that are more precise (e.g., [O’Connell et al., 2017](#ref-oConnell2017methods)). Thus if you have a high-quality baseline covariate laying around, it’s a good idea to throw it into the model[^7].
+
+## But why?
+
+If you haven’t seen this before, you might wonder why adding covariates tends to make the `\(\beta_1\)` coefficient more precise. A common answer is the additional covariates “explain” more of the residual variance. However, I encourage y’all to hold this explanation lightly. This way of thinking will not generalize well to other likelihood, and one of the big goals of this blog series is to generalize to other likelihoods.
+
+Instead, I recommend you just notice that this pattern will arise again and again when you use OLS models. Adding baseline covariates will generally shrink your standard errors. It’s like getting statistical power for free. Perhaps a more helpful line of inquiry is: *How can I use this information to better design my studies?*
+
+Borm et al. ([2007](#ref-borm2007simple)) presented an approximate sample size formula for when you have measured the outcome variable before and after treatment, just as in the case of our `horan1971` data. If we let `\(\rho\)` stand for the correlation between the outcome measured before and after the intervention, an ANCOVA on data with `\((1 - \rho^2)N\)` participants will have the same power as an ANOVA with `\(N\)` participants.
+
+For example, here’s what the formula returns for our `horan1971` data.
+
+``` r
+# compute the sample statistics
+rho <- cor(horan1971$pre, horan1971$post)  # 0.9214141
+n <- nrow(horan1971)                       # 41
+
+# use the equation
+(1 - rho^2) * n
+```
+
+    ## [1] 6.190842
+
+In other words, our ANCOVA model would achieve about the same statistical power with `\(N = 6\)` cases as the ANOVA with all `\(N = 41\)` cases. Shocking, eh? Here’s what this equation implies over a broad range of `\(\rho\)` and `\(N\)` values.
+
+``` r
+crossing(n = c(50, 100, 150, 200),
+         rho = seq(from = 0, to = 1, by = 0.01)) %>% 
+  mutate(design_factor = 1 - rho^2) %>% 
+  mutate(n_ancova = design_factor * n,
+         n_group = factor(n)) %>% 
+  mutate(n_group = fct_rev(n_group)) %>% 
+  
+  ggplot(aes(x = rho, y = n_ancova, color = n_group, group = n)) +
+  geom_line(linewidth = 1) +
+  scale_color_viridis_d(expression(italic(N)~required~by~ANOVA),
+                        option = "D", end = .75) +
+  scale_x_continuous(expression(rho),
+                     expand = expansion(mult = 0),
+                     breaks = 0:5 / 5,
+                     labels = c("0", ".2", ".4", ".6", ".8", "1")) +
+  scale_y_continuous(expression(italic(N)~required~by~ANCOVA),
+                     limits = c(0, 210),
+                     expand = expansion(add = 0)) +
+  ggtitle(expression("What can "*(1-rho^2)*italic(N)*" do for you?"))
+```
+
+<img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-19-1.png" width="576" />
+
+When the pre/post correlation `\(\rho\)` is weak, the ANCOVA doesn’t improve much above the ANOVA. But that baseline covariate really starts paying off by the time `\(\rho \approx .4\)` or so. Another way of putting this is the standard error for the `\(\beta_1\)` coefficient in the ANOVA will decrease by a factor of `\(\sqrt{1 - \rho^2}\)` when you switch to an ANCOVA. Here’s what that looks like for our models.
+
+``` r
+# display the standard errors for beta[1]
+bind_rows(tidy(ols1, conf.int = TRUE), tidy(ols2, conf.int = TRUE)) %>% 
+  filter(term == "experimental") %>% 
+  mutate(parameter = "beta[1]",
+         model = c("ANOVA", "ANCOVA")) %>% 
+  select(model, parameter, std.error)
+```
+
+    ## # A tibble: 2 × 3
+    ##   model  parameter std.error
+    ##   <chr>  <chr>         <dbl>
+    ## 1 ANOVA  beta[1]        5.40
+    ## 2 ANCOVA beta[1]        2.00
+
+``` r
+# use the formula
+5.397404 * sqrt(1 - rho^2)
+```
+
+    ## [1] 2.097335
+
+Thus using the standard error from `\(\beta_1\)` from the ANOVA model (5.397404), the equation predicted the standard error from the ANCOVA would be about 2.097335, which is just a little bit larger than the actual value (2.002256). As the authors said in the paper, their formulas are approximations. For more technical details, do check out Borm et al. ([2007](#ref-borm2007simple)). To my mind, the applied take-away message is clear: Use your baseline covariates!
 
 ## Recap
 
@@ -427,7 +512,7 @@ In this post, some of the main points we covered were:
 - Both approach are unbiased estimators of the population parameters.
 - The ANCOVA approach is often more efficient, which is to say it often results is smaller standard errors and narrower confidence intervals.
 
-For many of my readers, I imagine most of the material in this post was a review. But this material is designed to set the stage for the posts to come, and I hope at least some of the subsequent material will be more informative. Speaking of which, in the [next post](https://timely-flan-2986f4.netlify.app/blog/2023-02-06-causal-inference-with-potential-outcomes-bootcamp/) we’ll analyze this data from a more causal inference perspective.
+For many of my readers, I imagine most of the material in this post was a review. But this material is designed to set the stage for the posts to come, and I hope at least some of the subsequent material will be more informative. Speaking of which, in the [next post](https://timely-flan-2986f4.netlify.app/blog/2023-02-06-causal-inference-with-potential-outcomes-bootcamp/) we’ll analyze this data from a causal-inference perspective.
 
 See you in the next one, friends!
 
@@ -437,7 +522,7 @@ See you in the next one, friends!
 sessionInfo()
 ```
 
-    ## R version 4.2.2 (2022-10-31)
+    ## R version 4.2.3 (2023-03-15)
     ## Platform: x86_64-apple-darwin17.0 (64-bit)
     ## Running under: macOS Big Sur ... 10.16
     ## 
@@ -452,32 +537,23 @@ sessionInfo()
     ## [1] stats     graphics  grDevices utils     datasets  methods   base     
     ## 
     ## other attached packages:
-    ##  [1] broom_1.0.2     forcats_0.5.1   stringr_1.4.1   dplyr_1.1.0    
-    ##  [5] purrr_1.0.1     readr_2.1.2     tidyr_1.2.1     tibble_3.1.8   
-    ##  [9] ggplot2_3.4.0   tidyverse_1.3.2
+    ##  [1] broom_1.0.4     lubridate_1.9.2 forcats_1.0.0   stringr_1.5.0  
+    ##  [5] dplyr_1.1.0     purrr_1.0.1     readr_2.1.4     tidyr_1.3.0    
+    ##  [9] tibble_3.2.0    ggplot2_3.4.1   tidyverse_2.0.0
     ## 
     ## loaded via a namespace (and not attached):
-    ##  [1] lubridate_1.8.0     assertthat_0.2.1    digest_0.6.31      
-    ##  [4] utf8_1.2.2          R6_2.5.1            cellranger_1.1.0   
-    ##  [7] backports_1.4.1     reprex_2.0.2        evaluate_0.18      
-    ## [10] httr_1.4.4          highr_0.9           blogdown_1.15      
-    ## [13] pillar_1.8.1        rlang_1.0.6         googlesheets4_1.0.1
-    ## [16] readxl_1.4.1        rstudioapi_0.13     jquerylib_0.1.4    
-    ## [19] rmarkdown_2.16      labeling_0.4.2      googledrive_2.0.0  
-    ## [22] munsell_0.5.0       compiler_4.2.2      modelr_0.1.8       
-    ## [25] xfun_0.35           pkgconfig_2.0.3     htmltools_0.5.3    
-    ## [28] tidyselect_1.2.0    bookdown_0.28       fansi_1.0.4        
-    ## [31] crayon_1.5.2        tzdb_0.3.0          dbplyr_2.2.1       
-    ## [34] withr_2.5.0         grid_4.2.2          jsonlite_1.8.4     
-    ## [37] gtable_0.3.1        lifecycle_1.0.3     DBI_1.1.3          
-    ## [40] magrittr_2.0.3      scales_1.2.1        cli_3.6.0          
-    ## [43] stringi_1.7.8       cachem_1.0.6        farver_2.1.1       
-    ## [46] fs_1.5.2            xml2_1.3.3          bslib_0.4.0        
-    ## [49] ellipsis_0.3.2      generics_0.1.3      vctrs_0.5.2        
-    ## [52] tools_4.2.2         glue_1.6.2          hms_1.1.1          
-    ## [55] fastmap_1.1.0       yaml_2.3.5          colorspace_2.1-0   
-    ## [58] gargle_1.2.0        rvest_1.0.2         knitr_1.40         
-    ## [61] haven_2.5.1         sass_0.4.2
+    ##  [1] highr_0.9         bslib_0.4.0       compiler_4.2.3    pillar_1.8.1     
+    ##  [5] jquerylib_0.1.4   tools_4.2.3       digest_0.6.31     viridisLite_0.4.1
+    ##  [9] timechange_0.2.0  jsonlite_1.8.4    evaluate_0.18     lifecycle_1.0.3  
+    ## [13] gtable_0.3.2      pkgconfig_2.0.3   rlang_1.1.0       cli_3.6.0        
+    ## [17] rstudioapi_0.14   yaml_2.3.5        blogdown_1.16     xfun_0.37        
+    ## [21] fastmap_1.1.0     withr_2.5.0       knitr_1.42        hms_1.1.2        
+    ## [25] generics_0.1.3    sass_0.4.2        vctrs_0.6.0       grid_4.2.3       
+    ## [29] tidyselect_1.2.0  glue_1.6.2        R6_2.5.1          fansi_1.0.4      
+    ## [33] rmarkdown_2.20    bookdown_0.28     farver_2.1.1      tzdb_0.3.0       
+    ## [37] magrittr_2.0.3    backports_1.4.1   ellipsis_0.3.2    scales_1.2.1     
+    ## [41] htmltools_0.5.3   colorspace_2.1-0  labeling_0.4.2    utf8_1.2.3       
+    ## [45] stringi_1.7.8     munsell_0.5.0     cachem_1.0.6
 
 ## References
 
@@ -492,6 +568,12 @@ Arel-Bundock, V. (2022). *<span class="nocase">marginaleffects</span>: Marginal 
 <div id="ref-bodner2018Detecting" class="csl-entry">
 
 Bodner, T. E., & Bliese, P. D. (2018). Detecting and differentiating the direction of change and intervention effects in randomized trials. *Journal of Applied Psychology*, *103*(1), 37. <https://doi.org/10.1037/apl0000251>
+
+</div>
+
+<div id="ref-borm2007simple" class="csl-entry">
+
+Borm, G. F., Fransen, J., & Lemmens, W. A. (2007). A simple sample size formula for analysis of covariance in randomized clinical trials. *Journal of Clinical Epidemiology*, *60*(12), 1234–1238. <https://doi.org/10.1016/j.jclinepi.2007.02.006>
 
 </div>
 
@@ -579,6 +661,12 @@ Kruschke, J. K. (2015). *Doing Bayesian data analysis: A tutorial with R, JAGS, 
 
 </div>
 
+<div id="ref-maxwell2010introduction" class="csl-entry">
+
+Maxwell, S. E. (2010). Introduction to the special section on Campbell’s and Rubin’s conceptualizations of causality. *Psychological Methods*, *15*(1), 1. <https://doi.org/10.1037/a0018825>
+
+</div>
+
 <div id="ref-mcelreathStatisticalRethinkingBayesian2020" class="csl-entry">
 
 McElreath, R. (2020). *Statistical rethinking: A Bayesian course with examples in R and Stan* (Second Edition). CRC Press. <https://xcelab.net/rm/statistical-rethinking/>
@@ -615,6 +703,12 @@ Robinson, D., Hayes, A., & Couch, S. (2022). *<span class="nocase">broom</span>:
 
 </div>
 
+<div id="ref-shadish2010campbellandrubin" class="csl-entry">
+
+Shadish, W. R. (2010). Campbell and Rubin: A primer and comparison of their approaches to causal inference in field settings. *Psychological Methods*, *15*(1), 3–17. <https://doi.org/10.1037/a0015916>
+
+</div>
+
 <div id="ref-shadish2002Experimental" class="csl-entry">
 
 Shadish, W. R., Cook, T. D., & Campbell, D. T. (2002). *Experimental and quasi-experimental designs for generalized causal inference*. Houghton, Mifflin and Company.
@@ -647,10 +741,16 @@ Wickham, H., Averick, M., Bryan, J., Chang, W., McGowan, L. D., François, R., G
 
 </div>
 
-[^1]: I don’t expect all my readers to know about the Premack principle, but it’s well known among behaviorists and behavior therapists. In short, it states: *You can use high-probability behaviors to increase the frequency of low-probability behaviors*. Let’s say you’re a parent who’s trying to get a stubborn child to eat their yucky vegetables (low-probability behavior). If you tell them “You can eat ice cream \[a high-probability behavior\] IF you eat all your vegetables,” you have just used the Premack principle. If the child knows there’s ice cream on the line (and presuming they like ice cream), they’re more likely to eat those yucky vegetables. As you might imagine, there are all kinds of technical details I’m glossing over, here. If you’d like to learn more, a PhD in clinical psychology or behavior analysis might be a good fit for you.
+[^1]: For a historical overview of why I and other psychologists might not understand causal inference in the same way as those from other disciplines (e.g., economics, epidemiology), see Maxwell ([2010](#ref-maxwell2010introduction)) and the other articles in the *Psychological Methods* special section on Don Campbell’s and Don Rubin’s conceptualizations of causality. Psychologists tend to focus on Campbell, to the neglect of Rubin. For a nice overview of how Campbell’s and Rubin’s frameworks compare and contrast, take a look at Shadish ([2010](#ref-shadish2010campbellandrubin)).
 
-[^2]: As discussed by O’Connell et al. ([2017](#ref-oConnell2017methods)), the “ANOVA model” is a little ambiguous in that it can refer to using either `post` or `post - pre` as the dependent variable. If we were to use `post - pre`, this would be a change-score analysis. I’m not interested in going into a change-score discussion, here. In short, don’t analyze change scores. I can understand why substantive researchers might find them interesting, but there are better alternatives.
+[^2]: Well, usually, anyway. As we will later see, there is at least one case where baseline covaraites do not help. But we’re getting way ahead of ourselves, and really, most of y’all should probably be using baseline covaraites as a default.
 
-[^3]: There are some contexts in which this is not the case. For example, if you’re running a medical trial for which the primary outcome is mortality, all participants will necessarily be alive at baseline. So an important caveat is baseline measures tend to have strong correlations with post-intervention measures when they’re of a continuous variable. Indeed, the distinction between continuous and binary variables is an important part of the story. But we’re getting ahead of ourselves…
+[^3]: I don’t expect all my readers to know about the Premack principle, but it’s well known among behaviorists and behavior therapists. In short, it states: *You can use high-probability behaviors to increase the frequency of low-probability behaviors*. Let’s say you’re a parent who’s trying to get a stubborn child to eat their yucky vegetables (low-probability behavior). If you tell them “You can eat ice cream \[a high-probability behavior\] IF you eat all your vegetables,” you have just used the Premack principle. If the child knows there’s ice cream on the line (and presuming they like ice cream), they’re more likely to eat those yucky vegetables. As you might imagine, there are all kinds of technical details I’m glossing over, here. If you’d like to learn more, a PhD in clinical psychology or behavior analysis might be a good fit for you.
 
-[^4]: Including baseline covariates is actually more than a “good idea.” If you’re running computer task experiments with undergrads, it probably doesn’t matter much. But if you’re running a clinical trial where lives are on the line, you want to use analytic strategies which are as unbiased and as precise as possible. When you’re in the study-planning phase, the ANCOVA method can help you design a well-powered study with fewer participants, which could mean you’d be putting fewer participants lives at risk. I owe this insight to the great [Darren Dahly](https://twitter.com/statsepi).
+[^4]: Note that the way I’ve described the research goal, here, is from a clinical perspective. Clinicians in this context want to see their weight-loss clients lose weight. This perfectly legitimate goal, however, is very different from what we’ll focus on when we start talking about causal inference, which you’ll learn all about in the next post. For the time being, just note that clinical perspectives and research perspectives aren’t always the same, and that’s okay.
+
+[^5]: As discussed by O’Connell et al. ([2017](#ref-oConnell2017methods)), the “ANOVA model” is a little ambiguous in that it can refer to using either `post` or `post - pre` as the dependent variable. If we were to use `post - pre`, this would be a change-score analysis. I’m not interested in going into a change-score discussion, here. In short, don’t analyze change scores. I can understand why substantive researchers might find them interesting, but there are better alternatives.
+
+[^6]: There are some contexts in which this is not the case. For example, if you’re running a medical trial for which the primary outcome is mortality, all participants will necessarily be alive at baseline. So an important caveat is baseline measures tend to have strong correlations with post-intervention measures when they’re of a continuous variable. Indeed, the distinction between continuous and binary variables is an important part of the story, which we’ll start to explore in the third post of this series.
+
+[^7]: Including baseline covariates is actually more than a “good idea.” If you’re running computer task experiments with undergrads, it probably doesn’t matter much. But if you’re running a clinical trial where lives are on the line, you want to use analytic strategies which are as unbiased and as precise as possible. When you’re in the study-planning phase, the ANCOVA method can help you design a well-powered study with fewer participants, which could mean you’d be putting fewer participants lives at risk. I owe this insight to the great [Darren Dahly](https://twitter.com/statsepi).
