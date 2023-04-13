@@ -240,7 +240,7 @@ predictions(ols1, newdata = nd, by = c("sn", "experimental")) %>%
 I've used the `head()` function to limit the output to the first six rows, but the full output would have all 82 rows worth of counterfactual predictions. Each one has its own standard error and so on. To compute the actual participant-level contrasts, $y_i^1 - y_i^0$, we'll want to switch to the `marginaleffects::comparisons()` function. Here we just need to use the `variables` argument to indicate we want counterfactual comparisons on the `experimental` dummy for each case in the original data set.
 
 ```{r}
-comparisons(ols1, variables = list(experimental = 0:1)) %>% 
+comparisons(ols1, variables = "experimental") %>% 
   head()
 ```
 
@@ -271,7 +271,7 @@ p1 <- predictions(ols1, newdata = nd, by = c("sn", "experimental")) %>%
         legend.position = c(.9, .85))
 
 # treatment effects
-p2 <- comparisons(ols1, variables = list(experimental = 0:1), by = "sn") %>% 
+p2 <- comparisons(ols1, variables = "experimental", by = "sn") %>% 
   data.frame() %>% 
   
   ggplot(aes(x = estimate, y = reorder(sn, estimate))) +
@@ -294,7 +294,7 @@ If the left plot, we see the counterfactual predictions, depicted by their point
 But recall our focal estimand $\tau_\text{ATE}$ is defined as $\mathbb E (y_i^1 - y_i^0)$. This means we need a way to compute the average of those person-level contrasts, with a method that also accounts for their standard errors. Happily, all we need to do is use the `summary()` function after `comparisons()`, which will prompt the **marginaleffects** package to compute the average of those participant-level contrasts and use the so-called delta method to compute the accompanying standard error.
 
 ```{r}
-comparisons(ols1, variables = list(experimental = 0:1)) %>% 
+comparisons(ols1, variables = "experimental") %>% 
   summary()
 ```
 
@@ -461,7 +461,7 @@ p3 <- predictions(ols2, newdata = nd, by = c("sn", "experimental", "prec")) %>%
         legend.position = c(.9, .85))
 
 # treatment effects
-p4 <- comparisons(ols2, variables = list(experimental = 0:1), by = "sn") %>% 
+p4 <- comparisons(ols2, variables = "experimental", by = "sn") %>% 
   data.frame() %>% 
   
   ggplot(aes(x = estimate, y = reorder(sn, estimate))) +
