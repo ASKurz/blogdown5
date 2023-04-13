@@ -25,7 +25,10 @@ csl: /Users/solomonkurz/Dropbox/blogdown5/content/blog/apa.csl
 link-citations: yes
 ---
 
-One of the nice things about the simple OLS models we fit in the last post is they’re easy to interpret. The various `\(\beta\)` parameters were valid estimates of the population effects for one treatment group relative to the wait-list control[^1]. However, this nice property won’t hold in many cases where the nature of our dependent variables and/or research design requires us to fit other kinds of models from the broader generalized linear mixed model (GLMM) framework. Another issue at stake is if you’ve spent most of your statistical analysis career using the OLS framework, there’s a good chance there are concepts that are undifferentiated in your mind. As is turns out, some of these concepts are important when we want to make valid causal inferences. Our task in this post is to start differentiating the undifferentiated.
+<link href="{{< blogdown/postref >}}index_files/tabwid/tabwid.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index_files/tabwid/tabwid.js"></script>
+
+One of the nice things about the simple OLS models we fit in the last post is they’re easy to interpret. The various `\(\beta\)` parameters were valid estimates of the population effects for one treatment group relative to the wait-list control[^1]. However, this nice property won’t hold in many cases where the nature of our dependent variables and/or research design requires us to fit other kinds of models from the broader generalized linear mixed model (GLMM) framework. Another issue at stake is if you’ve spent most of your statistical analysis career using the OLS framework, there’s a good chance there are concepts that are undifferentiated in your mind. As is turns out, some of these concepts are important when we want to make valid causal inferences. Our task in this post is to start differentiating the undifferentiated, by introducing some of the big concepts from the *potential outcomes* framework for causal inference.
 
 ## Reload and refit
 
@@ -36,7 +39,7 @@ In post, we’ll be continuing on with our `horan1971` data set form the last po
 ``` r
 # packages
 library(tidyverse)
-# library(flextable)
+library(flextable)
 library(marginaleffects)
 library(ggdist)
 library(patchwork)
@@ -161,7 +164,7 @@ Okay, so at the beginning of the post, we said the `\(\beta\)` coefficients for 
 
 ### Counterfactual interventions, no covariates.
 
-Our friends in causal inference have been busy over the past few years. First, we should understand there are different ways of speaking about causal inference. I’m not going to cover all the various frameworks, here, but most of the causal inference textbooks I mentioned in the [last post](https://timely-flan-2986f4.netlify.app/blog/2023-02-06-boost-your-power-with-baseline-covariates/#i-make-assumptions) provide historical overviews. At the time of this writing, I’m a fan of the potential-outcomes framework (see [Imbens & Rubin, 2015](#ref-imbensCausalInferenceStatistics2015); [Splawa-Neyman et al., 1990](#ref-neyman1990OnTheApplication)), the basics of which we might explain as follows:
+Our friends in causal inference have been busy over the past few years. First, we should understand there are different ways of speaking about causal inference. I’m not going to cover all the various frameworks, here, but most of the causal inference textbooks I mentioned in the [last post](https://timely-flan-2986f4.netlify.app/blog/2023-02-06-boost-your-power-with-baseline-covariates/#i-make-assumptions) provide historical overviews. At the time of this writing, I’m a fan of the potential-outcomes framework (see [Imbens & Rubin, 2015](#ref-imbensCausalInferenceStatistics2015); [Rubin, 1974](#ref-rubinEstimatingCausalEffects1974); [Splawa-Neyman et al., 1990](#ref-neyman1990OnTheApplication)), the basics of which we might explain as follows:
 
 Say you have some population of interest, such as overweight female university students interested in losing weight (see [Horan & Johnson, 1971](#ref-horan1971coverant)). You have some focal outcome variable `\(y\)`, which you’d like to see change in a positive direction. In our case that would be bodyweight, as measured in pounds. Since `\(y\)` varies across `\(i\)` persons, we can denote each participants’ value as `\(y_i\)`. Now imagine you have 2 or more well-defined interventions. In our case, that would be assignment to the waitlist control or experimental intervention group. For notation purposes, we can let `\(0\)` stand for the control group and `\(1\)` stand for the active treatment group, much like with a dummy variable. We can then write `\(y_i^0\)` for the `\(i\)`th person’s outcome if they were in the control condition, and `\(y_i^1\)` for the `\(i\)`th person’s outcome if they were in the treatment condition. Putting all those pieces together, we can define the causal effect `\(\tau\)` of treatment versus control for the `\(i\)`th person as
 
@@ -176,28 +179,13 @@ horan1971 %>%
   slice_sample(n = 10) %>% 
   mutate(y1 = ifelse(treatment == "experimental", post, NA),
          y0 = ifelse(treatment == "delayed", post, NA)) %>% 
-  select(sn, treatment, post, y1, y0)
-```
-
-    ## # A tibble: 10 × 5
-    ##       sn treatment     post    y1    y0
-    ##    <int> <fct>        <dbl> <dbl> <dbl>
-    ##  1    21 delayed       194    NA   194 
-    ##  2    15 delayed       164.   NA   164.
-    ##  3     6 delayed       145.   NA   145.
-    ##  4    78 experimental  175.  175.   NA 
-    ##  5    71 experimental  160.  160.   NA 
-    ##  6     8 delayed       147    NA   147 
-    ##  7    17 delayed       153    NA   153 
-    ##  8    68 experimental  142.  142.   NA 
-    ##  9    74 experimental  136.  136.   NA 
-    ## 10    12 delayed       134.   NA   134.
-
-``` r
+  select(sn, treatment, post, y1, y0) %>% 
 # commented out until flextable updates (it's currently not playing nice with blogdown)
 # %>% 
-#   flextable()
+  flextable()
 ```
+
+<div class="tabwid"><style>.cl-7deb67f2{}.cl-7dbebf2c{font-family:'Helvetica';font-size:11pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(0, 0, 0, 1.00);background-color:transparent;}.cl-7dddece4{margin:0;text-align:right;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:5pt;padding-right:5pt;line-height: 1;background-color:transparent;}.cl-7dddecf8{margin:0;text-align:left;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:5pt;padding-right:5pt;line-height: 1;background-color:transparent;}.cl-7dde1610{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 1.5pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-7dde161a{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 1.5pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-7dde1624{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-7dde162e{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-7dde162f{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-7dde1638{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table data-quarto-disable-processing='true' class='cl-7deb67f2'><thead><tr style="overflow-wrap:break-word;"><th class="cl-7dde1610"><p class="cl-7dddece4"><span class="cl-7dbebf2c">sn</span></p></th><th class="cl-7dde161a"><p class="cl-7dddecf8"><span class="cl-7dbebf2c">treatment</span></p></th><th class="cl-7dde1610"><p class="cl-7dddece4"><span class="cl-7dbebf2c">post</span></p></th><th class="cl-7dde1610"><p class="cl-7dddece4"><span class="cl-7dbebf2c">y1</span></p></th><th class="cl-7dde1610"><p class="cl-7dddece4"><span class="cl-7dbebf2c">y0</span></p></th></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-7dde1624"><p class="cl-7dddece4"><span class="cl-7dbebf2c">21</span></p></td><td class="cl-7dde162e"><p class="cl-7dddecf8"><span class="cl-7dbebf2c">delayed</span></p></td><td class="cl-7dde1624"><p class="cl-7dddece4"><span class="cl-7dbebf2c">194.00</span></p></td><td class="cl-7dde1624"><p class="cl-7dddece4"><span class="cl-7dbebf2c"></span></p></td><td class="cl-7dde1624"><p class="cl-7dddece4"><span class="cl-7dbebf2c">194.00</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7dde1624"><p class="cl-7dddece4"><span class="cl-7dbebf2c">15</span></p></td><td class="cl-7dde162e"><p class="cl-7dddecf8"><span class="cl-7dbebf2c">delayed</span></p></td><td class="cl-7dde1624"><p class="cl-7dddece4"><span class="cl-7dbebf2c">163.75</span></p></td><td class="cl-7dde1624"><p class="cl-7dddece4"><span class="cl-7dbebf2c"></span></p></td><td class="cl-7dde1624"><p class="cl-7dddece4"><span class="cl-7dbebf2c">163.75</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7dde1624"><p class="cl-7dddece4"><span class="cl-7dbebf2c">6</span></p></td><td class="cl-7dde162e"><p class="cl-7dddecf8"><span class="cl-7dbebf2c">delayed</span></p></td><td class="cl-7dde1624"><p class="cl-7dddece4"><span class="cl-7dbebf2c">145.25</span></p></td><td class="cl-7dde1624"><p class="cl-7dddece4"><span class="cl-7dbebf2c"></span></p></td><td class="cl-7dde1624"><p class="cl-7dddece4"><span class="cl-7dbebf2c">145.25</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7dde1624"><p class="cl-7dddece4"><span class="cl-7dbebf2c">78</span></p></td><td class="cl-7dde162e"><p class="cl-7dddecf8"><span class="cl-7dbebf2c">experimental</span></p></td><td class="cl-7dde1624"><p class="cl-7dddece4"><span class="cl-7dbebf2c">174.75</span></p></td><td class="cl-7dde1624"><p class="cl-7dddece4"><span class="cl-7dbebf2c">174.75</span></p></td><td class="cl-7dde1624"><p class="cl-7dddece4"><span class="cl-7dbebf2c"></span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7dde1624"><p class="cl-7dddece4"><span class="cl-7dbebf2c">71</span></p></td><td class="cl-7dde162e"><p class="cl-7dddecf8"><span class="cl-7dbebf2c">experimental</span></p></td><td class="cl-7dde1624"><p class="cl-7dddece4"><span class="cl-7dbebf2c">160.50</span></p></td><td class="cl-7dde1624"><p class="cl-7dddece4"><span class="cl-7dbebf2c">160.50</span></p></td><td class="cl-7dde1624"><p class="cl-7dddece4"><span class="cl-7dbebf2c"></span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7dde1624"><p class="cl-7dddece4"><span class="cl-7dbebf2c">8</span></p></td><td class="cl-7dde162e"><p class="cl-7dddecf8"><span class="cl-7dbebf2c">delayed</span></p></td><td class="cl-7dde1624"><p class="cl-7dddece4"><span class="cl-7dbebf2c">147.00</span></p></td><td class="cl-7dde1624"><p class="cl-7dddece4"><span class="cl-7dbebf2c"></span></p></td><td class="cl-7dde1624"><p class="cl-7dddece4"><span class="cl-7dbebf2c">147.00</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7dde1624"><p class="cl-7dddece4"><span class="cl-7dbebf2c">17</span></p></td><td class="cl-7dde162e"><p class="cl-7dddecf8"><span class="cl-7dbebf2c">delayed</span></p></td><td class="cl-7dde1624"><p class="cl-7dddece4"><span class="cl-7dbebf2c">153.00</span></p></td><td class="cl-7dde1624"><p class="cl-7dddece4"><span class="cl-7dbebf2c"></span></p></td><td class="cl-7dde1624"><p class="cl-7dddece4"><span class="cl-7dbebf2c">153.00</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7dde1624"><p class="cl-7dddece4"><span class="cl-7dbebf2c">68</span></p></td><td class="cl-7dde162e"><p class="cl-7dddecf8"><span class="cl-7dbebf2c">experimental</span></p></td><td class="cl-7dde1624"><p class="cl-7dddece4"><span class="cl-7dbebf2c">142.50</span></p></td><td class="cl-7dde1624"><p class="cl-7dddece4"><span class="cl-7dbebf2c">142.50</span></p></td><td class="cl-7dde1624"><p class="cl-7dddece4"><span class="cl-7dbebf2c"></span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7dde1624"><p class="cl-7dddece4"><span class="cl-7dbebf2c">74</span></p></td><td class="cl-7dde162e"><p class="cl-7dddecf8"><span class="cl-7dbebf2c">experimental</span></p></td><td class="cl-7dde1624"><p class="cl-7dddece4"><span class="cl-7dbebf2c">135.50</span></p></td><td class="cl-7dde1624"><p class="cl-7dddece4"><span class="cl-7dbebf2c">135.50</span></p></td><td class="cl-7dde1624"><p class="cl-7dddece4"><span class="cl-7dbebf2c"></span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7dde162f"><p class="cl-7dddece4"><span class="cl-7dbebf2c">12</span></p></td><td class="cl-7dde1638"><p class="cl-7dddecf8"><span class="cl-7dbebf2c">delayed</span></p></td><td class="cl-7dde162f"><p class="cl-7dddece4"><span class="cl-7dbebf2c">134.50</span></p></td><td class="cl-7dde162f"><p class="cl-7dddece4"><span class="cl-7dbebf2c"></span></p></td><td class="cl-7dde162f"><p class="cl-7dddece4"><span class="cl-7dbebf2c">134.50</span></p></td></tr></tbody></table></div>
 
 Within the `mutate()` function, I computed each participants’ `y1` and `y0` score, based on a combination of her `treatment` and `post` values. That last `flextable()` line converted the results to a nice table format, with help from the **flextable** package ([Gohel, 2023](#ref-gohelUsingFlextable2023), [2022](#ref-R-flextable)). Because none of the participants have values for both `y1` and `y0`, we cannot use the raw data to compute their individual treatment effects. What we can do, however, is compute the *average treatment effect* (ATE) with the formula:
 
@@ -248,19 +236,18 @@ predict(ols1,
     ## 1 153.8182 146.3863 161.2501 3.674259 39        17.2338            0
     ## 2 151.3289 143.3318 159.3261 3.953706 39        17.2338            1
 
-The `fit.fit` column shows the point estimates, and the `fit.lwr` and `fit.upr` columns show the 95% intervals, and the `se.fit` columns shows the standard errors. Though the `predict()` method is great for computing `\(\mathbb{E}(y_i^1)\)` and `\(\mathbb{E}(y_i^0)\)`, it doesn’t give us a good way to compute the difference of those values with a measure of uncertainty, such as a standard error. Happily, we can rely on functions from the handy **marginaleffects** package ([Arel-Bundock, 2022](#ref-R-marginaleffects)) for that. First, notice how the `predictions()` function works in a similar way to the `predict()` function, but with nicer default behavior.
+The `fit.fit` column shows the point estimates, and the `fit.lwr` and `fit.upr` columns show the 95% intervals, and the `se.fit` columns shows the standard errors. Though the `predict()` method is great for computing `\(\mathbb{E}(y_i^1)\)` and `\(\mathbb{E}(y_i^0)\)`, it doesn’t give us a good way to compute the difference of those values with a measure of uncertainty, such as a standard error. Happily, we can rely on functions from the handy **marginaleffects** package ([Arel-Bundock, 2023b](#ref-R-marginaleffects)) for that. First, notice how the `predictions()` function works in a similar way to the `predict()` function, but with nicer default behavior.
 
 ``` r
 predictions(ols1, newdata = nd, by = "experimental")
 ```
 
     ## 
-    ##  experimental Estimate Std. Error     z   Pr(>|z|) 2.5 % 97.5 %
-    ##             0    153.8      3.674 41.86 < 2.22e-16 146.6  161.0
-    ##             1    151.3      3.954 38.28 < 2.22e-16 143.6  159.1
+    ##  experimental Estimate Std. Error    z Pr(>|z|) 2.5 % 97.5 %
+    ##             0      154       3.67 41.9   <0.001   147    161
+    ##             1      151       3.95 38.3   <0.001   144    159
     ## 
-    ## Prediction type:  response 
-    ## Columns: rowid, type, experimental, estimate, std.error, statistic, p.value, conf.low, conf.high
+    ## Columns: rowid, experimental, estimate, std.error, statistic, p.value, conf.low, conf.high, post
 
 The **marginaleffects** package offers a few ways to contrast the to mean values. With the `predictions()` approach, we can just add in `hypothesis = "revpairwise"`.
 
@@ -269,11 +256,10 @@ predictions(ols1, newdata = nd, by = "experimental", hypothesis = "revpairwise")
 ```
 
     ## 
-    ##   Term Estimate Std. Error       z Pr(>|z|)  2.5 % 97.5 %
-    ##  1 - 0   -2.489      5.397 -0.4612  0.64466 -13.07  8.089
+    ##   Term Estimate Std. Error      z Pr(>|z|) 2.5 % 97.5 %
+    ##  1 - 0    -2.49        5.4 -0.461    0.645 -13.1   8.09
     ## 
-    ## Prediction type:  response 
-    ## Columns: type, term, estimate, std.error, statistic, p.value, conf.low, conf.high
+    ## Columns: term, estimate, std.error, statistic, p.value, conf.low, conf.high
 
 Now we have a nice standard error and 95% interval range for the estimate of our estimand, `\(\tau_\text{ATE}\)`. Thus, the average causal effect of the experimental condition relative to the waitlist control is a reduction of about 2 and a half pounds, with with a very wide 95% confidence interval range spanning from a reduction of 13 pounds to an *increase* of 8 pounds. Now look back at the parameter summary for `ols1`.
 
@@ -349,16 +335,15 @@ predictions(ols1, newdata = nd, by = c("sn", "experimental")) %>%
 ```
 
     ## 
-    ##  sn experimental Estimate Std. Error     z   Pr(>|z|) 2.5 % 97.5 %
-    ##   1            0    153.8      3.674 41.86 < 2.22e-16 146.6  161.0
-    ##   1            1    151.3      3.954 38.28 < 2.22e-16 143.6  159.1
-    ##   2            0    153.8      3.674 41.86 < 2.22e-16 146.6  161.0
-    ##   2            1    151.3      3.954 38.28 < 2.22e-16 143.6  159.1
-    ##   3            0    153.8      3.674 41.86 < 2.22e-16 146.6  161.0
-    ##   3            1    151.3      3.954 38.28 < 2.22e-16 143.6  159.1
+    ##  sn experimental Estimate Std. Error    z Pr(>|z|) 2.5 % 97.5 %
+    ##   1            0      154       3.67 41.9   <0.001   147    161
+    ##   1            1      151       3.95 38.3   <0.001   144    159
+    ##   2            0      154       3.67 41.9   <0.001   147    161
+    ##   2            1      151       3.95 38.3   <0.001   144    159
+    ##   3            0      154       3.67 41.9   <0.001   147    161
+    ##   3            1      151       3.95 38.3   <0.001   144    159
     ## 
-    ## Prediction type:  response 
-    ## Columns: rowid, type, sn, experimental, estimate, std.error, statistic, p.value, conf.low, conf.high
+    ## Columns: rowid, sn, experimental, estimate, std.error, statistic, p.value, conf.low, conf.high, post
 
 I’ve used the `head()` function to limit the output to the first six rows, but the full output would have all 82 rows worth of counterfactual predictions. Each one has its own standard error and so on. To compute the actual participant-level contrasts, `\(y_i^1 - y_i^0\)`, we’ll want to switch to the `marginaleffects::comparisons()` function. Here we just need to use the `variables` argument to indicate we want counterfactual comparisons on the `experimental` dummy for each case in the original data set.
 
@@ -368,16 +353,15 @@ comparisons(ols1, variables = list(experimental = 0:1)) %>%
 ```
 
     ## 
-    ##          Term Contrast Estimate Std. Error       z Pr(>|z|)  2.5 % 97.5 %
-    ##  experimental    1 - 0   -2.489      5.397 -0.4612  0.64466 -13.07  8.089
-    ##  experimental    1 - 0   -2.489      5.397 -0.4612  0.64466 -13.07  8.089
-    ##  experimental    1 - 0   -2.489      5.397 -0.4612  0.64466 -13.07  8.089
-    ##  experimental    1 - 0   -2.489      5.397 -0.4612  0.64466 -13.07  8.089
-    ##  experimental    1 - 0   -2.489      5.397 -0.4612  0.64466 -13.07  8.089
-    ##  experimental    1 - 0   -2.489      5.397 -0.4612  0.64466 -13.07  8.089
+    ##          Term Contrast Estimate Std. Error      z Pr(>|z|) 2.5 % 97.5 %
+    ##  experimental    1 - 0    -2.49        5.4 -0.461    0.645 -13.1   8.09
+    ##  experimental    1 - 0    -2.49        5.4 -0.461    0.645 -13.1   8.09
+    ##  experimental    1 - 0    -2.49        5.4 -0.461    0.645 -13.1   8.09
+    ##  experimental    1 - 0    -2.49        5.4 -0.461    0.645 -13.1   8.09
+    ##  experimental    1 - 0    -2.49        5.4 -0.461    0.645 -13.1   8.09
+    ##  experimental    1 - 0    -2.49        5.4 -0.461    0.645 -13.1   8.09
     ## 
-    ## Prediction type:  response 
-    ## Columns: rowid, type, term, contrast, estimate, std.error, statistic, p.value, conf.low, conf.high, predicted, predicted_hi, predicted_lo, sl, sn, treatment, pre, post, prec, experimental, eps
+    ## Columns: rowid, term, contrast, estimate, std.error, statistic, p.value, conf.low, conf.high, predicted, predicted_hi, predicted_lo, post, experimental
 
 Here we see the `\(y_i^1 - y_i^0\)` for the first six participants in the data set, each with its own standard errors and so on. To give you a better sense of what we’ve been computing, we might put the participant-level counterfactual predictions and their contrasts into a couple plots.
 
@@ -436,11 +420,10 @@ comparisons(ols1, variables = list(experimental = 0:1)) %>%
 ```
 
     ## 
-    ##          Term          Contrast Estimate Std. Error       z Pr(>|z|)  2.5 % 97.5 %
-    ##  experimental mean(1) - mean(0)   -2.489      5.397 -0.4612  0.64466 -13.07  8.089
+    ##          Term          Contrast Estimate Std. Error      z Pr(>|z|) 2.5 % 97.5 %
+    ##  experimental mean(1) - mean(0)    -2.49        5.4 -0.461    0.645 -13.1   8.09
     ## 
-    ## Prediction type:  response 
-    ## Columns: type, term, contrast, estimate, std.error, statistic, p.value, conf.low, conf.high
+    ## Columns: term, contrast, estimate, std.error, statistic, p.value, conf.low, conf.high
 
 In this case our model-based estimate for `\(\tau_\text{ATE}\)`, computed by the formula `\(\mathbb E (y_i^1 - y_i^0)\)`, is the same as the `\(\beta_1\)` coefficient and its standard error. With a simple OLS-based ANOVA-type model of a randomized experiment,
 
@@ -521,12 +504,11 @@ predictions(ols2, newdata = nd, by = "experimental")
 ```
 
     ## 
-    ##  experimental Estimate Std. Error     z   Pr(>|z|) 2.5 % 97.5 %
-    ##             0    154.8      1.361 113.7 < 2.22e-16 152.1  157.5
-    ##             1    150.2      1.465 102.5 < 2.22e-16 147.3  153.1
+    ##  experimental Estimate Std. Error   z Pr(>|z|) 2.5 % 97.5 %      prec
+    ##             0      155       1.36 114   <0.001   152    157 -7.62e-15
+    ##             1      150       1.47 103   <0.001   147    153 -7.62e-15
     ## 
-    ## Prediction type:  response 
-    ## Columns: rowid, type, experimental, estimate, std.error, statistic, p.value, conf.low, conf.high
+    ## Columns: rowid, experimental, estimate, std.error, statistic, p.value, conf.low, conf.high, prec, post
 
 To get the contrast, just add in `hypothesis = "revpairwise"`.
 
@@ -535,11 +517,10 @@ predictions(ols2, newdata = nd, by = "experimental", hypothesis = "revpairwise")
 ```
 
     ## 
-    ##   Term Estimate Std. Error      z Pr(>|z|)  2.5 % 97.5 %
-    ##  1 - 0   -4.572      2.002 -2.284 0.022394 -8.497 -0.648
+    ##   Term Estimate Std. Error     z Pr(>|z|) 2.5 % 97.5 %
+    ##  1 - 0    -4.57          2 -2.28   0.0224  -8.5 -0.648
     ## 
-    ## Prediction type:  response 
-    ## Columns: type, term, estimate, std.error, statistic, p.value, conf.low, conf.high
+    ## Columns: term, estimate, std.error, statistic, p.value, conf.low, conf.high
 
 And also like with the ANOVA-type `ols1`, this method for computing the `\(\tau_\text{ATE}\)` from `ols2` returns the same estimate and uncertainty statistics as returned by the `summary()` information for the `\(\beta_1\)` parameter.
 
@@ -647,16 +628,15 @@ predictions(ols2, newdata = nd, by = c("sn", "experimental", "prec")) %>%
 ```
 
     ## 
-    ##  sn experimental       prec Estimate Std. Error      z   Pr(>|z|) 2.5 % 97.5 %
-    ##   1            0  -5.335366    149.9      1.382 108.47 < 2.22e-16 147.2  152.6
-    ##   1            1  -5.335366    145.4      1.512  96.14 < 2.22e-16 142.4  148.3
-    ##   2            0 -23.585366    133.4      1.883  70.81 < 2.22e-16 129.7  137.0
-    ##   2            1 -23.585366    128.8      2.050  62.82 < 2.22e-16 124.8  132.8
-    ##   3            0  -8.335366    147.2      1.424 103.41 < 2.22e-16 144.4  150.0
-    ##   3            1  -8.335366    142.6      1.565  91.17 < 2.22e-16 139.6  145.7
+    ##  sn experimental   prec Estimate Std. Error     z Pr(>|z|) 2.5 % 97.5 % pre
+    ##   1            0  -5.34      150       1.38 108.5   <0.001   147    153 150
+    ##   1            1  -5.34      145       1.51  96.1   <0.001   142    148 150
+    ##   2            0 -23.59      133       1.88  70.8   <0.001   130    137 131
+    ##   2            1 -23.59      129       2.05  62.8   <0.001   125    133 131
+    ##   3            0  -8.34      147       1.42 103.4   <0.001   144    150 146
+    ##   3            1  -8.34      143       1.56  91.2   <0.001   140    146 146
     ## 
-    ## Prediction type:  response 
-    ## Columns: rowid, type, sn, experimental, prec, estimate, std.error, statistic, p.value, conf.low, conf.high
+    ## Columns: rowid, sn, experimental, prec, estimate, std.error, statistic, p.value, conf.low, conf.high, pre, post
 
 The `head()` function to limited the output to the first six rows, but the full output would have all 82 rows worth of counterfactual predictions. Each one has its own standard error and so on. To compute the actual participant-level contrasts, `\((y_i^1 - y_i^0 \mid c_i)\)`, we switch to the `marginaleffects::comparisons()` function. Here we just need to use the `variables` argument to indicate we want counterfactual comparisons on the `experimental` dummy for each case in the original data set.
 
@@ -666,16 +646,15 @@ comparisons(ols2, variables = list(experimental = 0:1)) %>%
 ```
 
     ## 
-    ##          Term Contrast Estimate Std. Error      z Pr(>|z|)  2.5 % 97.5 %
-    ##  experimental    1 - 0   -4.572      2.002 -2.284 0.022394 -8.497 -0.648
-    ##  experimental    1 - 0   -4.572      2.002 -2.284 0.022394 -8.497 -0.648
-    ##  experimental    1 - 0   -4.572      2.002 -2.284 0.022394 -8.497 -0.648
-    ##  experimental    1 - 0   -4.572      2.002 -2.284 0.022394 -8.497 -0.648
-    ##  experimental    1 - 0   -4.572      2.002 -2.284 0.022394 -8.497 -0.648
-    ##  experimental    1 - 0   -4.572      2.002 -2.284 0.022394 -8.497 -0.648
+    ##          Term Contrast Estimate Std. Error     z Pr(>|z|) 2.5 % 97.5 %
+    ##  experimental    1 - 0    -4.57          2 -2.28   0.0224  -8.5 -0.648
+    ##  experimental    1 - 0    -4.57          2 -2.28   0.0224  -8.5 -0.648
+    ##  experimental    1 - 0    -4.57          2 -2.28   0.0224  -8.5 -0.648
+    ##  experimental    1 - 0    -4.57          2 -2.28   0.0224  -8.5 -0.648
+    ##  experimental    1 - 0    -4.57          2 -2.28   0.0224  -8.5 -0.648
+    ##  experimental    1 - 0    -4.57          2 -2.28   0.0224  -8.5 -0.648
     ## 
-    ## Prediction type:  response 
-    ## Columns: rowid, type, term, contrast, estimate, std.error, statistic, p.value, conf.low, conf.high, predicted, predicted_hi, predicted_lo, sl, sn, treatment, pre, post, prec, experimental, eps
+    ## Columns: rowid, term, contrast, estimate, std.error, statistic, p.value, conf.low, conf.high, predicted, predicted_hi, predicted_lo, post, experimental, prec
 
 Here we see the `\((y_i^1 - y_i^0 \mid c_i)\)` for the first six participants in the data set, each with its own standard errors and so on. Like with the ANOVA model, we might put the participant-level counterfactual predictions and their contrasts into a couple plots to give you a better sense of what we’ve been computing.
 
@@ -734,11 +713,10 @@ comparisons(ols2, variables = list(experimental = 0:1)) %>%
 ```
 
     ## 
-    ##          Term          Contrast Estimate Std. Error      z Pr(>|z|)  2.5 % 97.5 %
-    ##  experimental mean(1) - mean(0)   -4.572      2.002 -2.284 0.022394 -8.497 -0.648
+    ##          Term          Contrast Estimate Std. Error     z Pr(>|z|) 2.5 % 97.5 %
+    ##  experimental mean(1) - mean(0)    -4.57          2 -2.28   0.0224  -8.5 -0.648
     ## 
-    ## Prediction type:  response 
-    ## Columns: type, term, contrast, estimate, std.error, statistic, p.value, conf.low, conf.high
+    ## Columns: term, contrast, estimate, std.error, statistic, p.value, conf.low, conf.high
 
 When our goal is just to compute `\(\mathbb E (y_i^1 - y_i^0 \mid c_i)\)`, we can also use the `marginaleffects::avg_comparisons()` function, which skips the `summary()` step.
 
@@ -747,13 +725,12 @@ avg_comparisons(ols2, variables = list(experimental = 0:1))
 ```
 
     ## 
-    ##          Term Contrast Estimate Std. Error      z Pr(>|z|)  2.5 % 97.5 %
-    ##  experimental    1 - 0   -4.572      2.002 -2.284 0.022394 -8.497 -0.648
+    ##          Term Contrast Estimate Std. Error     z Pr(>|z|) 2.5 % 97.5 %
+    ##  experimental    1 - 0    -4.57          2 -2.28   0.0224  -8.5 -0.648
     ## 
-    ## Prediction type:  response 
-    ## Columns: type, term, contrast, estimate, std.error, statistic, p.value, conf.low, conf.high
+    ## Columns: term, contrast, estimate, std.error, statistic, p.value, conf.low, conf.high
 
-As Arel-Bundock pointed out his ([2023](#ref-arelBundock2023CausalInference)) vignette, [*Causal inference with the parametric g-formula*](https://vincentarelbundock.github.io/marginaleffects/articles/gformula.html), the `avg_comparisons()` function is a compact way to compute `\(\mathbb E (y_i^1 - y_i^0 \mid c_i)\)` with the parametric g-formula method. Again in this case our estimate for `\(\tau_\text{ATE}\)` via `\(\mathbb E (y_i^1 - y_i^0 \mid c_i)\)` is the same as the `\(\beta_1\)` coefficient and its standard error from `ols2`, and they’re both the same as `\(\tau_\text{ATE}\)` via `\(\mathbb E (y_i^1 \mid \bar c) - \mathbb E (y_i^0 \mid \bar c)\)`. We might further say that, in the case of an OLS-based ANCOVA-type model of a randomized experiment,
+As Arel-Bundock pointed out his ([2023a](#ref-arelBundock2023CausalInference)) vignette, [*Causal inference with the parametric g-formula*](https://vincentarelbundock.github.io/marginaleffects/articles/gformula.html), the `avg_comparisons()` function is a compact way to compute `\(\mathbb E (y_i^1 - y_i^0 \mid c_i)\)` with the parametric g-formula method. Again in this case our estimate for `\(\tau_\text{ATE}\)` via `\(\mathbb E (y_i^1 - y_i^0 \mid c_i)\)` is the same as the `\(\beta_1\)` coefficient and its standard error from `ols2`, and they’re both the same as `\(\tau_\text{ATE}\)` via `\(\mathbb E (y_i^1 \mid \bar c) - \mathbb E (y_i^0 \mid \bar c)\)`. We might further say that, in the case of an OLS-based ANCOVA-type model of a randomized experiment,
 
 - `\(\beta_1\)`,
 - `\(\mathbb{E}(y_i^1 - y_i^0 \mid c_i)\)`, and
@@ -797,24 +774,32 @@ sessionInfo()
     ## [1] stats     graphics  grDevices utils     datasets  methods   base     
     ## 
     ## other attached packages:
-    ##  [1] patchwork_1.1.2            ggdist_3.2.1.9000          marginaleffects_0.9.0.9014
-    ##  [4] lubridate_1.9.2            forcats_1.0.0              stringr_1.5.0             
-    ##  [7] dplyr_1.1.0                purrr_1.0.1                readr_2.1.4               
-    ## [10] tidyr_1.3.0                tibble_3.2.0               ggplot2_3.4.1             
-    ## [13] tidyverse_2.0.0           
+    ##  [1] patchwork_1.1.2        ggdist_3.2.1.9000      marginaleffects_0.11.1 flextable_0.9.1       
+    ##  [5] lubridate_1.9.2        forcats_1.0.0          stringr_1.5.0          dplyr_1.1.0           
+    ##  [9] purrr_1.0.1            readr_2.1.4            tidyr_1.3.0            tibble_3.2.0          
+    ## [13] ggplot2_3.4.1          tidyverse_2.0.0       
     ## 
     ## loaded via a namespace (and not attached):
-    ##  [1] tidyselect_1.2.0     xfun_0.37            bslib_0.4.0          colorspace_2.1-0     vctrs_0.6.0         
-    ##  [6] generics_0.1.3       viridisLite_0.4.1    htmltools_0.5.3      yaml_2.3.5           utf8_1.2.3          
-    ## [11] rlang_1.1.0          jquerylib_0.1.4      pillar_1.8.1         glue_1.6.2           withr_2.5.0         
-    ## [16] distributional_0.3.1 lifecycle_1.0.3      munsell_0.5.0        blogdown_1.16        gtable_0.3.2        
-    ## [21] evaluate_0.18        labeling_0.4.2       knitr_1.42           tzdb_0.3.0           fastmap_1.1.0       
-    ## [26] fansi_1.0.4          highr_0.9            backports_1.4.1      scales_1.2.1         checkmate_2.1.0     
-    ## [31] cachem_1.0.6         jsonlite_1.8.4       farver_2.1.1         hms_1.1.2            digest_0.6.31       
-    ## [36] stringi_1.7.8        insight_0.19.0       bookdown_0.28        grid_4.2.3           cli_3.6.0           
-    ## [41] tools_4.2.3          magrittr_2.0.3       sass_0.4.2           pkgconfig_2.0.3      ellipsis_0.3.2      
-    ## [46] data.table_1.14.8    timechange_0.2.0     rmarkdown_2.20       rstudioapi_0.14      R6_2.5.1            
-    ## [51] compiler_4.2.3
+    ##  [1] fontquiver_0.2.1        insight_0.19.1          tools_4.2.3             backports_1.4.1        
+    ##  [5] bslib_0.4.0             utf8_1.2.3              R6_2.5.1                colorspace_2.1-0       
+    ##  [9] withr_2.5.0             tidyselect_1.2.0        curl_4.3.2              compiler_4.2.3         
+    ## [13] textshaping_0.3.6       cli_3.6.0               xml2_1.3.3              officer_0.6.2          
+    ## [17] fontBitstreamVera_0.1.1 labeling_0.4.2          bookdown_0.28           sass_0.4.2             
+    ## [21] scales_1.2.1            checkmate_2.1.0         askpass_1.1             systemfonts_1.0.4      
+    ## [25] digest_0.6.31           rmarkdown_2.20          gfonts_0.2.0            katex_1.4.0            
+    ## [29] pkgconfig_2.0.3         htmltools_0.5.3         highr_0.9               fastmap_1.1.0          
+    ## [33] rlang_1.1.0             rstudioapi_0.14         httpcode_0.3.0          shiny_1.7.2            
+    ## [37] jquerylib_0.1.4         farver_2.1.1            generics_0.1.3          jsonlite_1.8.4         
+    ## [41] zip_2.2.0               distributional_0.3.1    magrittr_2.0.3          Rcpp_1.0.10            
+    ## [45] munsell_0.5.0           fansi_1.0.4             gdtools_0.3.3           lifecycle_1.0.3        
+    ## [49] stringi_1.7.8           yaml_2.3.5              grid_4.2.3              promises_1.2.0.1       
+    ## [53] crayon_1.5.2            hms_1.1.2               knitr_1.42              pillar_1.8.1           
+    ## [57] uuid_1.1-0              crul_1.2.0              xslt_1.4.3              glue_1.6.2             
+    ## [61] evaluate_0.18           blogdown_1.16           V8_4.2.1                fontLiberation_0.1.0   
+    ## [65] data.table_1.14.8       vctrs_0.6.0             tzdb_0.3.0              httpuv_1.6.5           
+    ## [69] gtable_0.3.2            openssl_2.0.3           cachem_1.0.6            xfun_0.37              
+    ## [73] mime_0.12               xtable_1.8-4            later_1.3.0             equatags_0.2.0         
+    ## [77] viridisLite_0.4.1       ragg_1.2.5              timechange_0.2.0        ellipsis_0.3.2
 
 ## References
 
@@ -822,13 +807,13 @@ sessionInfo()
 
 <div id="ref-arelBundock2023CausalInference" class="csl-entry">
 
-Arel-Bundock, V. (2023). *Causal inference with the parametric g-Formula*. <https://vincentarelbundock.github.io/marginaleffects/articles/gformula.html>
+Arel-Bundock, V. (2023a). *Causal inference with the parametric g-Formula*. <https://vincentarelbundock.github.io/marginaleffects/articles/gformula.html>
 
 </div>
 
 <div id="ref-R-marginaleffects" class="csl-entry">
 
-Arel-Bundock, V. (2022). *<span class="nocase">marginaleffects</span>: Marginal effects, marginal means, predictions, and contrasts* \[Manual\]. [https://vincentarelbundock.github.io/ marginaleffects/ https://github.com/vincentarelbundock/ marginaleffects](https://vincentarelbundock.github.io/ marginaleffects/ https://github.com/vincentarelbundock/ marginaleffects)
+Arel-Bundock, V. (2023b). *<span class="nocase">marginaleffects</span>: Predictions, comparisons, slopes, marginal means, and hypothesis tests* \[Manual\]. [https://vincentarelbundock.github.io/ marginaleffects/ https://github.com/vincentarelbundock/ marginaleffects](https://vincentarelbundock.github.io/ marginaleffects/ https://github.com/vincentarelbundock/ marginaleffects)
 
 </div>
 
@@ -889,6 +874,12 @@ Nelder, J. A., & Wedderburn, R. W. (1972). Generalized linear models. *Journal o
 <div id="ref-robins1986new" class="csl-entry">
 
 Robins, J. (1986). A new approach to causal inference in mortality studies with a sustained exposure periodapplication to control of the healthy worker survivor effect. *Mathematical Modelling*, *7*(9-12), 1393–1512. <https://doi.org/10.1016/0270-0255(86)90088-6>
+
+</div>
+
+<div id="ref-rubinEstimatingCausalEffects1974" class="csl-entry">
+
+Rubin, D. B. (1974). Estimating causal effects of treatments in randomized and nonrandomized studies. *Journal of Educational Psychology*, *66*(5), 688–701. <https://doi.org/10.1037/h0037350>
 
 </div>
 
