@@ -36,17 +36,17 @@ link-citations: yes
 options(width = 110)
 ```
 
-So far in this series, we've been been using ordinary least squares (OLS) to analyze and make causal inferences from our experimental data. Though OLS is an applied statistics workhorse and performs admirably in some cases, there are many contexts in which it's just not appropriate. In medical trials, for example, many of the outcome variables are binary. Some typical examples are whether a patient still has the disease (coded `1`) or not (coded `0`), or whether a participant has died (coded `1`) or is still alive (coded `0`). In these cases, we want to model our data with a likelihood function that can handle binary data, and the go-to solution is the binomial[^1]. As we will see, some of the nice qualities from the OLS paradigm fall apart when we want to make causal inferences with binomial models. But no fear; we have solutions.
+So far in this series, we've been been using ordinary least squares (OLS) to analyze and make causal inferences from our experimental data. Though OLS is an applied statistics workhorse and performs admirably in some cases, there are many contexts in which it's just not appropriate. In medical trials, for example, many of the outcome variables are binary. Some typical examples are whether a participant still has the disease (coded `1`) or not (coded `0`), or whether a participant has died (coded `1`) or is still alive (coded `0`). In these cases, we want to model our data with a likelihood function that can handle binary data, and the go-to solution is the binomial.[^1] As we will see, some of the nice qualities from the OLS paradigm fall apart when we want to make causal inferences with binomial models. But no fear; we have solutions.
 
 ## We need data
 
-In this post, we'll be borrowing data from @wilson2017internet, *Internet-accessed sexually transmitted infection (e-STI) testing and results service: A randomised, single-blind, controlled trial*. Wilson and colleagues were open-science champions and made their primary data available as supporting information in their `S1Data.xls` file, which you can download from [here](https://journals.plos.org/plosmedicine/article?id=10.1371/journal.pmed.1002479#sec020).
+In this post, we'll be borrowing data from @wilson2017internet, *Internet-accessed sexually transmitted infection (e-STI) testing and results service: A randomised, single-blind, controlled trial*. Wilson and colleagues were open-science champions and made their primary data available as supporting information in their `S1Data.xls` file, which you can download by clicking this: [https://doi.org/10.1371/journal.pmed.1002479.s001](https://doi.org/10.1371/journal.pmed.1002479.s001). `r emo::ji("warning")` For this next code block to work on your computer, you will need to first download that `S1Data.xls` file, and then save that file in a `data` subfolder in your working directory.
 
 ```{r, warning = F, message = F}
 # packages
 library(tidyverse)
 library(marginaleffects)
-# library(flextable)
+library(flextable)
 library(broom)
 library(ggdist)
 library(patchwork)
@@ -55,10 +55,10 @@ library(patchwork)
 theme_set(theme_gray(base_size = 12) +
             theme(panel.grid = element_blank()))
 
-# data
+# load the data
 wilson2017 <- readxl::read_excel("data/S1Data.xls", sheet = "data")
 
-# what?
+# what do these look like?
 glimpse(wilson2017)
 ```
 
@@ -100,7 +100,7 @@ wilson2017 <- wilson2017 %>%
 dim(wilson2017)
 ```
 
-Now we'll adjust some of the variables, themselves. We will save the nominal covariates `gender`, `msm`, and `ethnicgrp` as factors with defined levels. The covariate `partners` is ordinal[^2], but for our purposes it will be fine to convert it to a factor, too. The `age` covariate is continuous, but it'll come in handy to rescale it into a $z$-score metric, which we'll name `agez`. We'll simplify the character variable for the experimental groups, `group`, in to a a `tx` dummy coded `0` for the control condition and `1` for those in the intervention condition. Then we'll rename the `anon_id` index to `id`, reorder the columns, and drop the other columns we won't be focusing on in this post.
+Now we'll adjust some of the variables, themselves. We will save the nominal covariates `gender`, `msm`, and `ethnicgrp` as factors with defined levels. The covariate `partners` is ordinal,[^2] but for our purposes it will be fine to convert it to a factor, too. The `age` covariate is continuous, but it'll come in handy to rescale it into a $z$-score metric, which we'll name `agez`. We'll simplify the character variable for the experimental groups, `group`, in to a a `tx` dummy coded `0` for the control condition and `1` for those in the intervention condition. Then we'll rename the `anon_id` index to `id`, reorder the columns, and drop the other columns we won't need for the rest of this post.
 
 ```{r}
 wilson2017 <- wilson2017 %>% 
@@ -114,7 +114,9 @@ wilson2017 <- wilson2017 %>%
   mutate(agez = (age - mean(age)) / sd(age)) %>% 
   # make a simple treatment dummy
   mutate(tx = ifelse(group == "SH:24", 1, 0)) %>% 
+  # simplify the name
   rename(id = anon_id) %>% 
+  # reorder and drop unneeded columns
   select(id, tx, anytest, gender, partners, msm, ethnicgrp, age, agez)
 
 # what do we have?
@@ -127,13 +129,13 @@ save(wilson2017, file = "data/wilson2017.rda")
 
 ### Descriptive statistics
 
-We've already introduced our binary outcome variable `anytest` and the experimental treatment dummy `tx`. In the Method section, we further learned the randomization algorithm balanced
+We've already introduced our binary outcome variable `anytest` and the experimental treatment dummy `tx`. In the paper's Method section, we further learned the randomization algorithm balanced
 
-> for gender (male, female, transgender), age (16–19, 20–24, 25–30 years), number of sexual partners in last 12 months (1, 2+), and sexual orientation (MSM, all other groups). All factors had equal weight in determining marginal imbalance. (p. 4)
+> for gender (male, female, transgender),[^3] age (16–19, 20–24, 25–30 years), number of sexual partners in last 12 months (1, 2+), and sexual orientation (MSM, all other groups). All factors had equal weight in determining marginal imbalance. (p. 4)
  
-Further down in the Method (p. 7), we learn all these variables were used as covariates in the primary analysis[^3], in addition to ethnicity[^4].
+Further down in the Method (p. 7), we learn all these variables were used as covariates in the primary analysis,[^4] in addition to ethnicity.[^5]
 
-To get a sense of these covariates, we'll make a Table 1 type table[^5] of the categorical variables for our randomized subset.
+To get a sense of these covariates, we'll make a Table 1 type table[^6] of the categorical variables for our randomized subset.
 
 ```{r}
 wilson2017 %>% 
@@ -141,13 +143,11 @@ wilson2017 %>%
                names_to = "variable", values_to = "category") %>% 
   group_by(variable) %>% 
   count(category) %>% 
-  mutate(`%` = round(100 * n / sum(n), digits = 1))
-# %>%
-#   # these last 4 lines make the flextable-based table
-#   as_grouped_data(groups = c("variable")) %>%
-#   flextable() %>%
-#   autofit() %>%
-#   italic(j = 3, part = "header")
+  mutate(`%` = round(100 * n / sum(n), digits = 1)) %>%
+  as_grouped_data(groups = c("variable")) %>%
+  flextable() %>%
+  autofit() %>%
+  italic(j = 3, part = "header")
 ```
 
 Though we'll be using the standardized version of `age` in the model, here are the basic descriptive statistics for `age`.
@@ -227,7 +227,7 @@ tidy(glm1, conf.int = T) %>%
   mutate_all(exp)
 ```
 
-Odds ratios range from 0 to positive infinity, and have an inflection point at 1. Though I don't care for them, odds ratios seem to be popular effect sizes among medical researchers[^6]. To each their own. But if you're like me, you want to convert the results of the model to the metric of a difference in probability[^7]. A naïve data analyst might try to convert $\beta_1$ out of the log-odds metric into the probability metric with the base **R** `plogis()`.
+Odds ratios range from 0 to positive infinity, and have an inflection point at 1. Though I don't care for them, odds ratios seem to be popular effect sizes among medical researchers.[^7] To each their own. But if you're like me, you want to convert the results of the model to the metric of a difference in probability.[^8] A naïve data analyst might try to convert $\beta_1$ out of the log-odds metric into the probability metric with the base **R** `plogis()`.
 
 ```{r}
 tidy(glm1, conf.int = T) %>% 
@@ -236,7 +236,7 @@ tidy(glm1, conf.int = T) %>%
   mutate_all(plogis)
 ```
 
-This, however, this approach DOES NOT convert $\beta_1$ into a difference in probability. This is not an average treatment effect, and sadly, it's completely uninterpretable. As Imbens and Ruben put it: "The average treatment effect cannot be expressed directly in terms of the parameters of the logistic or probit regression model" [-@imbensCausalInferenceStatistics2015, p. 128]. But we can use an *in*direct method to compute the point estimate for the ATE with a combination of both $\beta_0$ and $\beta_1$, and the `plogis()` function.
+This approach, however, DOES NOT convert $\beta_1$ into a difference in probability. This is not an average treatment effect, and sadly, it's completely uninterpretable. As Imbens and Ruben put it: "The average treatment effect cannot be expressed directly in terms of the parameters of the logistic or probit regression model" [-@imbensCausalInferenceStatistics2015, p. 128]. But we can use an *in*direct method to compute the point estimate for the ATE with a combination of both $\beta_0$ and $\beta_1$, and the `plogis()` function.
 
 ```{r}
 plogis(coef(glm1)[1] + coef(glm1)[2]) - plogis(coef(glm1)[1])
@@ -253,10 +253,10 @@ wilson2017 %>%
   group_by(tx) %>% 
   summarise(p = mean(anytest == 1)) %>% 
   pivot_wider(names_from = tx, values_from = p) %>% 
-  mutate(ate = `1` - `0`)
+  mutate(sate = `1` - `0`)
 ```
 
-Unlike with OLS-type models, you cannot compute the ATE in a logistic-regression context with $\beta_1$ alone. You need to account for the other parameters in the model, too.
+Unlike with OLS-type models, you cannot estimate the ATE in a logistic-regression context with $\beta_1$ alone. You need to account for the other parameters in the model, too.
 
 ### Compute $\Pr (y_i^1 = 1) - \Pr(y_i^0 = 1)$ from `glm1`.
 
@@ -344,7 +344,7 @@ Notice that `predictions()` returns probabilities by default, rather than log od
 predictions(glm1, newdata = nd, by = "tx", hypothesis = "revpairwise")
 ```
 
-Not only do we get the probability contrast, but we get the standard error and confidence intervals, too.
+Not only do we get the probability contrast, but we get the standard error and confidence intervals, too. That, friends, if our first estimate of $\tau_\text{ATE}$ from a logistic regression model.
 
 ### Compute $\mathbb E (p_i^1 - p_i^0)$ from `glm1`.
 
@@ -353,9 +353,8 @@ Within the context of our ANOVA-type binomial model, the $\mathbb E (y_i^1 - y_i
 ```{r}
 crossing(y0 = 0:1, 
          y1 = 0:1) %>% 
-  mutate(tau = y1 - y0) 
-# %>% 
-#   flextable()
+  mutate(tau = y1 - y0) %>%
+  flextable()
 ```
 
 Imbens and Rubin discussed this kind of scenario in Section 1.3 in their [-@imbensCausalInferenceStatistics2015] text. If we were in a context where we could compute the raw $y_i^1 - y_i^0$ contrasts with synthetic data, the average of those values,
@@ -364,7 +363,7 @@ $$\tau_\text{SATE} = \frac{1}{N} \sum_{i=1}^N (y_i^1 - y_i^0),$$
 
 could take on any continuous value ranging from -1 to 1. Thus unlike with the OLS paradigm for continuous variables, the metric for $\tau_\text{SATE}$, and also $\tau_\text{ATE}$, is not the same as the metric for any individual case's causal effect $\tau_i$. The average of a set of integers is a real number.
 
-The second issue is when we compute the case-specific counterfactual estimates from a logistic regression model, we don't typically get a vector of $\hat y_i^1$ and $\hat y_i^1$ values; we get $\hat p_i^1$ and $\hat p_i^0$ instead. Let's explore with `predict()`.
+The second issue is when we compute the case-specific counterfactual estimates from a logistic regression model, we don't typically get a vector of $\hat y_i^1$ and $\hat y_i^1$ values; we get $\hat p_i^1$ and $\hat p_i^0$ instead. Let's explore what that looks like with `predict()`.
 
 ```{r}
 # redefine the data grid
@@ -405,7 +404,7 @@ predict(glm1,
 We can compute a standard error for that estimate with the `avg_comparisons()` function from the **marginaleffects** package [see @arelBundock2023CausalInference].
 
 ```{r}
-avg_comparisons(glm1, variables = list(tx = 0:1))
+avg_comparisons(glm1, variables = "tx")
 ```
 
 If this seems like a weird bait-and-switch, and you wanted more evidence that $\mathbb E (y_i^1 - y_i^0) = \mathbb E (p_i^1 - p_i^0)$, we could always simulate. Let's go back to our `predict()` workflow. After we've computed the various $\hat p_i$ values, we can use the `rbinom()` function to probabilistically simulate a vector of $\hat y_i$ values. Then we just need to wrangle and summarize the results.
@@ -451,12 +450,12 @@ sim %>%
             sd = sd(ate_iteration))
 ```
 
-The mean[^8] of our random process is a pretty good approximation of $\tau_\text{ATE}$ computed from the `avg_comparisons()` function, above.
+The mean[^9] of our random process is a pretty good approximation of $\tau_\text{ATE}$ computed from the `avg_comparisons()` function, above.
 
-Backing up a bit, we might want to get a better sense of all those $p_i^1$, $p_i^0$, and $(p_i^1 - p_i^0)$ estimates we've been averaging over. Like in the last post, we'll display them in a couple plots. To keep down the clutter, we'll restrict ourselves to a random $n = 50$ subset of the 400 cases in the `wilson2017` data.
+Backing up a bit, we might want to get a better sense of all those $\hat p_i^1$, $\hat p_i^0$, and $(\hat p_i^1 - \hat p_i^0)$ estimates we've been averaging over. Like in the last post, we'll display them in a couple plots. To keep down the clutter, we'll restrict ourselves to a random $n = 50$ subset of the 400 cases in the `wilson2017` data.
 
 ```{r, fig.width = 8, fig.height = 5.5}
-# make the random subset
+# define the random subset
 set.seed(3)
 
 id_subset <- wilson2017 %>%
@@ -482,13 +481,13 @@ p1 <- predictions(glm1, newdata = nd) %>%
   scale_x_continuous(limits = 0:1) +
   scale_y_discrete(breaks = NULL) +
   labs(subtitle = "Counterfactual probabilities",
-       x = expression(italic(p[i])),
+       x = expression(hat(italic(p))[italic(i)]),
        y = "id (ranked)") +
   theme(legend.background = element_blank(),
         legend.position = c(.9, .85))
 
 # treatment effects
-p2 <- comparisons(glm1, newdata = nd, variables = list(tx = 0:1), by = "id") %>% 
+p2 <- comparisons(glm1, newdata = nd, variables = "tx", by = "id") %>% 
   data.frame() %>% 
   filter(id %in% id_subset) %>% 
   
@@ -509,10 +508,9 @@ p2 <- comparisons(glm1, newdata = nd, variables = list(tx = 0:1), by = "id") %>%
 p1 + p2 + plot_annotation(title = "Person-level estimates based on the logistic regression ANOVA model (glm1)")
 ```
 
+If the left plot, we see the counterfactual probabilities, depicted by their point estimates (dots) and 95% intervals (horizontal lines), and colored by whether they were based on the control condition $(\hat p_i^0)$ or the experimental intervention $(\hat p_i^1)$. In the right plot, we have the corresponding contrasts $(\hat p_i^1 - \hat p_i^0)$. In both plots, the y-axis has been rank ordered by the magnitudes of the estimates. Other than how we have switched from predictions $\hat y_i$ to probabilities $\hat p_i$, the overall results of these plots follow the same patterns as those in their [analogues from the last post](https://timely-flan-2986f4.netlify.app/blog/2023-02-06-causal-inference-with-potential-outcomes-bootcamp/#estimands-estimators-and-estimates), where we used the conventional OLS framework. Because the logistic regression ANOVA model `glm1` has no covariates, the probabilities and their contrasts are identical for all participants. As we'll see later on, this will change when we switch to the ANCOVA model.
 
-If the left plot, we see the counterfactual probabilities, depicted by their point estimates (dots) and 95% intervals (horizontal lines), and colored by whether they were based on the control condition $(\hat p_i^0)$ or the experimental intervention $(\hat p_i^1)$. In the right plot, we have the corresponding contrasts $(p_i^1 - p_i^0)$. In both plots, the y-axis has been rank ordered by the magnitudes of the estimates. Other than how we have switched from predictions $\hat y_i$ to probabilities $\hat p_i$, the overall results of these plots follow the same patterns as those in their [analogues from the last post](https://timely-flan-2986f4.netlify.app/blog/2023-02-06-causal-inference-with-potential-outcomes-bootcamp/#estimands-estimators-and-estimates), where we used the conventional OLS framework. Because the logistic regression ANOVA model `glm1` has no covariates, the probabilities and their contrasts are identical for all participants. As we'll see later on, this will change when we switch to the ANCOVA model.
-
-Another fine point that's easy to lose track of is all those $(p_i^1 - p_i^0)$ contrasts in the right plot are NOT individual causal effects $(\tau_i)$. For binary data, individual causal effects can only take on values of $-1$, $0$, or $1$. Even when we use the so-called standardization or g-computation method, our logistic regression models don't really return individual treatment effects, even in the counterfactual sense. Rather, they return individual probability contrasts. But importantly, the average of those probability contrasts does return a valid estimate of the ATE. Wild, huh?
+Another fine point that's easy to lose track of is all those $(\hat p_i^1 - \hat p_i^0)$ contrasts in the right plot are NOT estimates for individual causal effects $(\tau_i)$. For binary data, individual causal effects can only take on values of $-1$, $0$, or $1$. Even when we use the so-called standardization or g-computation method, our logistic regression models don't really return individual treatment effects, even in the counterfactual sense. Rather, they return individual probability contrasts. But importantly, the average of those probability contrasts does return a valid estimate of the ATE. Wild, huh?
 
 Wrapping up, in the case of an ANOVA-type logistic regression model of a randomized experiment,
 
@@ -520,7 +518,7 @@ Wrapping up, in the case of an ANOVA-type logistic regression model of a randomi
 * $p^1 - p^0$, and
 * $\mathbb E (p_i^1 - p_i^0)$
 
-are all the same thing. They're all estimators of our estimand $\tau_\text{ATE}$, the average treatment effect.
+are all the same thing. They're all equal to our primary estimand $\tau_\text{ATE}$, the average treatment effect.
 
 ## ATE for the ANCOVA
 
@@ -528,7 +526,7 @@ In our [last post](http://localhost:4321/blog/2023-02-06-causal-inference-with-p
 
 $$\tau_\text{ATE} = \mathbb E (y_i^1 - y_i^0 \mid \mathbf C_i, \mathbf D_i).$$
 
-In words, this means the average treatment effect in the population is the same as the average of each person's individual treatment effect, computed conditional on their continuous covariates $\mathbf C_i$ and discrete covariates $\mathbf D_i$. This, again, is sometimes called *standardization* or *g-computation*. Within the context of a logistic regression model, we further observe
+In words, this means the average treatment effect in the population is the same as the average of each participant's individual treatment effect, computed conditional on their continuous covariates $\mathbf C_i$ and discrete covariates $\mathbf D_i$. This, again, is sometimes called *standardization* or *g-computation*. Within the context of a logistic regression model, we further observe
 
 $$
 \tau_\text{ATE} = \mathbb E (y_i^1 - y_i^0 \mid \mathbf C_i, \mathbf D_i) = {\color{blueviolet}{\mathbb E (p_i^1 - p_i^0 \mid \mathbf C_i, \mathbf D_i)}},
@@ -536,7 +534,7 @@ $$
 
 where $p_i^1$ and $p_i^0$ are the counterfactual probabilities for each of the $i$ cases, estimated in light of their covariate values. 
 
-Whether we have continuous covariates, discrete covariates, or a combination of both, the standardization method works the same. However, this is no longer the case when using the difference in population means approach, the covariate-adjusted version of $\mathbb E (y_i^1) - \mathbb E (y_i^0)$. One complication is we might not be able to mean-center the discrete covariates in our $\mathbf D$ vector. Sometimes people will mean center dummy variables, which can lead to awkward interpretive issues[^9]. But even this approach will not generalize well to multi-categorical nominal variables, like ethnicity. Another solution is to set discrete covariates at their modes [see @muller2014estimating], which we'll denote $\mathbf D^m$. This gives us a new estimand:
+Whether we have continuous covariates, discrete covariates, or a combination of both, the standardization method works the same. However, this is no longer the case when using the difference in population means approach, the covariate-adjusted version of $\mathbb E (y_i^1) - \mathbb E (y_i^0)$. One complication is we might not be able to mean-center the discrete covariates in our $\mathbf D$ vector. Sometimes people will mean center dummy variables, which can lead to awkward interpretive issues.[^10] But even this approach will not generalize well to multi-categorical nominal variables, like ethnicity. Another solution is to set discrete covariates at their modes [see @muller2014estimating], which we'll denote $\mathbf D^m$. This gives us a new estimand:
 
 $$\tau_\text{TEMM} = \operatorname{\mathbb{E}} \left (y_i^1 \mid \mathbf{\bar C}, \mathbf D^m \right) - \operatorname{\mathbb{E}} \left (y_i^0 \mid \mathbf{\bar C}, \mathbf D^m \right),$$
 
@@ -595,7 +593,7 @@ This holds for logistic regression models regardless of whether you have discret
 
 ### $\beta_1$ in the logistic regression ANCOVA.
 
-Earlier we learned the coefficient for the experimental group, $\beta_1$, does not have a direct relation with the ATE for the logistic regression ANOVA model. In a similar way, the $\beta_1$ coefficient does not have a direct relation with the ATE for the logistic regression ANCOVA model, either. If you want the ATE, you'll have to use the methods from the sections to come. In the meantime, let's compare the $\beta_1$ estimates for the ANOVA and ANCOVA models:
+Earlier we learned the coefficient for the experimental group, $\beta_1$, does not have a direct relation with the ATE for the logistic regression ANOVA model. In a similar way, the $\beta_1$ coefficient does not have a direct relation with the ATE for the logistic regression ANCOVA model, either. If you want the ATE, you'll have to use the methods from the sections to come. In the meantime, let's compare the $\beta_1$ estimates for the ANOVA and ANCOVA models.
 
 ```{r}
 bind_rows(tidy(glm1), tidy(glm2)) %>% 
@@ -662,7 +660,7 @@ predictions(glm2, newdata = nd, by = "tx")
 predictions(glm2, newdata = nd, by = "tx", hypothesis = "revpairwise")
 ```
 
-Thus we expect our hypothetical person with demographics at the mean and/or modes for the covariates will be about 22% more likely to get tested if given the intervention, compared to if she had not.
+Thus we expect our hypothetical participant with demographics at the mean and/or modes for the covariates will be about 22% more likely to get tested if given the intervention, compared to if she had not.
 
 ### Compute $(p^1 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d) - (p^0 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d)$ from `glm2`.
 
@@ -690,7 +688,7 @@ nd <- wilson2017 %>%
 print(nd)
 ```
 
-Now use `predictions()` to compute the counterfactual probabilities and the $\tau_\text{CATE}$.
+Now use the `predictions()` function to estimate the desired counterfactual probabilities and the estimate for this version of $\tau_\text{CATE}$.
 
 ```{r}
 # conditional probabilities
@@ -700,11 +698,11 @@ predictions(glm2, newdata = nd, by = "tx")
 predictions(glm2, newdata = nd, by = "tx", hypothesis = "revpairwise")
 ```
 
-Turns out this $\tau_\text{CATE}$ is a little larger than our estimate for $\tau_\text{TEMM}$, from above. With this framework, you can compute $\tau_\text{CATE}$  estimates for any number of theoretically-meaningful covariate sets.
+Turns out our estimate for this $\tau_\text{CATE}$ is a little larger than our estimate for $\tau_\text{TEMM}$, from above. With this framework, you can compute $\tau_\text{CATE}$  estimates for any number of theoretically-meaningful covariate sets.
 
 ### Compute $\mathbb E (p_i^1 - p_i^0 \mid \mathbf C_i, \mathbf D_i)$ from `glm2`.
 
-Before we compute our counterfactual $\mathbb{E}(p_i^1 - p_i^0 \mid \mathbf C_i, \mathbf D_i)$ estimates from our ANCOVA-type logistic regression model `glm2`, we'll first need to redefine our `nd` predictor data. This time, we'll retain the full set of covariate values for each participant.
+Before we compute our counterfactual $\mathbb{E}(\hat p_i^1 - \hat p_i^0 \mid \mathbf C_i, \mathbf D_i)$ estimates from our ANCOVA-type logistic regression model `glm2`, we'll first need to redefine our `nd` predictor data. This time, we'll retain the full set of covariate values for each participant.
 
 ```{r}
 nd <- wilson2017 %>% 
@@ -727,7 +725,7 @@ comparisons(glm2, newdata = nd, variables = "tx") %>%
   head(n = 10)
 ```
 
-Even among the first 10 rows, we can see there's a lot of diversity among the estimates for the individual treatment effects. Before we compute the ATE, it might be worth the effort to look more closely at the person-level estimates in a coefficient plot. As with the ANOVA model, we'll only visualize an $n = 50$ subset of the 400 cases.
+Even among the first 10 rows, we can see there's a lot of diversity among the estimates for the individual probability contrasts. Before we compute the ATE, it might be worth the effort to look more closely at the participant-level estimates in a coefficient plot. As with the ANOVA model, we'll only visualize an $n = 50$ subset of the 400 cases.
 
 ```{r, fig.width = 8, fig.height = 5.5}
 # counterfactual probabilities
@@ -749,7 +747,7 @@ p3 <- predictions(glm2, newdata = nd) %>%
   scale_x_continuous(limits = 0:1) +
   scale_y_discrete(breaks = NULL) +
   labs(subtitle = "Counterfactual probabilities",
-       x = expression(italic(p[i])),
+       x = expression(hat(italic(p))[italic(i)]),
        y = "id (ranked)") +
   theme(legend.background = element_blank(),
         legend.position = c(.9, .85))
@@ -776,7 +774,7 @@ p4 <- comparisons(glm2, newdata = nd, variables = "tx") %>%
 p3 + p4 + plot_annotation(title = "Person-level estimates based on the logistic regression ANCOVA model (glm2)")
 ```
 
-Now we have added covariates to the model, the counterfactual probabilities vary across participants, which was the same pattern for the OLS-based ANCOVA from the [last post](https://timely-flan-2986f4.netlify.app/blog/2023-02-06-causal-inference-with-potential-outcomes-bootcamp/#counterfactual-interventions-with-covariates), too. But unlike with the ANOVA model and unlike with the ANCOVA results from the last post, the contrasts $(p_i^1 - p_i^0)$ now vary across participants. Once you leave the simple OLS paradigm, this issue will come up again and again when you fit ANCOVA models. Covariate values change the magnitudes of the probability estimates and their contrasts.
+Now we have added covariates to the model, the counterfactual probabilities vary across participants, which was the same pattern for the OLS-based ANCOVA from the [last post](https://timely-flan-2986f4.netlify.app/blog/2023-02-06-causal-inference-with-potential-outcomes-bootcamp/#counterfactual-interventions-with-covariates), too. But unlike with the ANOVA model and unlike with the ANCOVA results from the last post, the $(p_i^1 - p_i^0)$ contrasts now vary across participants. Once you leave the simple OLS paradigm, this issue will come up again and again when you fit ANCOVA models. Covariate values often change the magnitudes of the probability estimates *and* their contrasts.
 
 Investigating further, here's the full distribution of the contrast values for all $n = 400$ cases. To reduce visual complexity, we'll drop the 95% confidence interval lines.
 
@@ -798,7 +796,7 @@ comparisons(glm2, newdata = nd, variables = "tx", by = "id") %>%
   coord_cartesian(ylim = c(0, 0.7))
 ```
 
-The red dot below the distribution marks off the average of the participant-level probability contrast estimates, which is the same as the point estimate for the ATE. Speaking of which, here's $\tau_\text{ATE}$ for this model, and for the simpler ANOVA-type `glm1`.
+The red dot below the distribution marks off the average of the participant-level probability contrast estimates, which is the same as the point estimate for the ATE. Speaking of which, here's our estimate of $\tau_\text{ATE}$ for this model, and for the simpler ANOVA-type `glm1`.
 
 ```{r}
 bind_rows(
@@ -812,11 +810,12 @@ bind_rows(
   select(fit, model_type, `tau[ATE]`, std.error)
 ```
 
-Whereas the standard error for the $\beta_1$ coefficient *increased* when we added the baseline covariates to the model, the standard error for our primary estimand $\tau_\text{ATE}$ *decreased*. This isn't a fluke of our $n = 400$ subset. The same general pattern holds for the full data set. Not only is $\beta_1$ not the same as the ATE for a logistic regression model, adding covariates can have the reverse effect on their respective standard errors. This phenomena is related to the so-called noncollapsibility issue, which is well known among statisticians who work with medical trials. For an entry point into that literature, see @daniel2021makingApples or @morris2022planning. But anyway, yes, baseline covariates can help increase the precision with which you estimate the ATE from a logistic regression model. Don't worry about what happens with $\beta_1$. Focus on the ATE.
+Whereas the standard error for the $\beta_1$ coefficient *increased* when we added the baseline covariates to the model, the standard error for our primary estimand $\tau_\text{ATE}$ *decreased*. This isn't a fluke of our $n = 400$ subset. The same general pattern holds for the full data set. Not only is $\beta_1$ not the same as the ATE for a logistic regression model, adding covariates can have the reverse effect on their respective standard errors. This phenomena is related to the so-called noncollapsibility issue, which is well known among statisticians who work with medical trials. For an entry point into that literature, see @daniel2021makingApples or @morris2022planning. If you prefer your statistics explained with sass,
+Jake Westfall's [-@westfall2018logisticRegression] blog post, *Logistic regression is not fucked*, is an excellent and accessible introduction to the noncollapsibility issue. But anyway, yes, baseline covariates can help increase the precision with which you estimate the ATE from a logistic regression model. Don't worry about what happens with $\beta_1$. Focus on the ATE.
 
 ### Grappling with $(p_i^1 - p_i^0 \mid \mathbf C_i, \mathbf D_i)$ distributions.
 
-Given how the logistic-regression-based participant-level probability contrasts now come in distributions when estimated from ANCOVA models, some researchers have wondered whether it's a good idea to use a single summary value like the ATE. Biostatistician Frank Harrell, for example, recommended displaying the entire contrast distribution in his [-@harrell2021avoiding] blog post, [*Avoiding one-number summaries of treatment effects for RCTs with binary outcomes*](https://www.fharrell.com/post/rdist/). Albuquerque and Arel-Bundock covered Harrell's primary material from a **marginaleffects** perspective in their [-@albuquerque2023logisticRegression] vignette, [*Logistic regression*](https://vincentarelbundock.github.io/marginaleffects/articles/logit.html) [see also @kent2007limitations]. At the moment, I'm inclined to still rely on the ATE, but perhaps also show a plot of the contrast distribution as a supplement. 
+Given how the logistic-regression-based participant-level probability contrasts now come in distributions when estimated from ANCOVA models, some researchers have wondered whether it's a good idea to use a single summary value like the ATE. Biostatistician Frank Harrell, for example, recommended displaying the entire contrast distribution in his [-@harrell2021avoiding] blog post, [*Avoiding one-number summaries of treatment effects for RCTs with binary outcomes*](https://www.fharrell.com/post/rdist/). Albuquerque and Arel-Bundock covered Harrell's primary material from a **marginaleffects** perspective in their [-@albuquerque2023logisticRegression] vignette, [*Logistic regression*](https://vincentarelbundock.github.io/marginaleffects/articles/logit.html) [see also @kent2007limitations]. At the moment, I'm still inclined to rely on the ATE, but perhaps also show a plot of the contrast distribution as a supplement.
 
 Another approach might be to focus on one or a handful of CATE's. This, however, I would only recommend with great caution. To help clarify why, let's compute the CATE for every valid combination of our baseline covariate values. First, we'll update our `nd` data grid.
 
@@ -872,7 +871,7 @@ p5 + p6 +
                   subtitle = "Based on 2,250 possible combinations of covariate values.")
 ```
 
-The ATE is still near the middle of the distribution of point estimates for the CATE's. However, the standard error for the ATE is well lower than the bulk of the standard errors for the various versions of the CATE. If you have designed and powered a study to compute the ATE, be very cautious about switching your focus to the CATE. You might not have the right data set to answer questions like that.
+The ATE is still near the middle of the distribution of point estimates for the CATE's. However, the standard error for the ATE is well lower than the bulk of the standard errors for the various versions of the CATE. If you have designed and powered a study to compute the ATE, be very cautious about switching your focus to the CATE. You might not have the right data set to do a good job estimating the CATE with precision.
 
 In case you were wondering, all those counterfactual cases with near-zero point estimates and near-zero standard errors had `Other` as the value for `ethnicgrp`. If you look back up to the model summary for `glm2`, you'll notice the coefficient for that category has a very low point estimate and an extremely large standard error. This is what can happen when you include a categorical variables with only a handful of cases for one of the categories in a frequentist logistic regression model. Happily, this will be a much smaller problem when we adopt a Bayesian framework in the next post.
 
@@ -942,19 +941,21 @@ sessionInfo()
 
 [^2]: I suppose you could even argue it's a censored count. But since we'll be using it as a predictor, I'm not sure that argument would be of much help.
 
-[^3]: As it turns out, statisticians and quanty researchers are not in total agreement on whether or how one must condition on covariates when those covariates were used to balance during the randomization process. For a lively twitter discussion on this very data set, see the replies to [this twitter poll](https://twitter.com/SolomonKurz/status/1623349977786228736).
+[^3]: In the full version of the data set, only four participants identified as transgender, and none of those participants were among those who were randomly selected into our $n = 400$ subset. For analyses where we emphasize interpreting $\beta$ coefficients, categories with very small $n$'s like this can make for uncertain and unstable inferences. However, the marginal standardization approach we'll be practicing in this post can handle small categories just fine. So if you decide to practice these methods with the full data set, an $n = 4$ category for `gender` shouldn't cause difficulties for estimating the ATE.
 
-[^4]: At this point, one might ask: *Which covariates should I include in my ANCOVA?* At the moment, I'm in large agreement with @raab2000HowToSelect, who recommend you condition on covariates that are theorized or have been empirically shown to be strongly predictive of the outcome, and/or where used to balance during the randomization process. They further added researchers would do well by planning their covariate set before data collection, and publicly reporting their plan in some kind of pre-registration report, which would help reduce $p$-hacking and other such nonsense.
+[^4]: As it turns out, statisticians and quanty researchers are not in total agreement on whether or how one must condition on covariates when those covariates were used to balance during the randomization process. For a lively twitter discussion on this very data set, see the replies to [this twitter poll](https://twitter.com/SolomonKurz/status/1623349977786228736).
 
-[^5]: At the moment (03-26-2023), it appears the **flextable** package (0.9.0) isn't playing nicely with **blogdown** (1.16). Sadly, I don't have the technical abilities to understand why, but I get insurmountable error warnings when trying to render. For now I'm leaving the **flextable** code in, in the hopes the conflict will find resolution, soon.
+[^5]: At this point, one might ask: *Which covariates should I include in my ANCOVA?* At the moment, I'm in large agreement with @raab2000HowToSelect, who recommend you condition on covariates that are theorized or have been empirically shown to be strongly predictive of the outcome, and/or where used to balance during the randomization process. They further added researchers would do well by planning their covariate set before data collection, and publicly reporting their plan in some kind of pre-registration report, which would help reduce $p$-hacking and other such nonsense.
 
-[^6]: There are numerous effect sizes one could compute from a logistic regression model. For a more exhaustive list, as applied within our causal inference framework, see Section 3.3 in @brumback2022Fundamentals.
+[^6]: At the moment (03-26-2023), it appears the **flextable** package (0.9.0) isn't playing nicely with **blogdown** (1.16). Sadly, I don't have the technical abilities to understand why, but I get insurmountable error warnings when trying to render. For now I'm leaving the **flextable** code in, in the hopes the conflict will find resolution, soon.
 
-[^7]: In some parts of the literature, probabilities are called "risks" and differences in probabilities are called "risk differences" [e.g., @morris2022planning]. We will not be using the jargon of "risk" in this blog series.
+[^7]: There are numerous effect sizes one could compute from a logistic regression model. For a more exhaustive list, as applied within our causal inference framework, see Section 3.3 in @brumback2022Fundamentals.
 
-[^8]: Note that the standard deviation, here, isn't quite the same thing as a standard error. We'd need to do something more akin to bootstrapping, for that. However, this kind of a workflow does have some things in common with the Monte-Carlo-based Bayesian methods we'll be practicing later in this series.
+[^8]: In some parts of the literature, probabilities are called "risks" and differences in probabilities are called "risk differences" [e.g., @morris2022planning]. We will not be using the jargon of "risk" in this blog series.
 
-[^9]: For example, say you have a dummy variable called `male`, which is a zero for women and a one for men. One way to interpret a model using the centered version of `male` is it returns the contrast weighted by the proportion of women/men in the sample or population. Another interpretation is this returns the contrast for someone who is in the middle of the female-male spectrum--which is what? Intersex? Non-binary? Transgender? It might be possible to interpret such a computation with skill and care, but such an approach might also leave one's audience confused or offended.
+[^9]: Note that the standard deviation, here, isn't quite the same thing as a standard error. We'd need to do something more akin to bootstrapping, for that. However, this kind of a workflow does have some things in common with the Monte-Carlo-based Bayesian methods we'll be practicing later in this series.
+
+[^10]: For example, say you have a dummy variable called `male`, which is a zero for women and a one for men. One way to interpret a model using the centered version of `male` is it returns the contrast weighted by the proportion of women/men in the sample or population. Another interpretation is this returns the contrast for someone who is in the middle of the female-male spectrum--which is what? Intersex? Non-binary? Transgender? It might be possible to interpret such a computation with skill and care, but such an approach might also leave one's audience confused or offended.
 
 ```{r, fig.width = 4, fig.height = 4, echo = F, eval = F}
 comparisons(glm2, variables = "tx") %>% 

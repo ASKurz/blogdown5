@@ -31,17 +31,22 @@ csl: /Users/solomonkurz/Dropbox/blogdown5/content/blog/apa.csl
 link-citations: yes
 ---
 
-So far in this series, we’ve been been using ordinary least squares (OLS) to analyze and make causal inferences from our experimental data. Though OLS is an applied statistics workhorse and performs admirably in some cases, there are many contexts in which it’s just not appropriate. In medical trials, for example, many of the outcome variables are binary. Some typical examples are whether a patient still has the disease (coded `1`) or not (coded `0`), or whether a participant has died (coded `1`) or is still alive (coded `0`). In these cases, we want to model our data with a likelihood function that can handle binary data, and the go-to solution is the binomial[^1]. As we will see, some of the nice qualities from the OLS paradigm fall apart when we want to make causal inferences with binomial models. But no fear; we have solutions.
+<link href="{{< blogdown/postref >}}index_files/tabwid/tabwid.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index_files/tabwid/tabwid.js"></script>
+<link href="{{< blogdown/postref >}}index_files/tabwid/tabwid.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index_files/tabwid/tabwid.js"></script>
+
+So far in this series, we’ve been been using ordinary least squares (OLS) to analyze and make causal inferences from our experimental data. Though OLS is an applied statistics workhorse and performs admirably in some cases, there are many contexts in which it’s just not appropriate. In medical trials, for example, many of the outcome variables are binary. Some typical examples are whether a participant still has the disease (coded `1`) or not (coded `0`), or whether a participant has died (coded `1`) or is still alive (coded `0`). In these cases, we want to model our data with a likelihood function that can handle binary data, and the go-to solution is the binomial.[^1] As we will see, some of the nice qualities from the OLS paradigm fall apart when we want to make causal inferences with binomial models. But no fear; we have solutions.
 
 ## We need data
 
-In this post, we’ll be borrowing data from Wilson et al. ([2017](#ref-wilson2017internet)), *Internet-accessed sexually transmitted infection (e-STI) testing and results service: A randomised, single-blind, controlled trial*. Wilson and colleagues were open-science champions and made their primary data available as supporting information in their `S1Data.xls` file, which you can download from [here](https://journals.plos.org/plosmedicine/article?id=10.1371/journal.pmed.1002479#sec020).
+In this post, we’ll be borrowing data from Wilson et al. ([2017](#ref-wilson2017internet)), *Internet-accessed sexually transmitted infection (e-STI) testing and results service: A randomised, single-blind, controlled trial*. Wilson and colleagues were open-science champions and made their primary data available as supporting information in their `S1Data.xls` file, which you can download by clicking this: <https://doi.org/10.1371/journal.pmed.1002479.s001>. ⚠️ For this next code block to work on your computer, you will need to first download that `S1Data.xls` file, and then save that file in a `data` subfolder in your working directory.
 
 ``` r
 # packages
 library(tidyverse)
 library(marginaleffects)
-# library(flextable)
+library(flextable)
 library(broom)
 library(ggdist)
 library(patchwork)
@@ -50,10 +55,10 @@ library(patchwork)
 theme_set(theme_gray(base_size = 12) +
             theme(panel.grid = element_blank()))
 
-# data
+# load the data
 wilson2017 <- readxl::read_excel("data/S1Data.xls", sheet = "data")
 
-# what?
+# what do these look like?
 glimpse(wilson2017)
 ```
 
@@ -134,7 +139,7 @@ dim(wilson2017)
 
     ## [1] 400  17
 
-Now we’ll adjust some of the variables, themselves. We will save the nominal covariates `gender`, `msm`, and `ethnicgrp` as factors with defined levels. The covariate `partners` is ordinal[^2], but for our purposes it will be fine to convert it to a factor, too. The `age` covariate is continuous, but it’ll come in handy to rescale it into a `\(z\)`-score metric, which we’ll name `agez`. We’ll simplify the character variable for the experimental groups, `group`, in to a a `tx` dummy coded `0` for the control condition and `1` for those in the intervention condition. Then we’ll rename the `anon_id` index to `id`, reorder the columns, and drop the other columns we won’t be focusing on in this post.
+Now we’ll adjust some of the variables, themselves. We will save the nominal covariates `gender`, `msm`, and `ethnicgrp` as factors with defined levels. The covariate `partners` is ordinal,[^2] but for our purposes it will be fine to convert it to a factor, too. The `age` covariate is continuous, but it’ll come in handy to rescale it into a `\(z\)`-score metric, which we’ll name `agez`. We’ll simplify the character variable for the experimental groups, `group`, in to a a `tx` dummy coded `0` for the control condition and `1` for those in the intervention condition. Then we’ll rename the `anon_id` index to `id`, reorder the columns, and drop the other columns we won’t need for the rest of this post.
 
 ``` r
 wilson2017 <- wilson2017 %>% 
@@ -148,7 +153,9 @@ wilson2017 <- wilson2017 %>%
   mutate(agez = (age - mean(age)) / sd(age)) %>% 
   # make a simple treatment dummy
   mutate(tx = ifelse(group == "SH:24", 1, 0)) %>% 
+  # simplify the name
   rename(id = anon_id) %>% 
+  # reorder and drop unneeded columns
   select(id, tx, anytest, gender, partners, msm, ethnicgrp, age, agez)
 
 # what do we have?
@@ -169,13 +176,13 @@ glimpse(wilson2017)
 
 ### Descriptive statistics
 
-We’ve already introduced our binary outcome variable `anytest` and the experimental treatment dummy `tx`. In the Method section, we further learned the randomization algorithm balanced
+We’ve already introduced our binary outcome variable `anytest` and the experimental treatment dummy `tx`. In the paper’s Method section, we further learned the randomization algorithm balanced
 
-> for gender (male, female, transgender), age (16–19, 20–24, 25–30 years), number of sexual partners in last 12 months (1, 2+), and sexual orientation (MSM, all other groups). All factors had equal weight in determining marginal imbalance. (p. 4)
+> for gender (male, female, transgender),[^3] age (16–19, 20–24, 25–30 years), number of sexual partners in last 12 months (1, 2+), and sexual orientation (MSM, all other groups). All factors had equal weight in determining marginal imbalance. (p. 4)
 
-Further down in the Method (p. 7), we learn all these variables were used as covariates in the primary analysis[^3], in addition to ethnicity[^4].
+Further down in the Method (p. 7), we learn all these variables were used as covariates in the primary analysis,[^4] in addition to ethnicity.[^5]
 
-To get a sense of these covariates, we’ll make a Table 1 type table[^5] of the categorical variables for our randomized subset.
+To get a sense of these covariates, we’ll make a Table 1 type table[^6] of the categorical variables for our randomized subset.
 
 ``` r
 wilson2017 %>% 
@@ -183,41 +190,14 @@ wilson2017 %>%
                names_to = "variable", values_to = "category") %>% 
   group_by(variable) %>% 
   count(category) %>% 
-  mutate(`%` = round(100 * n / sum(n), digits = 1))
+  mutate(`%` = round(100 * n / sum(n), digits = 1)) %>%
+  as_grouped_data(groups = c("variable")) %>%
+  flextable() %>%
+  autofit() %>%
+  italic(j = 3, part = "header")
 ```
 
-    ## # A tibble: 19 × 4
-    ## # Groups:   variable [4]
-    ##    variable  category                      n   `%`
-    ##    <chr>     <fct>                     <int> <dbl>
-    ##  1 ethnicgrp White/ White British        293  73.2
-    ##  2 ethnicgrp Asian/ Asian British         24   6  
-    ##  3 ethnicgrp Black/ Black British         35   8.8
-    ##  4 ethnicgrp Mixed/ Multiple ethnicity    44  11  
-    ##  5 ethnicgrp Other                         4   1  
-    ##  6 gender    Female                      241  60.2
-    ##  7 gender    Male                        159  39.8
-    ##  8 msm       other                       341  85.2
-    ##  9 msm       msm                          59  14.8
-    ## 10 partners  1                           121  30.2
-    ## 11 partners  2                            68  17  
-    ## 12 partners  3                            56  14  
-    ## 13 partners  4                            37   9.2
-    ## 14 partners  5                            41  10.2
-    ## 15 partners  6                            16   4  
-    ## 16 partners  7                            12   3  
-    ## 17 partners  8                             4   1  
-    ## 18 partners  9                             5   1.2
-    ## 19 partners  10+                          40  10
-
-``` r
-# %>%
-#   # these last 4 lines make the flextable-based table
-#   as_grouped_data(groups = c("variable")) %>%
-#   flextable() %>%
-#   autofit() %>%
-#   italic(j = 3, part = "header")
-```
+<div class="tabwid"><style>.cl-c7048478{}.cl-c6e546a8{font-family:'Helvetica';font-size:11pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(0, 0, 0, 1.00);background-color:transparent;}.cl-c6e546bc{font-family:'Helvetica';font-size:11pt;font-weight:normal;font-style:italic;text-decoration:none;color:rgba(0, 0, 0, 1.00);background-color:transparent;}.cl-c6fd05c2{margin:0;text-align:left;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:5pt;padding-right:5pt;line-height: 1;background-color:transparent;}.cl-c6fd05cc{margin:0;text-align:right;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:5pt;padding-right:5pt;line-height: 1;background-color:transparent;}.cl-c6fd2480{width:0.914in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 1.5pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd248a{width:1.907in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 1.5pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd2494{width:0.54in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 1.5pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd249e{width:0.583in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 1.5pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd249f{width:0.914in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd24a8{width:1.907in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd24a9{width:0.54in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd24aa{width:0.583in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd24b2{width:0.914in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd24bc{width:1.907in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd24bd{width:0.54in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd24be{width:0.583in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd24c6{width:0.914in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd24c7{width:1.907in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd24c8{width:0.54in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd24d0{width:0.583in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd24d1{width:0.914in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd24d2{width:1.907in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd24da{width:0.54in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd24db{width:0.583in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd24e4{width:0.914in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd24e5{width:1.907in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd24ee{width:0.54in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd24ef{width:0.583in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd24f8{width:0.914in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd24f9{width:1.907in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd24fa{width:0.54in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd2502{width:0.583in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd2503{width:0.914in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd2504{width:1.907in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd250c{width:0.54in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd250d{width:0.583in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd2516{width:0.914in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd2517{width:1.907in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd2520{width:0.54in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd2521{width:0.583in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd2522{width:0.914in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd252a{width:1.907in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd252b{width:0.54in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd252c{width:0.583in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd2534{width:0.914in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd2535{width:1.907in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd253e{width:0.54in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd253f{width:0.583in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd2548{width:0.914in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd2549{width:1.907in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd254a{width:0.54in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd2552{width:0.583in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd2553{width:0.914in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd2554{width:1.907in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd255c{width:0.54in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd255d{width:0.583in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd2566{width:0.914in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd2567{width:1.907in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd2570{width:0.54in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd2571{width:0.583in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd2572{width:0.914in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd257a{width:1.907in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd257b{width:0.54in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd2584{width:0.583in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd2585{width:0.914in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd258e{width:1.907in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd258f{width:0.54in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c6fd2590{width:0.583in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table data-quarto-disable-processing='true' class='cl-c7048478'><thead><tr style="overflow-wrap:break-word;"><th class="cl-c6fd2480"><p class="cl-c6fd05c2"><span class="cl-c6e546a8">variable</span></p></th><th class="cl-c6fd248a"><p class="cl-c6fd05c2"><span class="cl-c6e546a8">category</span></p></th><th class="cl-c6fd2494"><p class="cl-c6fd05cc"><span class="cl-c6e546bc">n</span></p></th><th class="cl-c6fd249e"><p class="cl-c6fd05cc"><span class="cl-c6e546a8">%</span></p></th></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-c6fd249f"><p class="cl-c6fd05c2"><span class="cl-c6e546a8">ethnicgrp</span></p></td><td class="cl-c6fd24a8"><p class="cl-c6fd05c2"><span class="cl-c6e546a8"></span></p></td><td class="cl-c6fd24a9"><p class="cl-c6fd05cc"><span class="cl-c6e546a8"></span></p></td><td class="cl-c6fd24aa"><p class="cl-c6fd05cc"><span class="cl-c6e546a8"></span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c6fd24b2"><p class="cl-c6fd05c2"><span class="cl-c6e546a8"></span></p></td><td class="cl-c6fd24bc"><p class="cl-c6fd05c2"><span class="cl-c6e546a8">White/ White British</span></p></td><td class="cl-c6fd24bd"><p class="cl-c6fd05cc"><span class="cl-c6e546a8">293</span></p></td><td class="cl-c6fd24be"><p class="cl-c6fd05cc"><span class="cl-c6e546a8">73.2</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c6fd24b2"><p class="cl-c6fd05c2"><span class="cl-c6e546a8"></span></p></td><td class="cl-c6fd24bc"><p class="cl-c6fd05c2"><span class="cl-c6e546a8">Asian/ Asian British</span></p></td><td class="cl-c6fd24bd"><p class="cl-c6fd05cc"><span class="cl-c6e546a8">24</span></p></td><td class="cl-c6fd24be"><p class="cl-c6fd05cc"><span class="cl-c6e546a8">6.0</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c6fd24b2"><p class="cl-c6fd05c2"><span class="cl-c6e546a8"></span></p></td><td class="cl-c6fd24bc"><p class="cl-c6fd05c2"><span class="cl-c6e546a8">Black/ Black British</span></p></td><td class="cl-c6fd24bd"><p class="cl-c6fd05cc"><span class="cl-c6e546a8">35</span></p></td><td class="cl-c6fd24be"><p class="cl-c6fd05cc"><span class="cl-c6e546a8">8.8</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c6fd24c6"><p class="cl-c6fd05c2"><span class="cl-c6e546a8"></span></p></td><td class="cl-c6fd24c7"><p class="cl-c6fd05c2"><span class="cl-c6e546a8">Mixed/ Multiple ethnicity</span></p></td><td class="cl-c6fd24c8"><p class="cl-c6fd05cc"><span class="cl-c6e546a8">44</span></p></td><td class="cl-c6fd24d0"><p class="cl-c6fd05cc"><span class="cl-c6e546a8">11.0</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c6fd24d1"><p class="cl-c6fd05c2"><span class="cl-c6e546a8"></span></p></td><td class="cl-c6fd24d2"><p class="cl-c6fd05c2"><span class="cl-c6e546a8">Other</span></p></td><td class="cl-c6fd24da"><p class="cl-c6fd05cc"><span class="cl-c6e546a8">4</span></p></td><td class="cl-c6fd24db"><p class="cl-c6fd05cc"><span class="cl-c6e546a8">1.0</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c6fd249f"><p class="cl-c6fd05c2"><span class="cl-c6e546a8">gender</span></p></td><td class="cl-c6fd24a8"><p class="cl-c6fd05c2"><span class="cl-c6e546a8"></span></p></td><td class="cl-c6fd24a9"><p class="cl-c6fd05cc"><span class="cl-c6e546a8"></span></p></td><td class="cl-c6fd24aa"><p class="cl-c6fd05cc"><span class="cl-c6e546a8"></span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c6fd24e4"><p class="cl-c6fd05c2"><span class="cl-c6e546a8"></span></p></td><td class="cl-c6fd24e5"><p class="cl-c6fd05c2"><span class="cl-c6e546a8">Female</span></p></td><td class="cl-c6fd24ee"><p class="cl-c6fd05cc"><span class="cl-c6e546a8">241</span></p></td><td class="cl-c6fd24ef"><p class="cl-c6fd05cc"><span class="cl-c6e546a8">60.2</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c6fd24e4"><p class="cl-c6fd05c2"><span class="cl-c6e546a8"></span></p></td><td class="cl-c6fd24e5"><p class="cl-c6fd05c2"><span class="cl-c6e546a8">Male</span></p></td><td class="cl-c6fd24ee"><p class="cl-c6fd05cc"><span class="cl-c6e546a8">159</span></p></td><td class="cl-c6fd24ef"><p class="cl-c6fd05cc"><span class="cl-c6e546a8">39.8</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c6fd24f8"><p class="cl-c6fd05c2"><span class="cl-c6e546a8">msm</span></p></td><td class="cl-c6fd24f9"><p class="cl-c6fd05c2"><span class="cl-c6e546a8"></span></p></td><td class="cl-c6fd24fa"><p class="cl-c6fd05cc"><span class="cl-c6e546a8"></span></p></td><td class="cl-c6fd2502"><p class="cl-c6fd05cc"><span class="cl-c6e546a8"></span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c6fd2503"><p class="cl-c6fd05c2"><span class="cl-c6e546a8"></span></p></td><td class="cl-c6fd2504"><p class="cl-c6fd05c2"><span class="cl-c6e546a8">other</span></p></td><td class="cl-c6fd250c"><p class="cl-c6fd05cc"><span class="cl-c6e546a8">341</span></p></td><td class="cl-c6fd250d"><p class="cl-c6fd05cc"><span class="cl-c6e546a8">85.2</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c6fd2516"><p class="cl-c6fd05c2"><span class="cl-c6e546a8"></span></p></td><td class="cl-c6fd2517"><p class="cl-c6fd05c2"><span class="cl-c6e546a8">msm</span></p></td><td class="cl-c6fd2520"><p class="cl-c6fd05cc"><span class="cl-c6e546a8">59</span></p></td><td class="cl-c6fd2521"><p class="cl-c6fd05cc"><span class="cl-c6e546a8">14.8</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c6fd2522"><p class="cl-c6fd05c2"><span class="cl-c6e546a8">partners</span></p></td><td class="cl-c6fd252a"><p class="cl-c6fd05c2"><span class="cl-c6e546a8"></span></p></td><td class="cl-c6fd252b"><p class="cl-c6fd05cc"><span class="cl-c6e546a8"></span></p></td><td class="cl-c6fd252c"><p class="cl-c6fd05cc"><span class="cl-c6e546a8"></span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c6fd2534"><p class="cl-c6fd05c2"><span class="cl-c6e546a8"></span></p></td><td class="cl-c6fd2535"><p class="cl-c6fd05c2"><span class="cl-c6e546a8">1</span></p></td><td class="cl-c6fd253e"><p class="cl-c6fd05cc"><span class="cl-c6e546a8">121</span></p></td><td class="cl-c6fd253f"><p class="cl-c6fd05cc"><span class="cl-c6e546a8">30.2</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c6fd2548"><p class="cl-c6fd05c2"><span class="cl-c6e546a8"></span></p></td><td class="cl-c6fd2549"><p class="cl-c6fd05c2"><span class="cl-c6e546a8">2</span></p></td><td class="cl-c6fd254a"><p class="cl-c6fd05cc"><span class="cl-c6e546a8">68</span></p></td><td class="cl-c6fd2552"><p class="cl-c6fd05cc"><span class="cl-c6e546a8">17.0</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c6fd2553"><p class="cl-c6fd05c2"><span class="cl-c6e546a8"></span></p></td><td class="cl-c6fd2554"><p class="cl-c6fd05c2"><span class="cl-c6e546a8">3</span></p></td><td class="cl-c6fd255c"><p class="cl-c6fd05cc"><span class="cl-c6e546a8">56</span></p></td><td class="cl-c6fd255d"><p class="cl-c6fd05cc"><span class="cl-c6e546a8">14.0</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c6fd2516"><p class="cl-c6fd05c2"><span class="cl-c6e546a8"></span></p></td><td class="cl-c6fd2517"><p class="cl-c6fd05c2"><span class="cl-c6e546a8">4</span></p></td><td class="cl-c6fd2520"><p class="cl-c6fd05cc"><span class="cl-c6e546a8">37</span></p></td><td class="cl-c6fd2521"><p class="cl-c6fd05cc"><span class="cl-c6e546a8">9.2</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c6fd2534"><p class="cl-c6fd05c2"><span class="cl-c6e546a8"></span></p></td><td class="cl-c6fd2535"><p class="cl-c6fd05c2"><span class="cl-c6e546a8">5</span></p></td><td class="cl-c6fd253e"><p class="cl-c6fd05cc"><span class="cl-c6e546a8">41</span></p></td><td class="cl-c6fd253f"><p class="cl-c6fd05cc"><span class="cl-c6e546a8">10.2</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c6fd2553"><p class="cl-c6fd05c2"><span class="cl-c6e546a8"></span></p></td><td class="cl-c6fd2554"><p class="cl-c6fd05c2"><span class="cl-c6e546a8">6</span></p></td><td class="cl-c6fd255c"><p class="cl-c6fd05cc"><span class="cl-c6e546a8">16</span></p></td><td class="cl-c6fd255d"><p class="cl-c6fd05cc"><span class="cl-c6e546a8">4.0</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c6fd2566"><p class="cl-c6fd05c2"><span class="cl-c6e546a8"></span></p></td><td class="cl-c6fd2567"><p class="cl-c6fd05c2"><span class="cl-c6e546a8">7</span></p></td><td class="cl-c6fd2570"><p class="cl-c6fd05cc"><span class="cl-c6e546a8">12</span></p></td><td class="cl-c6fd2571"><p class="cl-c6fd05cc"><span class="cl-c6e546a8">3.0</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c6fd2516"><p class="cl-c6fd05c2"><span class="cl-c6e546a8"></span></p></td><td class="cl-c6fd2517"><p class="cl-c6fd05c2"><span class="cl-c6e546a8">8</span></p></td><td class="cl-c6fd2520"><p class="cl-c6fd05cc"><span class="cl-c6e546a8">4</span></p></td><td class="cl-c6fd2521"><p class="cl-c6fd05cc"><span class="cl-c6e546a8">1.0</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c6fd2572"><p class="cl-c6fd05c2"><span class="cl-c6e546a8"></span></p></td><td class="cl-c6fd257a"><p class="cl-c6fd05c2"><span class="cl-c6e546a8">9</span></p></td><td class="cl-c6fd257b"><p class="cl-c6fd05cc"><span class="cl-c6e546a8">5</span></p></td><td class="cl-c6fd2584"><p class="cl-c6fd05cc"><span class="cl-c6e546a8">1.2</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c6fd2585"><p class="cl-c6fd05c2"><span class="cl-c6e546a8"></span></p></td><td class="cl-c6fd258e"><p class="cl-c6fd05c2"><span class="cl-c6e546a8">10+</span></p></td><td class="cl-c6fd258f"><p class="cl-c6fd05cc"><span class="cl-c6e546a8">40</span></p></td><td class="cl-c6fd2590"><p class="cl-c6fd05cc"><span class="cl-c6e546a8">10.0</span></p></td></tr></tbody></table></div>
 
 Though we’ll be using the standardized version of `age` in the model, here are the basic descriptive statistics for `age`.
 
@@ -377,7 +357,7 @@ tidy(glm1, conf.int = T) %>%
     ##      <dbl>    <dbl>     <dbl>
     ## 1     2.39     1.56      3.70
 
-Odds ratios range from 0 to positive infinity, and have an inflection point at 1. Though I don’t care for them, odds ratios seem to be popular effect sizes among medical researchers[^6]. To each their own. But if you’re like me, you want to convert the results of the model to the metric of a difference in probability[^7]. A naïve data analyst might try to convert `\(\beta_1\)` out of the log-odds metric into the probability metric with the base **R** `plogis()`.
+Odds ratios range from 0 to positive infinity, and have an inflection point at 1. Though I don’t care for them, odds ratios seem to be popular effect sizes among medical researchers.[^7] To each their own. But if you’re like me, you want to convert the results of the model to the metric of a difference in probability.[^8] A naïve data analyst might try to convert `\(\beta_1\)` out of the log-odds metric into the probability metric with the base **R** `plogis()`.
 
 ``` r
 tidy(glm1, conf.int = T) %>% 
@@ -391,7 +371,7 @@ tidy(glm1, conf.int = T) %>%
     ##      <dbl>    <dbl>     <dbl>
     ## 1    0.705    0.610     0.787
 
-This, however, this approach DOES NOT convert `\(\beta_1\)` into a difference in probability. This is not an average treatment effect, and sadly, it’s completely uninterpretable. As Imbens and Ruben put it: “The average treatment effect cannot be expressed directly in terms of the parameters of the logistic or probit regression model” ([2015, p. 128](#ref-imbensCausalInferenceStatistics2015)). But we can use an *in*direct method to compute the point estimate for the ATE with a combination of both `\(\beta_0\)` and `\(\beta_1\)`, and the `plogis()` function.
+This approach, however, DOES NOT convert `\(\beta_1\)` into a difference in probability. This is not an average treatment effect, and sadly, it’s completely uninterpretable. As Imbens and Ruben put it: “The average treatment effect cannot be expressed directly in terms of the parameters of the logistic or probit regression model” ([2015, p. 128](#ref-imbensCausalInferenceStatistics2015)). But we can use an *in*direct method to compute the point estimate for the ATE with a combination of both `\(\beta_0\)` and `\(\beta_1\)`, and the `plogis()` function.
 
 ``` r
 plogis(coef(glm1)[1] + coef(glm1)[2]) - plogis(coef(glm1)[1])
@@ -411,15 +391,15 @@ wilson2017 %>%
   group_by(tx) %>% 
   summarise(p = mean(anytest == 1)) %>% 
   pivot_wider(names_from = tx, values_from = p) %>% 
-  mutate(ate = `1` - `0`)
+  mutate(sate = `1` - `0`)
 ```
 
     ## # A tibble: 1 × 3
-    ##     `0`   `1`   ate
+    ##     `0`   `1`  sate
     ##   <dbl> <dbl> <dbl>
     ## 1 0.239 0.429 0.190
 
-Unlike with OLS-type models, you cannot compute the ATE in a logistic-regression context with `\(\beta_1\)` alone. You need to account for the other parameters in the model, too.
+Unlike with OLS-type models, you cannot estimate the ATE in a logistic-regression context with `\(\beta_1\)` alone. You need to account for the other parameters in the model, too.
 
 ### Compute `\(\Pr (y_i^1 = 1) - \Pr(y_i^0 = 1)\)` from `glm1`.
 
@@ -516,12 +496,11 @@ predictions(glm1, newdata = nd, by = "tx")
 ```
 
     ## 
-    ##  tx Estimate Std. Error      z   Pr(>|z|)  2.5 % 97.5 %
-    ##   0   0.2386    0.03037  7.856 3.9523e-15 0.1791 0.2981
-    ##   1   0.4286    0.03473 12.339 < 2.22e-16 0.3605 0.4966
+    ##  tx Estimate Pr(>|z|) 2.5 % 97.5 %
+    ##   0    0.239   <0.001 0.184  0.303
+    ##   1    0.429   0.0425 0.362  0.498
     ## 
-    ## Prediction type:  response 
-    ## Columns: rowid, type, tx, estimate, std.error, statistic, p.value, conf.low, conf.high
+    ## Columns: rowid, tx, estimate, p.value, conf.low, conf.high, anytest
 
 Notice that `predictions()` returns probabilities by default, rather than log odds. To get the contrast for the two probabilities, just add `hypothesis = "revpairwise"`.
 
@@ -530,13 +509,12 @@ predictions(glm1, newdata = nd, by = "tx", hypothesis = "revpairwise")
 ```
 
     ## 
-    ##   Term Estimate Std. Error     z   Pr(>|z|)   2.5 % 97.5 %
-    ##  1 - 0     0.19    0.04614 4.118 3.8209e-05 0.09957 0.2804
+    ##   Term Estimate Std. Error    z Pr(>|z|)  2.5 % 97.5 %
+    ##  1 - 0     0.19     0.0461 4.12   <0.001 0.0996   0.28
     ## 
-    ## Prediction type:  response 
-    ## Columns: type, term, estimate, std.error, statistic, p.value, conf.low, conf.high
+    ## Columns: term, estimate, std.error, statistic, p.value, conf.low, conf.high
 
-Not only do we get the probability contrast, but we get the standard error and confidence intervals, too.
+Not only do we get the probability contrast, but we get the standard error and confidence intervals, too. That, friends, if our first estimate of `\(\tau_\text{ATE}\)` from a logistic regression model.
 
 ### Compute `\(\mathbb E (p_i^1 - p_i^0)\)` from `glm1`.
 
@@ -545,21 +523,11 @@ Within the context of our ANOVA-type binomial model, the `\(\mathbb E (y_i^1 - y
 ``` r
 crossing(y0 = 0:1, 
          y1 = 0:1) %>% 
-  mutate(tau = y1 - y0) 
+  mutate(tau = y1 - y0) %>%
+  flextable()
 ```
 
-    ## # A tibble: 4 × 3
-    ##      y0    y1   tau
-    ##   <int> <int> <int>
-    ## 1     0     0     0
-    ## 2     0     1     1
-    ## 3     1     0    -1
-    ## 4     1     1     0
-
-``` r
-# %>% 
-#   flextable()
-```
+<div class="tabwid"><style>.cl-c77e4510{}.cl-c774b054{font-family:'Helvetica';font-size:11pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(0, 0, 0, 1.00);background-color:transparent;}.cl-c778f6d2{margin:0;text-align:right;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:5pt;padding-right:5pt;line-height: 1;background-color:transparent;}.cl-c7790e7e{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 1.5pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c7790e92{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-c7790e93{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table data-quarto-disable-processing='true' class='cl-c77e4510'><thead><tr style="overflow-wrap:break-word;"><th class="cl-c7790e7e"><p class="cl-c778f6d2"><span class="cl-c774b054">y0</span></p></th><th class="cl-c7790e7e"><p class="cl-c778f6d2"><span class="cl-c774b054">y1</span></p></th><th class="cl-c7790e7e"><p class="cl-c778f6d2"><span class="cl-c774b054">tau</span></p></th></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-c7790e92"><p class="cl-c778f6d2"><span class="cl-c774b054">0</span></p></td><td class="cl-c7790e92"><p class="cl-c778f6d2"><span class="cl-c774b054">0</span></p></td><td class="cl-c7790e92"><p class="cl-c778f6d2"><span class="cl-c774b054">0</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c7790e92"><p class="cl-c778f6d2"><span class="cl-c774b054">0</span></p></td><td class="cl-c7790e92"><p class="cl-c778f6d2"><span class="cl-c774b054">1</span></p></td><td class="cl-c7790e92"><p class="cl-c778f6d2"><span class="cl-c774b054">1</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c7790e92"><p class="cl-c778f6d2"><span class="cl-c774b054">1</span></p></td><td class="cl-c7790e92"><p class="cl-c778f6d2"><span class="cl-c774b054">0</span></p></td><td class="cl-c7790e92"><p class="cl-c778f6d2"><span class="cl-c774b054">-1</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-c7790e93"><p class="cl-c778f6d2"><span class="cl-c774b054">1</span></p></td><td class="cl-c7790e93"><p class="cl-c778f6d2"><span class="cl-c774b054">1</span></p></td><td class="cl-c7790e93"><p class="cl-c778f6d2"><span class="cl-c774b054">0</span></p></td></tr></tbody></table></div>
 
 Imbens and Rubin discussed this kind of scenario in Section 1.3 in their ([2015](#ref-imbensCausalInferenceStatistics2015)) text. If we were in a context where we could compute the raw `\(y_i^1 - y_i^0\)` contrasts with synthetic data, the average of those values,
 
@@ -567,7 +535,7 @@ Imbens and Rubin discussed this kind of scenario in Section 1.3 in their ([2015]
 
 could take on any continuous value ranging from -1 to 1. Thus unlike with the OLS paradigm for continuous variables, the metric for `\(\tau_\text{SATE}\)`, and also `\(\tau_\text{ATE}\)`, is not the same as the metric for any individual case’s causal effect `\(\tau_i\)`. The average of a set of integers is a real number.
 
-The second issue is when we compute the case-specific counterfactual estimates from a logistic regression model, we don’t typically get a vector of `\(\hat y_i^1\)` and `\(\hat y_i^1\)` values; we get `\(\hat p_i^1\)` and `\(\hat p_i^0\)` instead. Let’s explore with `predict()`.
+The second issue is when we compute the case-specific counterfactual estimates from a logistic regression model, we don’t typically get a vector of `\(\hat y_i^1\)` and `\(\hat y_i^1\)` values; we get `\(\hat p_i^1\)` and `\(\hat p_i^0\)` instead. Let’s explore what that looks like with `predict()`.
 
 ``` r
 # redefine the data grid
@@ -621,15 +589,14 @@ predict(glm1,
 We can compute a standard error for that estimate with the `avg_comparisons()` function from the **marginaleffects** package (see [Arel-Bundock, 2023](#ref-arelBundock2023CausalInference)).
 
 ``` r
-avg_comparisons(glm1, variables = list(tx = 0:1))
+avg_comparisons(glm1, variables = "tx")
 ```
 
     ## 
-    ##  Term Contrast Estimate Std. Error     z   Pr(>|z|)   2.5 % 97.5 %
-    ##    tx    1 - 0     0.19    0.04614 4.118 3.8209e-05 0.09957 0.2804
+    ##  Term Contrast Estimate Std. Error    z Pr(>|z|)  2.5 % 97.5 %
+    ##    tx    1 - 0     0.19     0.0461 4.12   <0.001 0.0996   0.28
     ## 
-    ## Prediction type:  response 
-    ## Columns: type, term, contrast, estimate, std.error, statistic, p.value, conf.low, conf.high
+    ## Columns: term, contrast, estimate, std.error, statistic, p.value, conf.low, conf.high
 
 If this seems like a weird bait-and-switch, and you wanted more evidence that `\(\mathbb E (y_i^1 - y_i^0) = \mathbb E (p_i^1 - p_i^0)\)`, we could always simulate. Let’s go back to our `predict()` workflow. After we’ve computed the various `\(\hat p_i\)` values, we can use the `rbinom()` function to probabilistically simulate a vector of `\(\hat y_i\)` values. Then we just need to wrangle and summarize the results.
 
@@ -688,12 +655,12 @@ sim %>%
     ##   <dbl>  <dbl>
     ## 1 0.192 0.0321
 
-The mean[^8] of our random process is a pretty good approximation of `\(\tau_\text{ATE}\)` computed from the `avg_comparisons()` function, above.
+The mean[^9] of our random process is a pretty good approximation of `\(\tau_\text{ATE}\)` computed from the `avg_comparisons()` function, above.
 
-Backing up a bit, we might want to get a better sense of all those `\(p_i^1\)`, `\(p_i^0\)`, and `\((p_i^1 - p_i^0)\)` estimates we’ve been averaging over. Like in the last post, we’ll display them in a couple plots. To keep down the clutter, we’ll restrict ourselves to a random `\(n = 50\)` subset of the 400 cases in the `wilson2017` data.
+Backing up a bit, we might want to get a better sense of all those `\(\hat p_i^1\)`, `\(\hat p_i^0\)`, and `\((\hat p_i^1 - \hat p_i^0)\)` estimates we’ve been averaging over. Like in the last post, we’ll display them in a couple plots. To keep down the clutter, we’ll restrict ourselves to a random `\(n = 50\)` subset of the 400 cases in the `wilson2017` data.
 
 ``` r
-# make the random subset
+# define the random subset
 set.seed(3)
 
 id_subset <- wilson2017 %>%
@@ -719,13 +686,13 @@ p1 <- predictions(glm1, newdata = nd) %>%
   scale_x_continuous(limits = 0:1) +
   scale_y_discrete(breaks = NULL) +
   labs(subtitle = "Counterfactual probabilities",
-       x = expression(italic(p[i])),
+       x = expression(hat(italic(p))[italic(i)]),
        y = "id (ranked)") +
   theme(legend.background = element_blank(),
         legend.position = c(.9, .85))
 
 # treatment effects
-p2 <- comparisons(glm1, newdata = nd, variables = list(tx = 0:1), by = "id") %>% 
+p2 <- comparisons(glm1, newdata = nd, variables = "tx", by = "id") %>% 
   data.frame() %>% 
   filter(id %in% id_subset) %>% 
   
@@ -748,9 +715,9 @@ p1 + p2 + plot_annotation(title = "Person-level estimates based on the logistic 
 
 <img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-27-1.png" width="768" />
 
-If the left plot, we see the counterfactual probabilities, depicted by their point estimates (dots) and 95% intervals (horizontal lines), and colored by whether they were based on the control condition `\((\hat p_i^0)\)` or the experimental intervention `\((\hat p_i^1)\)`. In the right plot, we have the corresponding contrasts `\((p_i^1 - p_i^0)\)`. In both plots, the y-axis has been rank ordered by the magnitudes of the estimates. Other than how we have switched from predictions `\(\hat y_i\)` to probabilities `\(\hat p_i\)`, the overall results of these plots follow the same patterns as those in their [analogues from the last post](https://timely-flan-2986f4.netlify.app/blog/2023-02-06-causal-inference-with-potential-outcomes-bootcamp/#estimands-estimators-and-estimates), where we used the conventional OLS framework. Because the logistic regression ANOVA model `glm1` has no covariates, the probabilities and their contrasts are identical for all participants. As we’ll see later on, this will change when we switch to the ANCOVA model.
+If the left plot, we see the counterfactual probabilities, depicted by their point estimates (dots) and 95% intervals (horizontal lines), and colored by whether they were based on the control condition `\((\hat p_i^0)\)` or the experimental intervention `\((\hat p_i^1)\)`. In the right plot, we have the corresponding contrasts `\((\hat p_i^1 - \hat p_i^0)\)`. In both plots, the y-axis has been rank ordered by the magnitudes of the estimates. Other than how we have switched from predictions `\(\hat y_i\)` to probabilities `\(\hat p_i\)`, the overall results of these plots follow the same patterns as those in their [analogues from the last post](https://timely-flan-2986f4.netlify.app/blog/2023-02-06-causal-inference-with-potential-outcomes-bootcamp/#estimands-estimators-and-estimates), where we used the conventional OLS framework. Because the logistic regression ANOVA model `glm1` has no covariates, the probabilities and their contrasts are identical for all participants. As we’ll see later on, this will change when we switch to the ANCOVA model.
 
-Another fine point that’s easy to lose track of is all those `\((p_i^1 - p_i^0)\)` contrasts in the right plot are NOT individual causal effects `\((\tau_i)\)`. For binary data, individual causal effects can only take on values of `\(-1\)`, `\(0\)`, or `\(1\)`. Even when we use the so-called standardization or g-computation method, our logistic regression models don’t really return individual treatment effects, even in the counterfactual sense. Rather, they return individual probability contrasts. But importantly, the average of those probability contrasts does return a valid estimate of the ATE. Wild, huh?
+Another fine point that’s easy to lose track of is all those `\((\hat p_i^1 - \hat p_i^0)\)` contrasts in the right plot are NOT estimates for individual causal effects `\((\tau_i)\)`. For binary data, individual causal effects can only take on values of `\(-1\)`, `\(0\)`, or `\(1\)`. Even when we use the so-called standardization or g-computation method, our logistic regression models don’t really return individual treatment effects, even in the counterfactual sense. Rather, they return individual probability contrasts. But importantly, the average of those probability contrasts does return a valid estimate of the ATE. Wild, huh?
 
 Wrapping up, in the case of an ANOVA-type logistic regression model of a randomized experiment,
 
@@ -758,7 +725,7 @@ Wrapping up, in the case of an ANOVA-type logistic regression model of a randomi
 - `\(p^1 - p^0\)`, and
 - `\(\mathbb E (p_i^1 - p_i^0)\)`
 
-are all the same thing. They’re all estimators of our estimand `\(\tau_\text{ATE}\)`, the average treatment effect.
+are all the same thing. They’re all equal to our primary estimand `\(\tau_\text{ATE}\)`, the average treatment effect.
 
 ## ATE for the ANCOVA
 
@@ -766,7 +733,7 @@ In our [last post](http://localhost:4321/blog/2023-02-06-causal-inference-with-p
 
 `$$\tau_\text{ATE} = \mathbb E (y_i^1 - y_i^0 \mid \mathbf C_i, \mathbf D_i).$$`
 
-In words, this means the average treatment effect in the population is the same as the average of each person’s individual treatment effect, computed conditional on their continuous covariates `\(\mathbf C_i\)` and discrete covariates `\(\mathbf D_i\)`. This, again, is sometimes called *standardization* or *g-computation*. Within the context of a logistic regression model, we further observe
+In words, this means the average treatment effect in the population is the same as the average of each participant’s individual treatment effect, computed conditional on their continuous covariates `\(\mathbf C_i\)` and discrete covariates `\(\mathbf D_i\)`. This, again, is sometimes called *standardization* or *g-computation*. Within the context of a logistic regression model, we further observe
 
 $$
 \tau_\text{ATE} = \mathbb E (y_i^1 - y_i^0 \mid \mathbf C_i, \mathbf D_i) = {\color{blueviolet}{\mathbb E (p_i^1 - p_i^0 \mid \mathbf C_i, \mathbf D_i)}},
@@ -774,7 +741,7 @@ $$
 
 where `\(p_i^1\)` and `\(p_i^0\)` are the counterfactual probabilities for each of the `\(i\)` cases, estimated in light of their covariate values.
 
-Whether we have continuous covariates, discrete covariates, or a combination of both, the standardization method works the same. However, this is no longer the case when using the difference in population means approach, the covariate-adjusted version of `\(\mathbb E (y_i^1) - \mathbb E (y_i^0)\)`. One complication is we might not be able to mean-center the discrete covariates in our `\(\mathbf D\)` vector. Sometimes people will mean center dummy variables, which can lead to awkward interpretive issues[^9]. But even this approach will not generalize well to multi-categorical nominal variables, like ethnicity. Another solution is to set discrete covariates at their modes (see [Muller & MacLehose, 2014](#ref-muller2014estimating)), which we’ll denote `\(\mathbf D^m\)`. This gives us a new estimand:
+Whether we have continuous covariates, discrete covariates, or a combination of both, the standardization method works the same. However, this is no longer the case when using the difference in population means approach, the covariate-adjusted version of `\(\mathbb E (y_i^1) - \mathbb E (y_i^0)\)`. One complication is we might not be able to mean-center the discrete covariates in our `\(\mathbf D\)` vector. Sometimes people will mean center dummy variables, which can lead to awkward interpretive issues.[^10] But even this approach will not generalize well to multi-categorical nominal variables, like ethnicity. Another solution is to set discrete covariates at their modes (see [Muller & MacLehose, 2014](#ref-muller2014estimating)), which we’ll denote `\(\mathbf D^m\)`. This gives us a new estimand:
 
 `$$\tau_\text{TEMM} = \operatorname{\mathbb{E}} \left (y_i^1 \mid \mathbf{\bar C}, \mathbf D^m \right) - \operatorname{\mathbb{E}} \left (y_i^0 \mid \mathbf{\bar C}, \mathbf D^m \right),$$`
 
@@ -833,7 +800,7 @@ This holds for logistic regression models regardless of whether you have discret
 
 ### `\(\beta_1\)` in the logistic regression ANCOVA.
 
-Earlier we learned the coefficient for the experimental group, `\(\beta_1\)`, does not have a direct relation with the ATE for the logistic regression ANOVA model. In a similar way, the `\(\beta_1\)` coefficient does not have a direct relation with the ATE for the logistic regression ANCOVA model, either. If you want the ATE, you’ll have to use the methods from the sections to come. In the meantime, let’s compare the `\(\beta_1\)` estimates for the ANOVA and ANCOVA models:
+Earlier we learned the coefficient for the experimental group, `\(\beta_1\)`, does not have a direct relation with the ATE for the logistic regression ANOVA model. In a similar way, the `\(\beta_1\)` coefficient does not have a direct relation with the ATE for the logistic regression ANCOVA model, either. If you want the ATE, you’ll have to use the methods from the sections to come. In the meantime, let’s compare the `\(\beta_1\)` estimates for the ANOVA and ANCOVA models.
 
 ``` r
 bind_rows(tidy(glm1), tidy(glm2)) %>% 
@@ -919,12 +886,11 @@ predictions(glm2, newdata = nd, by = "tx")
 ```
 
     ## 
-    ##  tx Estimate Std. Error     z   Pr(>|z|)  2.5 % 97.5 %
-    ##   0   0.2057    0.04763 4.318 1.5710e-05 0.1123 0.2990
-    ##   1   0.4264    0.06109 6.979 2.9709e-12 0.3066 0.5461
+    ##  tx Estimate Pr(>|z|) 2.5 % 97.5 % agez gender   msm            ethnicgrp partners
+    ##   0    0.206   <0.001 0.128  0.314    0 Female other White/ White British        1
+    ##   1    0.426    0.235 0.313  0.548    0 Female other White/ White British        1
     ## 
-    ## Prediction type:  response 
-    ## Columns: rowid, type, tx, estimate, std.error, statistic, p.value, conf.low, conf.high
+    ## Columns: rowid, tx, estimate, p.value, conf.low, conf.high, agez, gender, msm, ethnicgrp, partners, anytest
 
 ``` r
 # TEMM
@@ -932,13 +898,12 @@ predictions(glm2, newdata = nd, by = "tx", hypothesis = "revpairwise")
 ```
 
     ## 
-    ##   Term Estimate Std. Error     z   Pr(>|z|)  2.5 % 97.5 %
-    ##  1 - 0   0.2207    0.04885 4.518 6.2505e-06 0.1249 0.3164
+    ##   Term Estimate Std. Error    z Pr(>|z|) 2.5 % 97.5 %
+    ##  1 - 0    0.221     0.0488 4.52   <0.001 0.125  0.316
     ## 
-    ## Prediction type:  response 
-    ## Columns: type, term, estimate, std.error, statistic, p.value, conf.low, conf.high
+    ## Columns: term, estimate, std.error, statistic, p.value, conf.low, conf.high
 
-Thus we expect our hypothetical person with demographics at the mean and/or modes for the covariates will be about 22% more likely to get tested if given the intervention, compared to if she had not.
+Thus we expect our hypothetical participant with demographics at the mean and/or modes for the covariates will be about 22% more likely to get tested if given the intervention, compared to if she had not.
 
 ### Compute `\((p^1 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d) - (p^0 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d)\)` from `glm2`.
 
@@ -987,7 +952,7 @@ print(nd)
     ## 1    26 0.894 Male   msm   White/ White British 10+          0
     ## 2    26 0.894 Male   msm   White/ White British 10+          1
 
-Now use `predictions()` to compute the counterfactual probabilities and the `\(\tau_\text{CATE}\)`.
+Now use the `predictions()` function to estimate the desired counterfactual probabilities and the estimate for this version of `\(\tau_\text{CATE}\)`.
 
 ``` r
 # conditional probabilities
@@ -995,12 +960,11 @@ predictions(glm2, newdata = nd, by = "tx")
 ```
 
     ## 
-    ##  tx Estimate Std. Error     z   Pr(>|z|)  2.5 % 97.5 %
-    ##   0   0.2589    0.07747 3.342 0.00083269 0.1070 0.4107
-    ##   1   0.5007    0.10490 4.773 1.8157e-06 0.2951 0.7063
+    ##  tx Estimate Pr(>|z|) 2.5 % 97.5 % age  agez gender msm            ethnicgrp partners
+    ##   0    0.259  0.00919 0.137  0.435  26 0.894   Male msm White/ White British      10+
+    ##   1    0.501  0.99481 0.306  0.695  26 0.894   Male msm White/ White British      10+
     ## 
-    ## Prediction type:  response 
-    ## Columns: rowid, type, tx, estimate, std.error, statistic, p.value, conf.low, conf.high
+    ## Columns: rowid, tx, estimate, p.value, conf.low, conf.high, age, agez, gender, msm, ethnicgrp, partners, anytest
 
 ``` r
 # CATE
@@ -1008,17 +972,16 @@ predictions(glm2, newdata = nd, by = "tx", hypothesis = "revpairwise")
 ```
 
     ## 
-    ##   Term Estimate Std. Error     z   Pr(>|z|)  2.5 % 97.5 %
-    ##  1 - 0   0.2418    0.05891 4.104 4.0555e-05 0.1263 0.3573
+    ##   Term Estimate Std. Error   z Pr(>|z|) 2.5 % 97.5 %
+    ##  1 - 0    0.242     0.0589 4.1   <0.001 0.126  0.357
     ## 
-    ## Prediction type:  response 
-    ## Columns: type, term, estimate, std.error, statistic, p.value, conf.low, conf.high
+    ## Columns: term, estimate, std.error, statistic, p.value, conf.low, conf.high
 
-Turns out this `\(\tau_\text{CATE}\)` is a little larger than our estimate for `\(\tau_\text{TEMM}\)`, from above. With this framework, you can compute `\(\tau_\text{CATE}\)` estimates for any number of theoretically-meaningful covariate sets.
+Turns out our estimate for this `\(\tau_\text{CATE}\)` is a little larger than our estimate for `\(\tau_\text{TEMM}\)`, from above. With this framework, you can compute `\(\tau_\text{CATE}\)` estimates for any number of theoretically-meaningful covariate sets.
 
 ### Compute `\(\mathbb E (p_i^1 - p_i^0 \mid \mathbf C_i, \mathbf D_i)\)` from `glm2`.
 
-Before we compute our counterfactual `\(\mathbb{E}(p_i^1 - p_i^0 \mid \mathbf C_i, \mathbf D_i)\)` estimates from our ANCOVA-type logistic regression model `glm2`, we’ll first need to redefine our `nd` predictor data. This time, we’ll retain the full set of covariate values for each participant.
+Before we compute our counterfactual `\(\mathbb{E}(\hat p_i^1 - \hat p_i^0 \mid \mathbf C_i, \mathbf D_i)\)` estimates from our ANCOVA-type logistic regression model `glm2`, we’ll first need to redefine our `nd` predictor data. This time, we’ll retain the full set of covariate values for each participant.
 
 ``` r
 nd <- wilson2017 %>% 
@@ -1049,31 +1012,19 @@ predictions(glm2, newdata = nd) %>%
 ```
 
     ## 
-    ##  Estimate Std. Error     z   Pr(>|z|)   2.5 % 97.5 %    id age       agez gender   msm
-    ##   0.12017    0.04575 2.627 0.00862247 0.05526 0.2418 20766  21 -0.5329053   Male other
-    ##   0.28164    0.08271 3.405 0.00066171 0.14961 0.4663 20766  21 -0.5329053   Male other
-    ##   0.08116    0.03754 2.162 0.03061676 0.03188 0.1915 18778  19 -1.1036204   Male other
-    ##   0.20226    0.07505 2.695 0.00703636 0.09247 0.3868 18778  19 -1.1036204   Male other
-    ##   0.10680    0.04958 2.154 0.03121306 0.04139 0.2488 15678  17 -1.6743356 Female other
-    ##   0.25553    0.09584 2.666 0.00767168 0.11337 0.4795 15678  17 -1.6743356 Female other
-    ##   0.09380    0.03365 2.787 0.00531461 0.04547 0.1836 20253  20 -0.8182628   Male other
-    ##   0.22906    0.06167 3.714 0.00020377 0.13033 0.3707 20253  20 -0.8182628   Male other
-    ##   0.20191    0.06850 2.947 0.00320455 0.09907 0.3679 23805  24  0.3231675 Female other
-    ##   0.42069    0.09679 4.346 1.3837e-05 0.25005 0.6126 23805  24  0.3231675 Female other
-    ##                  ethnicgrp partners tx
-    ##       White/ White British        2  0
-    ##       White/ White British        2  1
-    ##       White/ White British        4  0
-    ##       White/ White British        4  1
-    ##  Mixed/ Multiple ethnicity        2  0
-    ##  Mixed/ Multiple ethnicity        2  1
-    ##       White/ White British        1  0
-    ##       White/ White British        1  1
-    ##       White/ White British        4  0
-    ##       White/ White British        4  1
+    ##  Estimate Pr(>|z|)  2.5 % 97.5 %    id age   agez gender   msm                 ethnicgrp partners tx
+    ##    0.1202  < 0.001 0.0553  0.242 20766  21 -0.533 Male   other White/ White British             2  0
+    ##    0.2816  0.02200 0.1496  0.466 20766  21 -0.533 Male   other White/ White British             2  1
+    ##    0.0812  < 0.001 0.0319  0.192 18778  19 -1.104 Male   other White/ White British             4  0
+    ##    0.2023  0.00317 0.0925  0.387 18778  19 -1.104 Male   other White/ White British             4  1
+    ##    0.1068  < 0.001 0.0414  0.249 15678  17 -1.674 Female other Mixed/ Multiple ethnicity        2  0
+    ##    0.2555  0.03380 0.1134  0.480 15678  17 -1.674 Female other Mixed/ Multiple ethnicity        2  1
+    ##    0.0938  < 0.001 0.0455  0.184 20253  20 -0.818 Male   other White/ White British             1  0
+    ##    0.2291  < 0.001 0.1303  0.371 20253  20 -0.818 Male   other White/ White British             1  1
+    ##    0.2019  0.00122 0.0991  0.368 23805  24  0.323 Female other White/ White British             4  0
+    ##    0.4207  0.42048 0.2501  0.613 23805  24  0.323 Female other White/ White British             4  1
     ## 
-    ## Prediction type:  response 
-    ## Columns: rowid, type, estimate, std.error, statistic, p.value, conf.low, conf.high, id, age, agez, gender, msm, ethnicgrp, partners, tx, anytest
+    ## Columns: rowid, estimate, p.value, conf.low, conf.high, id, age, agez, gender, msm, ethnicgrp, partners, tx, anytest
 
 ``` r
 # here are the contrasts based on those probabilities
@@ -1082,33 +1033,32 @@ comparisons(glm2, newdata = nd, variables = "tx") %>%
 ```
 
     ## 
-    ##  Term Contrast Estimate Std. Error     z   Pr(>|z|)   2.5 % 97.5 %    id age       agez gender   msm
-    ##    tx    1 - 0   0.1615    0.05071 3.184 0.00145273 0.06207 0.2609 20766  21 -0.5329053   Male other
-    ##    tx    1 - 0   0.1615    0.05071 3.184 0.00145273 0.06207 0.2609 20766  21 -0.5329053   Male other
-    ##    tx    1 - 0   0.1211    0.04554 2.659 0.00783716 0.03184 0.2104 18778  19 -1.1036204   Male other
-    ##    tx    1 - 0   0.1211    0.04554 2.659 0.00783716 0.03184 0.2104 18778  19 -1.1036204   Male other
-    ##    tx    1 - 0   0.1487    0.05629 2.642 0.00824233 0.03839 0.2591 15678  17 -1.6743356 Female other
-    ##    tx    1 - 0   0.1487    0.05629 2.642 0.00824233 0.03839 0.2591 15678  17 -1.6743356 Female other
-    ##    tx    1 - 0   0.1353    0.04009 3.374 0.00073978 0.05670 0.2138 20253  20 -0.8182628   Male other
-    ##    tx    1 - 0   0.1353    0.04009 3.374 0.00073978 0.05670 0.2138 20253  20 -0.8182628   Male other
-    ##    tx    1 - 0   0.2188    0.05482 3.991 6.5734e-05 0.11135 0.3262 23805  24  0.3231675 Female other
-    ##    tx    1 - 0   0.2188    0.05482 3.991 6.5734e-05 0.11135 0.3262 23805  24  0.3231675 Female other
+    ##  Term Contrast Estimate Std. Error    z Pr(>|z|)  2.5 % 97.5 %    id age   agez gender   msm
+    ##    tx    1 - 0    0.161     0.0507 3.18  0.00145 0.0621  0.261 20766  21 -0.533 Male   other
+    ##    tx    1 - 0    0.161     0.0507 3.18  0.00145 0.0621  0.261 20766  21 -0.533 Male   other
+    ##    tx    1 - 0    0.121     0.0455 2.66  0.00784 0.0318  0.210 18778  19 -1.104 Male   other
+    ##    tx    1 - 0    0.121     0.0455 2.66  0.00784 0.0318  0.210 18778  19 -1.104 Male   other
+    ##    tx    1 - 0    0.149     0.0563 2.64  0.00824 0.0384  0.259 15678  17 -1.674 Female other
+    ##    tx    1 - 0    0.149     0.0563 2.64  0.00824 0.0384  0.259 15678  17 -1.674 Female other
+    ##    tx    1 - 0    0.135     0.0401 3.37  < 0.001 0.0567  0.214 20253  20 -0.818 Male   other
+    ##    tx    1 - 0    0.135     0.0401 3.37  < 0.001 0.0567  0.214 20253  20 -0.818 Male   other
+    ##    tx    1 - 0    0.219     0.0548 3.99  < 0.001 0.1113  0.326 23805  24  0.323 Female other
+    ##    tx    1 - 0    0.219     0.0548 3.99  < 0.001 0.1113  0.326 23805  24  0.323 Female other
     ##                  ethnicgrp partners
-    ##       White/ White British        2
-    ##       White/ White British        2
-    ##       White/ White British        4
-    ##       White/ White British        4
+    ##  White/ White British             2
+    ##  White/ White British             2
+    ##  White/ White British             4
+    ##  White/ White British             4
     ##  Mixed/ Multiple ethnicity        2
     ##  Mixed/ Multiple ethnicity        2
-    ##       White/ White British        1
-    ##       White/ White British        1
-    ##       White/ White British        4
-    ##       White/ White British        4
+    ##  White/ White British             1
+    ##  White/ White British             1
+    ##  White/ White British             4
+    ##  White/ White British             4
     ## 
-    ## Prediction type:  response 
-    ## Columns: rowid, type, term, contrast, estimate, std.error, statistic, p.value, conf.low, conf.high, predicted, predicted_hi, predicted_lo, id, age, agez, gender, msm, ethnicgrp, partners, tx, anytest, eps
+    ## Columns: rowid, term, contrast, estimate, std.error, statistic, p.value, conf.low, conf.high, predicted, predicted_hi, predicted_lo, id, age, agez, gender, msm, ethnicgrp, partners, tx, anytest
 
-Even among the first 10 rows, we can see there’s a lot of diversity among the estimates for the individual treatment effects. Before we compute the ATE, it might be worth the effort to look more closely at the person-level estimates in a coefficient plot. As with the ANOVA model, we’ll only visualize an `\(n = 50\)` subset of the 400 cases.
+Even among the first 10 rows, we can see there’s a lot of diversity among the estimates for the individual probability contrasts. Before we compute the ATE, it might be worth the effort to look more closely at the participant-level estimates in a coefficient plot. As with the ANOVA model, we’ll only visualize an `\(n = 50\)` subset of the 400 cases.
 
 ``` r
 # counterfactual probabilities
@@ -1130,7 +1080,7 @@ p3 <- predictions(glm2, newdata = nd) %>%
   scale_x_continuous(limits = 0:1) +
   scale_y_discrete(breaks = NULL) +
   labs(subtitle = "Counterfactual probabilities",
-       x = expression(italic(p[i])),
+       x = expression(hat(italic(p))[italic(i)]),
        y = "id (ranked)") +
   theme(legend.background = element_blank(),
         legend.position = c(.9, .85))
@@ -1159,7 +1109,7 @@ p3 + p4 + plot_annotation(title = "Person-level estimates based on the logistic 
 
 <img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-39-1.png" width="768" />
 
-Now we have added covariates to the model, the counterfactual probabilities vary across participants, which was the same pattern for the OLS-based ANCOVA from the [last post](https://timely-flan-2986f4.netlify.app/blog/2023-02-06-causal-inference-with-potential-outcomes-bootcamp/#counterfactual-interventions-with-covariates), too. But unlike with the ANOVA model and unlike with the ANCOVA results from the last post, the contrasts `\((p_i^1 - p_i^0)\)` now vary across participants. Once you leave the simple OLS paradigm, this issue will come up again and again when you fit ANCOVA models. Covariate values change the magnitudes of the probability estimates and their contrasts.
+Now we have added covariates to the model, the counterfactual probabilities vary across participants, which was the same pattern for the OLS-based ANCOVA from the [last post](https://timely-flan-2986f4.netlify.app/blog/2023-02-06-causal-inference-with-potential-outcomes-bootcamp/#counterfactual-interventions-with-covariates), too. But unlike with the ANOVA model and unlike with the ANCOVA results from the last post, the `\((p_i^1 - p_i^0)\)` contrasts now vary across participants. Once you leave the simple OLS paradigm, this issue will come up again and again when you fit ANCOVA models. Covariate values often change the magnitudes of the probability estimates *and* their contrasts.
 
 Investigating further, here’s the full distribution of the contrast values for all `\(n = 400\)` cases. To reduce visual complexity, we’ll drop the 95% confidence interval lines.
 
@@ -1183,7 +1133,7 @@ comparisons(glm2, newdata = nd, variables = "tx", by = "id") %>%
 
 <img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-40-1.png" width="432" />
 
-The red dot below the distribution marks off the average of the participant-level probability contrast estimates, which is the same as the point estimate for the ATE. Speaking of which, here’s `\(\tau_\text{ATE}\)` for this model, and for the simpler ANOVA-type `glm1`.
+The red dot below the distribution marks off the average of the participant-level probability contrast estimates, which is the same as the point estimate for the ATE. Speaking of which, here’s our estimate of `\(\tau_\text{ATE}\)` for this model, and for the simpler ANOVA-type `glm1`.
 
 ``` r
 bind_rows(
@@ -1198,14 +1148,15 @@ bind_rows(
 ```
 
     ##    fit model_type  tau[ATE]  std.error
-    ## 1 glm1      ANOVA 0.1899927 0.04613658
-    ## 2 glm2     ANCOVA 0.2102164 0.04502887
+    ## 1 glm1      ANOVA 0.1899927 0.04613649
+    ## 2 glm2     ANCOVA 0.2102164 0.04502833
 
-Whereas the standard error for the `\(\beta_1\)` coefficient *increased* when we added the baseline covariates to the model, the standard error for our primary estimand `\(\tau_\text{ATE}\)` *decreased*. This isn’t a fluke of our `\(n = 400\)` subset. The same general pattern holds for the full data set. Not only is `\(\beta_1\)` not the same as the ATE for a logistic regression model, adding covariates can have the reverse effect on their respective standard errors. This phenomena is related to the so-called noncollapsibility issue, which is well known among statisticians who work with medical trials. For an entry point into that literature, see Daniel et al. ([2021](#ref-daniel2021makingApples)) or Morris et al. ([2022](#ref-morris2022planning)). But anyway, yes, baseline covariates can help increase the precision with which you estimate the ATE from a logistic regression model. Don’t worry about what happens with `\(\beta_1\)`. Focus on the ATE.
+Whereas the standard error for the `\(\beta_1\)` coefficient *increased* when we added the baseline covariates to the model, the standard error for our primary estimand `\(\tau_\text{ATE}\)` *decreased*. This isn’t a fluke of our `\(n = 400\)` subset. The same general pattern holds for the full data set. Not only is `\(\beta_1\)` not the same as the ATE for a logistic regression model, adding covariates can have the reverse effect on their respective standard errors. This phenomena is related to the so-called noncollapsibility issue, which is well known among statisticians who work with medical trials. For an entry point into that literature, see Daniel et al. ([2021](#ref-daniel2021makingApples)) or Morris et al. ([2022](#ref-morris2022planning)). If you prefer your statistics explained with sass,
+Jake Westfall’s ([2018](#ref-westfall2018logisticRegression)) blog post, *Logistic regression is not fucked*, is an excellent and accessible introduction to the noncollapsibility issue. But anyway, yes, baseline covariates can help increase the precision with which you estimate the ATE from a logistic regression model. Don’t worry about what happens with `\(\beta_1\)`. Focus on the ATE.
 
 ### Grappling with `\((p_i^1 - p_i^0 \mid \mathbf C_i, \mathbf D_i)\)` distributions.
 
-Given how the logistic-regression-based participant-level probability contrasts now come in distributions when estimated from ANCOVA models, some researchers have wondered whether it’s a good idea to use a single summary value like the ATE. Biostatistician Frank Harrell, for example, recommended displaying the entire contrast distribution in his ([2021](#ref-harrell2021avoiding)) blog post, [*Avoiding one-number summaries of treatment effects for RCTs with binary outcomes*](https://www.fharrell.com/post/rdist/). Albuquerque and Arel-Bundock covered Harrell’s primary material from a **marginaleffects** perspective in their ([2023](#ref-albuquerque2023logisticRegression)) vignette, [*Logistic regression*](https://vincentarelbundock.github.io/marginaleffects/articles/logit.html) (see also [Kent & Hayward, 2007](#ref-kent2007limitations)). At the moment, I’m inclined to still rely on the ATE, but perhaps also show a plot of the contrast distribution as a supplement.
+Given how the logistic-regression-based participant-level probability contrasts now come in distributions when estimated from ANCOVA models, some researchers have wondered whether it’s a good idea to use a single summary value like the ATE. Biostatistician Frank Harrell, for example, recommended displaying the entire contrast distribution in his ([2021](#ref-harrell2021avoiding)) blog post, [*Avoiding one-number summaries of treatment effects for RCTs with binary outcomes*](https://www.fharrell.com/post/rdist/). Albuquerque and Arel-Bundock covered Harrell’s primary material from a **marginaleffects** perspective in their ([2023](#ref-albuquerque2023logisticRegression)) vignette, [*Logistic regression*](https://vincentarelbundock.github.io/marginaleffects/articles/logit.html) (see also [Kent & Hayward, 2007](#ref-kent2007limitations)). At the moment, I’m still inclined to rely on the ATE, but perhaps also show a plot of the contrast distribution as a supplement.
 
 Another approach might be to focus on one or a handful of CATE’s. This, however, I would only recommend with great caution. To help clarify why, let’s compute the CATE for every valid combination of our baseline covariate values. First, we’ll update our `nd` data grid.
 
@@ -1273,7 +1224,7 @@ p5 + p6 +
 
 <img src="{{< blogdown/postref >}}index_files/figure-html/CATE_distributions-1.png" width="768" />
 
-The ATE is still near the middle of the distribution of point estimates for the CATE’s. However, the standard error for the ATE is well lower than the bulk of the standard errors for the various versions of the CATE. If you have designed and powered a study to compute the ATE, be very cautious about switching your focus to the CATE. You might not have the right data set to answer questions like that.
+The ATE is still near the middle of the distribution of point estimates for the CATE’s. However, the standard error for the ATE is well lower than the bulk of the standard errors for the various versions of the CATE. If you have designed and powered a study to compute the ATE, be very cautious about switching your focus to the CATE. You might not have the right data set to do a good job estimating the CATE with precision.
 
 In case you were wondering, all those counterfactual cases with near-zero point estimates and near-zero standard errors had `Other` as the value for `ethnicgrp`. If you look back up to the model summary for `glm2`, you’ll notice the coefficient for that category has a very low point estimate and an extremely large standard error. This is what can happen when you include a categorical variables with only a handful of cases for one of the categories in a frequentist logistic regression model. Happily, this will be a much smaller problem when we adopt a Bayesian framework in the next post.
 
@@ -1324,24 +1275,35 @@ sessionInfo()
     ## [1] stats     graphics  grDevices utils     datasets  methods   base     
     ## 
     ## other attached packages:
-    ##  [1] patchwork_1.1.2            ggdist_3.2.1.9000          broom_1.0.4               
-    ##  [4] marginaleffects_0.9.0.9014 lubridate_1.9.2            forcats_1.0.0             
-    ##  [7] stringr_1.5.0              dplyr_1.1.0                purrr_1.0.1               
-    ## [10] readr_2.1.4                tidyr_1.3.0                tibble_3.2.0              
-    ## [13] ggplot2_3.4.1              tidyverse_2.0.0           
+    ##  [1] patchwork_1.1.2             ggdist_3.2.1.9000           broom_1.0.4                
+    ##  [4] flextable_0.9.1             marginaleffects_0.11.1.9008 lubridate_1.9.2            
+    ##  [7] forcats_1.0.0               stringr_1.5.0               dplyr_1.1.0                
+    ## [10] purrr_1.0.1                 readr_2.1.4                 tidyr_1.3.0                
+    ## [13] tibble_3.2.0                ggplot2_3.4.1               tidyverse_2.0.0            
     ## 
     ## loaded via a namespace (and not attached):
-    ##  [1] beeswarm_0.4.0       tidyselect_1.2.0     xfun_0.37            bslib_0.4.0          colorspace_2.1-0    
-    ##  [6] vctrs_0.6.0          generics_0.1.3       viridisLite_0.4.1    htmltools_0.5.3      yaml_2.3.5          
-    ## [11] utf8_1.2.3           rlang_1.1.0          jquerylib_0.1.4      pillar_1.8.1         glue_1.6.2          
-    ## [16] withr_2.5.0          readxl_1.4.2         distributional_0.3.1 lifecycle_1.0.3      cellranger_1.1.0    
-    ## [21] munsell_0.5.0        blogdown_1.16        gtable_0.3.2         evaluate_0.18        labeling_0.4.2      
-    ## [26] knitr_1.42           tzdb_0.3.0           fastmap_1.1.0        fansi_1.0.4          highr_0.9           
-    ## [31] checkmate_2.1.0      scales_1.2.1         backports_1.4.1      cachem_1.0.6         jsonlite_1.8.4      
-    ## [36] farver_2.1.1         hms_1.1.2            digest_0.6.31        stringi_1.7.8        insight_0.19.0      
-    ## [41] bookdown_0.28        grid_4.2.3           cli_3.6.0            tools_4.2.3          magrittr_2.0.3      
-    ## [46] sass_0.4.2           pkgconfig_2.0.3      MASS_7.3-58.2        ellipsis_0.3.2       data.table_1.14.8   
-    ## [51] timechange_0.2.0     rmarkdown_2.20       rstudioapi_0.14      R6_2.5.1             compiler_4.2.3
+    ##  [1] fontquiver_0.2.1        insight_0.19.1.6        tools_4.2.3             backports_1.4.1        
+    ##  [5] bslib_0.4.0             utf8_1.2.3              R6_2.5.1                colorspace_2.1-0       
+    ##  [9] withr_2.5.0             tidyselect_1.2.0        curl_4.3.2              compiler_4.2.3         
+    ## [13] textshaping_0.3.6       cli_3.6.0               xml2_1.3.3              officer_0.6.2          
+    ## [17] fontBitstreamVera_0.1.1 labeling_0.4.2          bookdown_0.28           sass_0.4.2             
+    ## [21] checkmate_2.1.0         scales_1.2.1            askpass_1.1             systemfonts_1.0.4      
+    ## [25] digest_0.6.31           rmarkdown_2.20          gfonts_0.2.0            katex_1.4.0            
+    ## [29] pkgconfig_2.0.3         htmltools_0.5.3         highr_0.9               fastmap_1.1.0          
+    ## [33] rlang_1.1.0             readxl_1.4.2            rstudioapi_0.14         httpcode_0.3.0         
+    ## [37] shiny_1.7.2             jquerylib_0.1.4         generics_0.1.3          farver_2.1.1           
+    ## [41] jsonlite_1.8.4          zip_2.2.0               distributional_0.3.1    magrittr_2.0.3         
+    ## [45] Rcpp_1.0.10             munsell_0.5.0           fansi_1.0.4             gdtools_0.3.3          
+    ## [49] lifecycle_1.0.3         stringi_1.7.8           yaml_2.3.5              MASS_7.3-58.2          
+    ## [53] grid_4.2.3              promises_1.2.0.1        crayon_1.5.2            hms_1.1.2              
+    ## [57] knitr_1.42              pillar_1.8.1            uuid_1.1-0              emo_0.0.0.9000         
+    ## [61] xslt_1.4.3              crul_1.2.0              glue_1.6.2              evaluate_0.18          
+    ## [65] blogdown_1.16           V8_4.2.1                fontLiberation_0.1.0    data.table_1.14.8      
+    ## [69] vctrs_0.6.0             tzdb_0.3.0              httpuv_1.6.5            cellranger_1.1.0       
+    ## [73] gtable_0.3.2            openssl_2.0.3           assertthat_0.2.1        cachem_1.0.6           
+    ## [77] xfun_0.37               mime_0.12               xtable_1.8-4            later_1.3.0            
+    ## [81] equatags_0.2.0          viridisLite_0.4.1       ragg_1.2.5              beeswarm_0.4.0         
+    ## [85] timechange_0.2.0        ellipsis_0.3.2
 
 ## References
 
@@ -1449,6 +1411,12 @@ Robinson, L. D., & Jewell, N. P. (1991). Some surprising results about covariate
 
 </div>
 
+<div id="ref-westfall2018logisticRegression" class="csl-entry">
+
+Westfall, J. (2018). *Logistic regression is not fucked*. <https://jakewestfall.org/blog/index.php/2018/03/12/logistic-regression-is-not-fucked/>
+
+</div>
+
 <div id="ref-wilson2017internet" class="csl-entry">
 
 Wilson, E., Free, C., Morris, T. P., Syred, J., Ahamed, I., Menon-Johansson, A. S., Palmer, M. J., Barnard, S., Rezel, E., & Baraitser, P. (2017). Internet-accessed sexually transmitted infection (e-STI) testing and results service: A randomised, single-blind, controlled trial. *PLoS Medicine*, *14*(12), e1002479. <https://doi.org/10.1371/journal.pmed.1002479>
@@ -1461,16 +1429,18 @@ Wilson, E., Free, C., Morris, T. P., Syred, J., Ahamed, I., Menon-Johansson, A. 
 
 [^2]: I suppose you could even argue it’s a censored count. But since we’ll be using it as a predictor, I’m not sure that argument would be of much help.
 
-[^3]: As it turns out, statisticians and quanty researchers are not in total agreement on whether or how one must condition on covariates when those covariates were used to balance during the randomization process. For a lively twitter discussion on this very data set, see the replies to [this twitter poll](https://twitter.com/SolomonKurz/status/1623349977786228736).
+[^3]: In the full version of the data set, only four participants identified as transgender, and none of those participants were among those who were randomly selected into our `\(n = 400\)` subset. For analyses where we emphasize interpreting `\(\beta\)` coefficients, categories with very small `\(n\)`’s like this can make for uncertain and unstable inferences. However, the marginal standardization approach we’ll be practicing in this post can handle small categories just fine. So if you decide to practice these methods with the full data set, an `\(n = 4\)` category for `gender` shouldn’t cause difficulties for estimating the ATE.
 
-[^4]: At this point, one might ask: *Which covariates should I include in my ANCOVA?* At the moment, I’m in large agreement with Raab et al. ([2000](#ref-raab2000HowToSelect)), who recommend you condition on covariates that are theorized or have been empirically shown to be strongly predictive of the outcome, and/or where used to balance during the randomization process. They further added researchers would do well by planning their covariate set before data collection, and publicly reporting their plan in some kind of pre-registration report, which would help reduce `\(p\)`-hacking and other such nonsense.
+[^4]: As it turns out, statisticians and quanty researchers are not in total agreement on whether or how one must condition on covariates when those covariates were used to balance during the randomization process. For a lively twitter discussion on this very data set, see the replies to [this twitter poll](https://twitter.com/SolomonKurz/status/1623349977786228736).
 
-[^5]: At the moment (03-26-2023), it appears the **flextable** package (0.9.0) isn’t playing nicely with **blogdown** (1.16). Sadly, I don’t have the technical abilities to understand why, but I get insurmountable error warnings when trying to render. For now I’m leaving the **flextable** code in, in the hopes the conflict will find resolution, soon.
+[^5]: At this point, one might ask: *Which covariates should I include in my ANCOVA?* At the moment, I’m in large agreement with Raab et al. ([2000](#ref-raab2000HowToSelect)), who recommend you condition on covariates that are theorized or have been empirically shown to be strongly predictive of the outcome, and/or where used to balance during the randomization process. They further added researchers would do well by planning their covariate set before data collection, and publicly reporting their plan in some kind of pre-registration report, which would help reduce `\(p\)`-hacking and other such nonsense.
 
-[^6]: There are numerous effect sizes one could compute from a logistic regression model. For a more exhaustive list, as applied within our causal inference framework, see Section 3.3 in Brumback ([2022](#ref-brumback2022Fundamentals)).
+[^6]: At the moment (03-26-2023), it appears the **flextable** package (0.9.0) isn’t playing nicely with **blogdown** (1.16). Sadly, I don’t have the technical abilities to understand why, but I get insurmountable error warnings when trying to render. For now I’m leaving the **flextable** code in, in the hopes the conflict will find resolution, soon.
 
-[^7]: In some parts of the literature, probabilities are called “risks” and differences in probabilities are called “risk differences” (e.g., [Morris et al., 2022](#ref-morris2022planning)). We will not be using the jargon of “risk” in this blog series.
+[^7]: There are numerous effect sizes one could compute from a logistic regression model. For a more exhaustive list, as applied within our causal inference framework, see Section 3.3 in Brumback ([2022](#ref-brumback2022Fundamentals)).
 
-[^8]: Note that the standard deviation, here, isn’t quite the same thing as a standard error. We’d need to do something more akin to bootstrapping, for that. However, this kind of a workflow does have some things in common with the Monte-Carlo-based Bayesian methods we’ll be practicing later in this series.
+[^8]: In some parts of the literature, probabilities are called “risks” and differences in probabilities are called “risk differences” (e.g., [Morris et al., 2022](#ref-morris2022planning)). We will not be using the jargon of “risk” in this blog series.
 
-[^9]: For example, say you have a dummy variable called `male`, which is a zero for women and a one for men. One way to interpret a model using the centered version of `male` is it returns the contrast weighted by the proportion of women/men in the sample or population. Another interpretation is this returns the contrast for someone who is in the middle of the female-male spectrum–which is what? Intersex? Non-binary? Transgender? It might be possible to interpret such a computation with skill and care, but such an approach might also leave one’s audience confused or offended.
+[^9]: Note that the standard deviation, here, isn’t quite the same thing as a standard error. We’d need to do something more akin to bootstrapping, for that. However, this kind of a workflow does have some things in common with the Monte-Carlo-based Bayesian methods we’ll be practicing later in this series.
+
+[^10]: For example, say you have a dummy variable called `male`, which is a zero for women and a one for men. One way to interpret a model using the centered version of `male` is it returns the contrast weighted by the proportion of women/men in the sample or population. Another interpretation is this returns the contrast for someone who is in the middle of the female-male spectrum–which is what? Intersex? Non-binary? Transgender? It might be possible to interpret such a computation with skill and care, but such an approach might also leave one’s audience confused or offended.
