@@ -520,7 +520,7 @@ At this point, some readers might wonder why we have so many methods that produc
 I'd like to publicly acknowledge and thank
 
 * [Chelsea M. Parlett-Pelleriti](https://cmparlettpelleriti.github.io/) and
-* [Stephen J. Wild](https://sjwild.github.io/),
+* [Stephen J. Wild](https://sjwild.github.io/)
 
 for their kind efforts reviewing the draft of this post. Go team!
 
