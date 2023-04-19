@@ -285,8 +285,8 @@ To take the notation even further, we typically use $p$ in place of $\Pr()$ when
 
 $$
 \begin{align*}
-\mathbb E (y_i^1) & = \Pr (y_i^1 = 1) = p^1,\ \text{and} \\
-\mathbb E (y_i^0) & = \Pr (y_i^0 = 1) = p^0,
+\mathbb E (y_i^1) & = \Pr (y_i^1 = 1) = {\color{blueviolet}{p^1}},\ \text{and} \\
+\mathbb E (y_i^0) & = \Pr (y_i^0 = 1) = {\color{blueviolet}{p^0}},
 \end{align*}
 $$
 
@@ -303,7 +303,7 @@ This is all important because within the context of our binomial regression mode
 
 $$\tau_\text{ATE} = p^1 - p^0.$$
 
-If you just wanted to compute the contrast between the two group-level probabilities, the base **R** `predict()` approach might be a good place to start. Here we define a simple data frame with the two levels of the `tx` dummy, and pump the values into `predict()`.
+If you just wanted to compute the contrast between the two group-level probabilities, the base **R** `predict()` approach might be a good place to start. Here we define a simple data frame with the two levels of the `tx` dummy, and pump those values into `predict()`.
 
 ```{r}
 nd <- tibble(tx = 0:1)
@@ -342,7 +342,7 @@ However, this approach gives us no way to compute the contrast of those probabil
 predictions(glm1, newdata = nd, by = "tx")
 ```
 
-Notice that `predictions()` returns probabilities by default, rather than log odds. To get the contrast for the two probabilities, just add `hypothesis = "revpairwise"`.
+Notice how `predictions()` returns probabilities by default, rather than log odds. To get the contrast for the two probabilities, just add `hypothesis = "revpairwise"`.
 
 ```{r}
 predictions(glm1, newdata = nd, by = "tx", hypothesis = "revpairwise")
@@ -456,7 +456,7 @@ sim %>%
 
 The mean[^9] of our random process is a pretty good approximation of $\tau_\text{ATE}$ computed from the `avg_comparisons()` function, above.
 
-Backing up a bit, we might want to get a better sense of all those $\hat p_i^1$, $\hat p_i^0$, and $(\hat p_i^1 - \hat p_i^0)$ estimates we've been averaging over. Like in the last post, we'll display them in a couple plots. To keep down the clutter, we'll restrict ourselves to a random $n = 50$ subset of the 400 cases in the `wilson2017` data.
+Backing up a bit, we might want to get a better sense of all those $\hat p_i^1$, $\hat p_i^0$, and $(\hat p_i^1 - \hat p_i^0)$ estimates we've been averaging over. Like in the last post, we'll display them in a couple coefficient plots. To keep down the clutter, we'll restrict ourselves to a random $n = 50$ subset of the 400 cases in the `wilson2017` data.
 
 ```{r, fig.width = 8, fig.height = 5.5}
 # define the random subset
@@ -636,7 +636,7 @@ nd <- wilson2017 %>%
 print(nd)
 ```
 
-Thus we will be computing our estimate for $\tau_\text{TEMM}$ based on a White 23-year-old woman who had one partner over the past year. By definition, such a person would not be a man who has sex with men (`msm == 1`). Also, we know this person is 23 years old because `agez == 0` at that value. Here's the proof.
+Thus we will be computing our estimate for $\tau_\text{TEMM}$ based on a White 23-year-old woman who had one sexual partner over the past year. By definition, such a person would not be a man who has sex with men (`msm == 1`). Also, we know this person is 23 years old because `agez == 0` at that value. Here's the proof.
 
 ```{r}
 wilson2017 %>% 
@@ -668,7 +668,7 @@ Thus we expect our hypothetical participant with demographics at the mean and/or
 
 ### Compute $(p^1 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d) - (p^0 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d)$ from `glm2`.
 
-Since the $\tau_\text{TEMM}$ is just a special case of a $\tau_\text{CATE}$, we might practice computing our estimate for $\tau_\text{CATE}$ with a different set of covariate values. Men who have sex with men (MSM) were one of the vulnerable subgroups of interest in @wilson2017internet, so we might take a look to see which combination of covariate values was most common for MSM in our subset of the data.
+Since the $\tau_\text{TEMM}$ is just a special case of a $\tau_\text{CATE}$, we might practice computing an estimate for $\tau_\text{CATE}$ with a different set of covariate values. Men who have sex with men (MSM) were one of the vulnerable subgroups of interest in @wilson2017internet, so we might take a look to see which combination of covariate values was most common for MSM in our subset of the data.
 
 ```{r}
 wilson2017 %>% 
@@ -720,7 +720,7 @@ glimpse(nd)
 Instead of first practicing computing the probabilities with base **R** `predict()`, let's just jump directly to the `precitions()` and `comparisons()` functions from the **marginaleffects** package.
 
 ```{r}
-# here are the probabilities
+# here are the counterfactual probabilities
 predictions(glm2, newdata = nd) %>% 
   head(n = 10)
 
@@ -814,8 +814,7 @@ bind_rows(
   select(fit, model_type, `tau[ATE]`, std.error)
 ```
 
-Whereas the standard error for the $\beta_1$ coefficient *increased* when we added the baseline covariates to the model, the standard error for our primary estimand $\tau_\text{ATE}$ *decreased*. This isn't a fluke of our $n = 400$ subset. The same general pattern holds for the full data set. Not only is $\beta_1$ not the same as the ATE for a logistic regression model, adding covariates can have the reverse effect on their respective standard errors. This phenomena is related to the so-called noncollapsibility issue, which is well known among statisticians who work with medical trials. For an entry point into that literature, see @daniel2021makingApples or @morris2022planning. If you prefer your statistics explained with sass,
-Jake Westfall's [-@westfall2018logisticRegression] blog post, *Logistic regression is not fucked*, is an excellent and accessible introduction to the noncollapsibility issue. But anyway, yes, baseline covariates can help increase the precision with which you estimate the ATE from a logistic regression model. Don't worry about what happens with $\beta_1$. Focus on the ATE.
+Whereas the standard error for the $\beta_1$ coefficient *increased* when we added the baseline covariates to the model, the standard error for our primary estimand $\tau_\text{ATE}$ *decreased*. This isn't a fluke of our $n = 400$ subset. The same general pattern holds for the full data set. Not only is $\beta_1$ not the same as the ATE for a logistic regression model, adding covariates can have the reverse effect on their respective standard errors. This phenomena is related to the so-called noncollapsibility issue, which is well known among statisticians who work with medical trials. For an entry point into that literature, see @daniel2021makingApples or @morris2022planning. If you prefer your statistics explained with sass, I find Jake Westfall's [-@westfall2018logisticRegression] blog post, *Logistic regression is not fucked*, an excellent and accessible introduction to the noncollapsibility issue. But anyway, yes, baseline covariates can help increase the precision with which you estimate the ATE from a logistic regression model. Don't worry about what happens with $\beta_1$. Focus on the ATE.
 
 ### Grappling with $(p_i^1 - p_i^0 \mid \mathbf C_i, \mathbf D_i)$ distributions.
 
@@ -872,12 +871,12 @@ p6 <- comparisons(glm2, newdata = nd, variables = "tx", by = "id")  %>%
 # combine
 p5 + p6 + 
   plot_annotation(title = "CATE distributions based on the logistic regression ANCOVA model (glm2)",
-                  subtitle = "Based on 2,250 possible combinations of covariate values.")
+                  subtitle = "These plots are based on 2,250 possible combinations of covariate values.")
 ```
 
 The ATE is still near the middle of the distribution of point estimates for the CATE's. However, the standard error for the ATE is well lower than the bulk of the standard errors for the various versions of the CATE. If you have designed and powered a study to compute the ATE, be very cautious about switching your focus to the CATE. You might not have the right data set to do a good job estimating the CATE with precision.
 
-In case you were wondering, all those counterfactual cases with near-zero point estimates and near-zero standard errors had `Other` as the value for `ethnicgrp`. If you look back up to the model summary for `glm2`, you'll notice the coefficient for that category has a very low point estimate and an extremely large standard error. This is what can happen when you include a categorical variables with only a handful of cases for one of the categories in a frequentist logistic regression model. Happily, this will be a much smaller problem when we adopt a Bayesian framework in the next post.
+In case you were wondering, all those counterfactual cases with near-zero point estimates and near-zero standard errors had `Other` as the value for `ethnicgrp`. If you look back up to the model summary for `glm2`, you'll notice the coefficient for that category has a very low point estimate and an extremely large standard error. This is what can happen when you include a categorical variable with only a handful of cases for one of the categories in a frequentist logistic regression model. Happily, this will be a much smaller problem when we adopt a Bayesian framework in the next post.
 
 ```{r, eval = F, echo = F}
 # which cases are the problem?
@@ -911,10 +910,6 @@ wilson2017 %>%
 
 Before we wrap up, y'all should beware the language of *ATE* is not uniformly used among researchers who use logistic regression for causal inference. For example, Gelman and colleagues used the language of "the difference in probabilities" on page 225 of their [-@gelmanRegressionOtherStories2020] textbook. @mccabe2022interpreting used the language of *discrete differences* "to define a marginal effect as the difference between two points on a regression function" (p. 247), which is what we're doing in the special case of a randomized experiment. @agresti2018simple used the term *discrete change* for discrete variables and *average marginal effect* for continuous ones. @mood2010logistic, differentiated discrete and continuous models by calling the ATE from a logistic regression model $\Delta{P}$, and using the term *average marginal effect* when computing the ATE from a conventional Gaussian model.
 
-## Acknowledgments
-
-I became aware of @wilson2017internet through the follow-up paper by @morris2022planning. Morris and colleagues compared several ways to analyze these data, one of which was the standardization approach for logistic regression, such as we have done here. However, Morris and colleagues used a STATA-based workflow for their paper, and it was [A. Jordan Nafa](https://www.ajordannafa.com/)'s kind efforts (see [here](https://github.com/ajnafa/morris-et-al-2022-replication)) which helped me understand how to use these methods in **R**.
-
 ## Recap
 
 In this post, some of the main points we covered were:
@@ -932,6 +927,20 @@ In this post, some of the main points we covered were:
   - *de*crease the standard errors for the average treatment effect, $\tau_\text{ATE}$.
 
 In the [next post](https://timely-flan-2986f4.netlify.app/blog/2023-02-15-causal-inference-with-bayesian-models/), we'll explore how our causal inference methods work within an applied Bayesian statistics framework. We'll practice with both simple Gaussian models, and logistic regression models, too. Until then, happy modeling, friends!
+
+## Thank a friend
+
+I became aware of @wilson2017internet through the follow-up paper by @morris2022planning. Morris and colleagues compared several ways to analyze these data, one of which was the standardization approach for logistic regression, such as we have done here. However, Morris and colleagues used a STATA-based workflow for their paper, and it was [A. Jordan Nafa](https://www.ajordannafa.com/)'s kind efforts (see [here](https://github.com/ajnafa/morris-et-al-2022-replication)) which helped me understand how to use these methods in **R**.
+
+## Thank the reviewers
+
+I'd like to publicly acknowledge and thank
+
+* [Stephen J. Wild](https://sjwild.github.io/)
+
+for his kind efforts reviewing the draft of this post. Go team!
+
+Do note the final editorial decisions were my own, and I do not think it would be reasonable to assume my reviewers have given blanket endorsements of the current version of this post.
 
 ## Session information
 
