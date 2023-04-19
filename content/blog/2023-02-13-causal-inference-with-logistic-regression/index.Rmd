@@ -73,7 +73,7 @@ wilson2017 %>%
   count(group)
 ```
 
-For our analyses, we will take `anytest` as the focal variable. This variable indicates whether a participants' medical record indicated any STI testing during at 6 weeks. Here's the breakdown, by experimental group.
+For our analyses, we will take `anytest` as the focal variable. This variable indicates whether a participants' medical record indicated any STI testing at 6 weeks. Here's the breakdown, by experimental group.
 
 ```{r}
 wilson2017 %>% 
@@ -82,7 +82,7 @@ wilson2017 %>%
   mutate(percent_by_group = round(100 * n / sum(n), digits = 1))
 ```
 
-As is often the case with real-world data, we have missing values. That problem could be fun to focus on [see @bartlett2023gformla], but that's a task for another day. Walking out causal inference methods for a logistic regression paradigm will be a sufficient challenge, for now.
+As is often the case with real-world data, we have missing values. That could be fun problem with which to contend [see @bartlett2023gformla], but that's a task for another day. Walking out causal inference methods for a logistic regression paradigm will be a sufficient challenge, for now.
 
 ### Subset.
 
@@ -100,7 +100,7 @@ wilson2017 <- wilson2017 %>%
 dim(wilson2017)
 ```
 
-Now we'll adjust some of the variables, themselves. We will save the nominal covariates `gender`, `msm`, and `ethnicgrp` as factors with defined levels. The covariate `partners` is ordinal,[^3] but for our purposes it will be fine to convert it to a factor, too. The `age` covariate is continuous, but it'll come in handy to rescale it into a $z$-score metric, which we'll name `agez`. We'll simplify the character variable for the experimental groups, `group`, in to a a `tx` dummy coded `0` for the control condition and `1` for those in the intervention condition. Then we'll rename the `anon_id` index to `id`, reorder the columns, and drop the other columns we won't need for the rest of this post.
+Now we'll adjust some of the variables, themselves. We will save the nominal covariates `gender`, `msm`, and `ethnicgrp` as factors with defined levels. The covariate `partners` is ordinal,[^3] but for our purposes it will be fine to convert it to a factor, too. The `age` covariate is continuous, but it'll come in handy to rescale it into a $z$-score metric, which we'll name `agez`. We'll simplify the character variable for the experimental groups, `group`, into a `tx` dummy coded `0` for the control condition and `1` for those in the intervention condition. Then we'll rename the `anon_id` index to `id`, reorder the columns, and drop the other columns we won't need for the rest of this post.
 
 ```{r}
 wilson2017 <- wilson2017 %>% 
@@ -160,6 +160,8 @@ wilson2017 %>%
             max = max(age))
 ```
 
+This was an RCT focusing on young adults.
+
 ## Models
 
 In this blog post, we'll be fitting two models to these data. The first will be the unconditional ANOVA-type model
@@ -171,7 +173,7 @@ $$
 \end{align*}
 $$
 
-where $\operatorname{logit}(.)$ indicates we're using the conventional logit link, which is where we get the term "logistic regression." Then we'll fit an ANCOVA-type version including all the covariates:
+where $\operatorname{logit}(.)$ indicates we're using the conventional logit link, which is from where we get the term "logistic regression." Then we'll fit an ANCOVA-type version of the model including all the covariates:
 
 $$
 \begin{align*}
@@ -207,18 +209,20 @@ summary(glm1)
 summary(glm2)
 ```
 
+Note the parameter summary for `ethnicgrpOther`. Those values will come back to haunt us later in the post.
+
 ## ATE for the ANOVA
 
 ### $\beta_1$ in the logistic regression ANOVA.
 
-As a first step, let's extract the $\beta_1$ estimate, with its standard error and so on, with `broom::tidy()`.
+As a first step, let's extract the $\beta_1$ estimate from the ANOVA, with its standard error and so on, with help from the `broom::tidy()` function.
 
 ```{r}
 tidy(glm1, conf.int = T) %>% 
   filter(term == "tx")
 ```
 
-This $\beta_1$ estimate is on the log-odds scale, which isn't the most intuitive and can take some time to master. Though this won't work for the standard error, test statistic and $p$-value, you can exponentiate the point estimate and 95% confidence intervals to convert them to an odds-ratio metric.
+This $\beta_1$ estimate is on the log-odds scale, which isn't the most intuitive, and can take some time to master. Though this won't work for the standard error, test statistic and $p$-value, you can exponentiate the point estimate and 95% confidence intervals to convert those values to an odds-ratio metric.
 
 ```{r}
 tidy(glm1, conf.int = T) %>% 
@@ -227,7 +231,7 @@ tidy(glm1, conf.int = T) %>%
   mutate_all(exp)
 ```
 
-Odds ratios range from 0 to positive infinity, and have an inflection point at 1. Though I don't care for them, odds ratios seem to be popular effect sizes among medical researchers.[^7] To each their own. But if you're like me, you want to convert the results of the model to the metric of a difference in probability.[^8] A naïve data analyst might try to convert $\beta_1$ out of the log-odds metric into the probability metric with the base **R** `plogis()`.
+Odds ratios range from 0 to positive infinity, and have an inflection point at 1. Though I don't care for them, odds ratios seem to be popular effect sizes among medical researchers.[^7] To each their own. But if you're like me, you want to convert the results of the model to the metric of a difference in probability.[^8] A naïve data analyst might try to convert $\beta_1$ out of the log-odds metric into the probability metric with the base **R** `plogis()` function.
 
 ```{r}
 tidy(glm1, conf.int = T) %>% 
@@ -246,7 +250,7 @@ In somewhat awkward statistical notation, that code is
 
 $$\operatorname{logit}^{-1}(\beta_0 + \beta_1) - \operatorname{logit}^{-1}(\beta_1),$$
 
-where $\operatorname{logit}^{-1}(\cdot)$ is the inverse of the logistic function (i.e., `plogis()`). Let's prove our estimate with this formula is correct with the *sample* ATE (SATE), as computed by hand with sample statistics.
+where $\operatorname{logit}^{-1}(\cdot)$ is the inverse of the logistic function (i.e., `plogis()`). We can prove our estimate with this formula is correct by comparing it to the *sample* ATE (SATE), as computed by hand with sample statistics.
 
 ```{r}
 wilson2017 %>% 
@@ -256,11 +260,11 @@ wilson2017 %>%
   mutate(sate = `1` - `0`)
 ```
 
-Unlike with OLS-type models, you cannot estimate the ATE in a logistic-regression context with $\beta_1$ alone. You need to account for the other parameters in the model, too.
+Unlike with OLS-type models, you cannot estimate the ATE in a logistic-regression context with $\beta_1$ alone. You need to account for the other parameters in the model, too. This is a pattern we'll see again and again throughout this blog series.
 
 ### Compute $\Pr (y_i^1 = 1) - \Pr(y_i^0 = 1)$ from `glm1`.
 
-Back in the [last post](http://localhost:4321/blog/2023-02-06-causal-inference-with-potential-outcomes-bootcamp/), we leaned we could compute the average treatment effect, $\tau_\text{ATE}$, in two ways:
+Back in the [last post](http://localhost:4321/blog/2023-02-06-causal-inference-with-potential-outcomes-bootcamp/), we leaned we could compute the average treatment effect $\tau_\text{ATE}$ in two ways:
 
 $$\tau_\text{ATE} = \mathbb E (y_i^1 - y_i^0) = \mathbb E (y_i^1) - \mathbb E (y_i^0),$$
 
@@ -268,8 +272,8 @@ where, for the moment, we're excluding covariates from the framework. As it turn
 
 $$
 \begin{align*}
-\mathbb E (y_i^1) & = \Pr (y_i^1 = 1),\ \text{and} \\
-\mathbb E (y_i^0) & = \Pr (y_i^0 = 1),
+\mathbb E (y_i^1) & = {\color{blueviolet}{\Pr (y_i^1 = 1)}},\ \text{and} \\
+\mathbb E (y_i^0) & = {\color{blueviolet}{\Pr (y_i^0 = 1)}},
 \end{align*}
 $$
 
@@ -277,7 +281,7 @@ which means that
 
 $$\mathbb E (y_i^1) - \mathbb E (y_i^0) = \Pr (y_i^1 = 1) - \Pr(y_i^0 = 1).$$
 
-To take the notation even further, we typically use $p$ in place of $\Pr()$ when working with the binomial likelihood. Therefore
+To take the notation even further, we typically use $p$ in place of $\Pr()$ when working with models fit with the binomial likelihood. Therefore
 
 $$
 \begin{align*}
@@ -939,7 +943,7 @@ sessionInfo()
 
 [^1]: Yes, you geeks, I know we could also use the Bernoulli distribution. But the binomial is much more popular and if we're going to rely on the nice base **R** `glm()` function, we'll be setting `family = binomial`. There is no option for `family = bernoulli`.
 
-[^2]: It looks like the data have been saved in two differently-named files. If you click on the link I provided ([https://doi.org/10.1371/journal.pmed.1002479.s001](https://doi.org/10.1371/journal.pmed.1002479.s001), you'll download a file called `pmed.1002479.s001.xls`. If you instead click on the DOI link for the article, ([https://doi.org/10.1371/journal.pmed.1002479](https://doi.org/10.1371/journal.pmed.1002479)) and scroll down to the [Supporting information](https://journals.plos.org/plosmedicine/article?id=10.1371/journal.pmed.1002479#sec020) section, you'll see a little subsection called *S1 Data*. It used to be the case that the `.xls`. file in that section was called `S1Data.xls`, which is what I originally downloaded several months ago. That old `S1Data.xls` has the same data in the apparently newer `pmed.1002479.s001.xls` file. I've checked. But now at the time of this writing (2023-04-19), it appears I can only download a file called `pmed.1002479.s001.xls`. I'm sorry for any confusion. It appears this is just part of the process of journals figuring out how to support open materials in the long term.
+[^2]: It looks like the data have been saved in two differently-named files. If you click on the link I provided ([https://doi.org/10.1371/journal.pmed.1002479.s001](https://doi.org/10.1371/journal.pmed.1002479.s001), you'll download a file called `pmed.1002479.s001.xls`. If you instead click on the DOI link for the article, ([https://doi.org/10.1371/journal.pmed.1002479](https://doi.org/10.1371/journal.pmed.1002479)) and scroll down to the [Supporting information](https://journals.plos.org/plosmedicine/article?id=10.1371/journal.pmed.1002479#sec020) section, you'll see a little subsection called *S1 Data*. It used to be the case that the `.xls`. file in that section was called `S1Data.xls`, which is what I originally downloaded several months ago. That old `S1Data.xls` has the same data in the apparently newer `pmed.1002479.s001.xls` file. I've checked. But now at the time of this writing (2023-04-19), it appears I can only download a file called `pmed.1002479.s001.xls`. I'm sorry for any confusion. It appears this is just part of the process of journals figuring out how to support open materials in the long term. The long and forgettable name `pmed.1002479.s001.xls` is clearly connected to the DOI number, where the shorter and catchier name `S1Data.xls` has no such connection.
 
 [^3]: I suppose you could even argue it's a censored count. But since we'll be using it as a predictor, I'm not sure that argument would be of much help.
 
