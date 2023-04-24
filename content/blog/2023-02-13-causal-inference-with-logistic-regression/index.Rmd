@@ -545,11 +545,11 @@ Whether we have continuous covariates, discrete covariates, or a combination of 
 
 $$\tau_\text{TEMM} = \operatorname{\mathbb{E}} \left (y_i^1 \mid \mathbf{\bar C}, \mathbf D^m \right) - \operatorname{\mathbb{E}} \left (y_i^0 \mid \mathbf{\bar C}, \mathbf D^m \right),$$
 
-where *TEMM* is an acronym for *treatment effect at the mean and/or mode*. Beware the TEMM acronym is not widely used in the literature; I'm just using it here to help clarify a point. More importantly, once you move beyond the ATE to specify particular values for $\mathbf C$ and/or $\mathbf D$, you're really just computing one form or another of the *conditional average treatment effect* (CATE; $\tau_\text{CATE}$), which we might clarify with the formula
+where *TEMM* is an acronym for *treatment effect at the mean and/or mode*. We'll see what this looks like for our `wilson2017` data in a bit. In the meantime, beware the TEMM acronym is not widely used in the literature; I'm just using it here to help clarify a point. More importantly, once you move beyond the ATE to specify particular values for $\mathbf C$ and/or $\mathbf D$, you're really just computing one form or another of the *conditional average treatment effect* (CATE; $\tau_\text{CATE}$), which we might clarify with the formula
 
 $$\tau_\text{CATE} = \operatorname{\mathbb{E}}(y_i^1 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d) - \operatorname{\mathbb{E}}(y_i^0 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d),$$
 
-where $\mathbf C = \mathbf c$ is meant to convey you have chosen particular values $\mathbf c$ for the variables in the $\mathbf C$ vector, and $\mathbf D = \mathbf d$ is meant to convey you have chosen particular values $\mathbf d$ for the variables in the $\mathbf D$ vector. In addition to means or modes, these values could be any which are of particular interest to researchers and their audiences.
+where $\mathbf C = \mathbf c$ is meant to convey you have chosen particular values $\mathbf c$ for the variables in the $\mathbf C$ vector, and $\mathbf D = \mathbf d$ is meant to convey you have chosen particular values $\mathbf d$ for the variables in the $\mathbf D$ vector. In addition to means or modes, these values could be any which are of particular interest to researchers and their audiences. We'll being this theory down to earth in just a bit.
 
 Within the context of a logistic regression model, we further observe
 
