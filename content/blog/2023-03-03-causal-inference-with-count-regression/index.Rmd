@@ -75,7 +75,7 @@ data(package = "brms", epilepsy)
 glimpse(epilepsy)
 ```
 
-The primary outcome variable in the data is `count`, which is the number of epileptic seizures each person had had since their last visit. After their initial baseline assessment, participants came back every two weeks for assessments, which are denoted by the factor variable `visit`. After baseline assessment, participants were randomized into either the anti-convulsant drug [progabide](https://en.wikipedia.org/wiki/Progabide) (`Trt == 1`) or placebo (`Trt == 0`). To get a sense of the data, here are the seizures counts over the four assessment points, by treatment group.
+The primary outcome variable in the data is `count`, which is the number of epileptic seizures each person had had since their last visit. After their initial baseline assessment, participants came back every two weeks for assessments, which are denoted by the factor variable `visit`. After baseline assessment, participants were randomized into treatment groups in which they received either the anti-convulsant drug [progabide](https://en.wikipedia.org/wiki/Progabide) (`Trt == 1`) or a placebo (`Trt == 0`). To get a sense of the data, here are the seizures counts over the four assessment points, by treatment group.
 
 ```{r, fig.width = 6, fig.height = 3.25}
 epilepsy %>% 
@@ -742,7 +742,7 @@ where the priors for $\beta_0$ and $\beta_1$ are the same as in the previous mod
 
 I expect a strong positive correlation with the dependent variable and baseline counts (log-transformed and mean centered), and therefore the $\operatorname{Normal}(1, 0.5)$ prior is designed to convey that expectation. My expectations are less certain for our dependent variable and age, and thus I defaulted to the more conservative and regularizing $\operatorname{Normal}(0, 0.5)$.
 
-Here are how to fit the two models with `brm()`.
+Here are how to fit the two Bayesian models with the `brm()` function.
 
 ```{r brm1, eval = F}
 # NB ANOVA
