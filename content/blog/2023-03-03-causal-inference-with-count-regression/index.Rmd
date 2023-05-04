@@ -381,7 +381,7 @@ predict(fit1,
   head()
 ```
 
-The `fit` column contains the $\hat \lambda_i$ values, rather than $\hat y_i$ values. However, it turns out that when you take the average of the contrast of these values, you still get an estimate of the ATE. Thus within the context of our Poisson ANOVA model,
+The `fit` column contains the $\hat \lambda_i$ values, rather than $\hat y_i$ values. However, it turns out that when you take the average of the contrast of these values, you still get an estimate of the ATE [see Section 18.4 of @greeneEconometricAnalysis2018]. Thus within the context of our Poisson ANOVA model,
 
 $$\tau_\text{ATE} = \mathbb E (y_i^1 - y_i^0) = {\color{blueviolet}{\mathbb E (\lambda_i^1 - \lambda_i^0)}}.$$
 
