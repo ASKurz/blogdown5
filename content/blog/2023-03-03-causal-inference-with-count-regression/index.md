@@ -31,17 +31,24 @@ csl: /Users/solomonkurz/Dropbox/blogdown5/content/blog/apa.csl
 link-citations: yes
 ---
 
+<link href="{{< blogdown/postref >}}index_files/tabwid/tabwid.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index_files/tabwid/tabwid.js"></script>
+<link href="{{< blogdown/postref >}}index_files/tabwid/tabwid.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index_files/tabwid/tabwid.js"></script>
+<link href="{{< blogdown/postref >}}index_files/tabwid/tabwid.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index_files/tabwid/tabwid.js"></script>
+
 In the [third post](https://timely-flan-2986f4.netlify.app/blog/2023-02-13-causal-inference-with-logistic-regression/) in this series, we extended out counterfactual causal-inference framework to binary outcome data. We saw how logistic regression complicated the approach, particularly when using baseline covariates. In this post, we’ll practice causal inference with *un*bounded count data, using the Poisson and negative-binomial likelihoods.
 
 ## We need data
 
-In this post, we’ll be working with a subset of the `epilepsy` data from the **brms** package. Based on the **brms** documentation (execute `?epilepsy`), the data have their proximal origins in an ([1990](#ref-thall1990some)) *Biometrics* paper by Thall and Vail. However, Thall and Vail cited an earlier paper by Leppik et al. ([1985](#ref-leppik1985double)) as the ultimate origin[^1]. Here we load our primary packages, adjust the global plotting theme, load the `epilepsy` data, and take a peek.
+We’ll be working with a subset of the `epilepsy` data from the **brms** package. Based on the **brms** documentation (execute `?epilepsy`), the data have their proximal origins in an ([1990](#ref-thall1990some)) *Biometrics* paper by Thall and Vail. However, Thall and Vail cited an earlier paper by Leppik et al. ([1985](#ref-leppik1985double)) as the ultimate origin.[^1] Here we load our primary packages, adjust the global plotting theme, load the `epilepsy` data, and take a peek.
 
 ``` r
 # packages
 library(tidyverse)
 library(brms)
-# library(flextable)
+library(flextable)
 library(GGally)
 library(broom)
 library(ggdist)
@@ -74,7 +81,7 @@ glimpse(epilepsy)
     ## $ zAge    <dbl> 0.42499501, 0.26528351, -0.53327400, 1.22355252, -1.01240850, 0.10557201, 0.42499501, 2.1818…
     ## $ zBase   <dbl> -0.757172825, -0.757172825, -0.944403322, -0.869511123, 1.302362646, -0.158035233, -0.719726…
 
-The primary outcome variable in the data is `count`, which is the number of epileptic seizures each person had had since their last visit. After their initial baseline assessment, participants came back every two weeks for our visits, which are denoted by the factor variable `visit`. After baseline assessment, participants were randomized into either the anti-convulsant drub [progabide](https://en.wikipedia.org/wiki/Progabide) (`Trt == 1`) or placebo (`Trt == 0`). To get a sense of the data, here are the seizures counts over the four assessment points, by condition.
+The primary outcome variable in the data is `count`, which is the number of epileptic seizures each person had had since their last visit. After their initial baseline assessment, participants came back every two weeks for assessments, which are denoted by the factor variable `visit`. After baseline assessment, participants were randomized into either the anti-convulsant drug [progabide](https://en.wikipedia.org/wiki/Progabide) (`Trt == 1`) or placebo (`Trt == 0`). To get a sense of the data, here are the seizures counts over the four assessment points, by treatment group.
 
 ``` r
 epilepsy %>% 
@@ -100,7 +107,7 @@ epilepsy %>%
 
 <img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-5-1.png" width="576" />
 
-Here are some of the sample statistics, by `Trt` and `visit`.
+Here are some of the sample statistics, by `Trt` and `visit`, in a Table 1 type format.
 
 ``` r
 epilepsy %>% 
@@ -109,32 +116,18 @@ epilepsy %>%
             variance = var(count),
             min = min(count),
             max = max(count)) %>% 
-  mutate_if(is.double, round, digits = 1)
+  mutate_if(is.double, round, digits = 1) %>%
+  as_grouped_data(groups = c("Trt")) %>%
+  flextable()
 ```
 
-    ## # A tibble: 8 × 6
-    ## # Groups:   Trt [2]
-    ##   Trt   visit  mean variance   min   max
-    ##   <fct> <fct> <dbl>    <dbl> <dbl> <dbl>
-    ## 1 0     1       9.4    103.      0    40
-    ## 2 0     2       8.3     66.7     0    29
-    ## 3 0     3       8.7    213.      0    76
-    ## 4 0     4       8       58.2     0    29
-    ## 5 1     1       8.6    333.      0   102
-    ## 6 1     2       8.4    141.      0    65
-    ## 7 1     3       8.1    193       0    72
-    ## 8 1     4       6.7    127.      0    63
+<div class="tabwid"><style>.cl-bcccea80{}.cl-bc9f7d0c{font-family:'Helvetica';font-size:11pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(0, 0, 0, 1.00);background-color:transparent;}.cl-bcc2d770{margin:0;text-align:left;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:5pt;padding-right:5pt;line-height: 1;background-color:transparent;}.cl-bcc2d784{margin:0;text-align:right;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:5pt;padding-right:5pt;line-height: 1;background-color:transparent;}.cl-bcc30c40{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 1.5pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bcc30c4a{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 1.5pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bcc30c54{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bcc30c5e{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bcc30c5f{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bcc30c68{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table data-quarto-disable-processing='true' class='cl-bcccea80'><thead><tr style="overflow-wrap:break-word;"><th class="cl-bcc30c40"><p class="cl-bcc2d770"><span class="cl-bc9f7d0c">Trt</span></p></th><th class="cl-bcc30c40"><p class="cl-bcc2d770"><span class="cl-bc9f7d0c">visit</span></p></th><th class="cl-bcc30c4a"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c">mean</span></p></th><th class="cl-bcc30c4a"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c">variance</span></p></th><th class="cl-bcc30c4a"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c">min</span></p></th><th class="cl-bcc30c4a"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c">max</span></p></th></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-bcc30c54"><p class="cl-bcc2d770"><span class="cl-bc9f7d0c">0</span></p></td><td class="cl-bcc30c54"><p class="cl-bcc2d770"><span class="cl-bc9f7d0c"></span></p></td><td class="cl-bcc30c5e"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c"></span></p></td><td class="cl-bcc30c5e"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c"></span></p></td><td class="cl-bcc30c5e"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c"></span></p></td><td class="cl-bcc30c5e"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c"></span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bcc30c54"><p class="cl-bcc2d770"><span class="cl-bc9f7d0c"></span></p></td><td class="cl-bcc30c54"><p class="cl-bcc2d770"><span class="cl-bc9f7d0c">1</span></p></td><td class="cl-bcc30c5e"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c">9.4</span></p></td><td class="cl-bcc30c5e"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c">102.8</span></p></td><td class="cl-bcc30c5e"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c">0</span></p></td><td class="cl-bcc30c5e"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c">40</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bcc30c54"><p class="cl-bcc2d770"><span class="cl-bc9f7d0c"></span></p></td><td class="cl-bcc30c54"><p class="cl-bcc2d770"><span class="cl-bc9f7d0c">2</span></p></td><td class="cl-bcc30c5e"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c">8.3</span></p></td><td class="cl-bcc30c5e"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c">66.7</span></p></td><td class="cl-bcc30c5e"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c">0</span></p></td><td class="cl-bcc30c5e"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c">29</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bcc30c54"><p class="cl-bcc2d770"><span class="cl-bc9f7d0c"></span></p></td><td class="cl-bcc30c54"><p class="cl-bcc2d770"><span class="cl-bc9f7d0c">3</span></p></td><td class="cl-bcc30c5e"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c">8.7</span></p></td><td class="cl-bcc30c5e"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c">213.3</span></p></td><td class="cl-bcc30c5e"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c">0</span></p></td><td class="cl-bcc30c5e"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c">76</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bcc30c54"><p class="cl-bcc2d770"><span class="cl-bc9f7d0c"></span></p></td><td class="cl-bcc30c54"><p class="cl-bcc2d770"><span class="cl-bc9f7d0c">4</span></p></td><td class="cl-bcc30c5e"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c">8.0</span></p></td><td class="cl-bcc30c5e"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c">58.2</span></p></td><td class="cl-bcc30c5e"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c">0</span></p></td><td class="cl-bcc30c5e"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c">29</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bcc30c54"><p class="cl-bcc2d770"><span class="cl-bc9f7d0c">1</span></p></td><td class="cl-bcc30c54"><p class="cl-bcc2d770"><span class="cl-bc9f7d0c"></span></p></td><td class="cl-bcc30c5e"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c"></span></p></td><td class="cl-bcc30c5e"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c"></span></p></td><td class="cl-bcc30c5e"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c"></span></p></td><td class="cl-bcc30c5e"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c"></span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bcc30c54"><p class="cl-bcc2d770"><span class="cl-bc9f7d0c"></span></p></td><td class="cl-bcc30c54"><p class="cl-bcc2d770"><span class="cl-bc9f7d0c">1</span></p></td><td class="cl-bcc30c5e"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c">8.6</span></p></td><td class="cl-bcc30c5e"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c">332.7</span></p></td><td class="cl-bcc30c5e"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c">0</span></p></td><td class="cl-bcc30c5e"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c">102</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bcc30c54"><p class="cl-bcc2d770"><span class="cl-bc9f7d0c"></span></p></td><td class="cl-bcc30c54"><p class="cl-bcc2d770"><span class="cl-bc9f7d0c">2</span></p></td><td class="cl-bcc30c5e"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c">8.4</span></p></td><td class="cl-bcc30c5e"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c">140.7</span></p></td><td class="cl-bcc30c5e"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c">0</span></p></td><td class="cl-bcc30c5e"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c">65</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bcc30c54"><p class="cl-bcc2d770"><span class="cl-bc9f7d0c"></span></p></td><td class="cl-bcc30c54"><p class="cl-bcc2d770"><span class="cl-bc9f7d0c">3</span></p></td><td class="cl-bcc30c5e"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c">8.1</span></p></td><td class="cl-bcc30c5e"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c">193.0</span></p></td><td class="cl-bcc30c5e"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c">0</span></p></td><td class="cl-bcc30c5e"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c">72</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bcc30c5f"><p class="cl-bcc2d770"><span class="cl-bc9f7d0c"></span></p></td><td class="cl-bcc30c5f"><p class="cl-bcc2d770"><span class="cl-bc9f7d0c">4</span></p></td><td class="cl-bcc30c68"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c">6.7</span></p></td><td class="cl-bcc30c68"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c">126.9</span></p></td><td class="cl-bcc30c68"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c">0</span></p></td><td class="cl-bcc30c68"><p class="cl-bcc2d784"><span class="cl-bc9f7d0c">63</span></p></td></tr></tbody></table></div>
 
-``` r
-# temporarily commented out until flextable updates
-# %>% 
-#   as_grouped_data(groups = c("Trt")) %>% 
-#   flextable()
-```
+It’ll become apparent why we computed variances instead of standard deviations in a little bit.
 
 ### Subset, wrangle, inspect.
 
-It’d be cool to play around modeling the data from all four time points[^2], but that would be too much of a distraction from our central goal. So we’re going to subset the data to only include the rows for the fourth assessment period (i.e., `visit == 4`). We’ll call the reduced data set `ep4`.
+It’d be cool to play around modeling the data from all four time points,[^2] but that would be too much of a distraction from our central goal. So we’re going to subset the data to only include the rows for the fourth assessment period (i.e., `visit == 4`). We’ll call the reduced data set `ep4`.
 
 ``` r
 ep4 <- epilepsy %>% 
@@ -160,9 +153,9 @@ glimpse(ep4)
     ## $ lcBase  <dbl> -0.75635379, -0.75635379, -1.36248959, -1.07480752, 1.03540568, 0.14158780, -0.66934241, 0.7…
     ## $ lcAge   <dbl> 0.11420370, 0.08141387, -0.10090768, 0.26373543, -0.22874106, 0.04751232, 0.11420370, 0.4178…
 
-The `glimpse()` output helps clarify there were 59 unique participants in this study. If you use the `count()` function, you’ll find `\(n = 28\)` are in the placebo condition, and the remaining `\(n = 31\)` got the active treatment. The data, both `epilepsy` and `ep4`, also contain information from the baseline assessment. The `Base` column has the epileptic seizure counts during the 8-week period before the baseline assessment. Bear in mind the counts in the `count` column were for a 2-week period, which means we’d expect the values in `Base` to be at least 4 times larger than those in `count`. But since they’re all seizure counts, we’d still expect the two variables to have a strong positive correlation. The other baseline covariate in the data, and considered by Thall & Vail ([1990](#ref-thall1990some)), is age measured in years (`Age`). The **brms** package also includes standardized version of these variables in the `zBase` and `zAge` columns. Thall and Vail, however, used log-transformed versions of these variables, which is what we’ll do in this blog post. Thus, our new variable `lcBase` is the log-transformed and mean-centered version of `Base`, and `lcAge` is the log-transformed and mean-centered version of `Age`.
+The `glimpse()` output helps clarify there were 59 unique participants in this study. If you use the `count()` function, you’ll find `\(n = 28\)` are in the placebo condition, and the remaining `\(n = 31\)` got the active treatment. The data, both `epilepsy` and `ep4`, also contain information from the baseline assessment. The `Base` column has the epileptic seizure counts during the 8-week period before the baseline assessment. Bear in mind the counts in the `count` column were for a 2-week period, which means we’d expect the values in `Base` to be at least 4 times larger than those in `count`. But since they’re all seizure counts, we’d still expect the two variables to have a strong positive correlation. The other baseline covariate in the data, which was also considered by Thall & Vail ([1990](#ref-thall1990some)), is age measured in years (`Age`). The **brms** package also includes standardized version of these variables in the `zBase` and `zAge` columns. Thall and Vail, however, used log-transformed versions of these variables, which is what we’ll do in this blog post. Thus, our new variable `lcBase` is the log-transformed and mean-centered version of `Base`, and `lcAge` is the log-transformed and mean-centered version of `Age`.
 
-Since it can be difficult to think in terms of the mean values of log-transformed variables, here are what the means of those log-transformed values are, when exponentiated back into their original metric[^3].
+Since it can be difficult to think in terms of the mean values of log-transformed variables, here are what the means of those log-transformed values are, when exponentiated back into their original metric.[^3]
 
 ``` r
 ep4 %>% 
@@ -173,7 +166,7 @@ ep4 %>%
     ##   exponentiated_mean_of_log(Base) exponentiated_mean_of_log(Age)
     ## 1                        23.43543                       27.65436
 
-We might want to get a further sense of the outcome variable and the two baseline covariates with a couple pairs plot with help from the [**GGally** package](https://CRAN.R-project.org/package=GGally) ([Schloerke et al., 2021](#ref-R-GGally)). We’ll look at them in both their natural metrics, and on the log scale.
+We might want to get a further sense of the outcome variable and the two baseline covariates with a couple pairs plot with help from the **GGally** package ([Schloerke et al., 2021](#ref-R-GGally)). We’ll look at them in both their natural metrics, and on the log scale.
 
 ``` r
 # natural metric
@@ -213,7 +206,7 @@ ep4 %>%
 
 ## Model framework
 
-Our focal variable `count` is an unbounded count. Technically all count variables are bounded in that their lower limit is always zero[^4]. By unbounded count, I mean there is no clearly-defined upper limit, the way there is with binomial data. When you have unbounded counts, the two most popular likelihoods are the Poisson and the negative-binomial. The Poisson likelihood is parsimonious in that it contains a single parameter `\(\lambda\)`, which is both the mean and the variance. As such, the Poisson likelihood assumes the variance scales perfectly with the mean, which is often called the *equidispersion* assumption. If you look back above at the sample statistics, you’ll notice the variances for `count` were a lot larger than the means at all time points and for both conditions, which doesn’t bode well for that equidispersion assumption[^5]. Happily, the negative-binomial likelihood provides an alternative where its second parameter, `\(\phi\)`, accounts for additional variance above what we’d expect from the Poisson. Thus in this blog post, we’ll analyze these data from both frequentist and Bayesian perspectives, and also with the Poisson and negative-binomial likelihoods.
+Our focal variable `count` is an unbounded count. Technically all count variables are bounded in that their lower limit is always zero.[^4] By *unbounded* count, I mean there is no clearly-defined upper limit such as with binomial data. When you have unbounded counts, the two most popular likelihoods are the Poisson and the negative-binomial. The Poisson likelihood is parsimonious in that it contains a single parameter `\(\lambda\)`, which is both the mean and the variance. As such, the Poisson likelihood assumes the variance scales perfectly with the mean, which is often called the *equidispersion* assumption. If you look back above at the sample statistics, you’ll notice the variances for `count` were a lot larger than the means at all time points and for both conditions, which doesn’t bode well for that equidispersion assumption.[^5] Happily, the negative-binomial likelihood provides an alternative where its second parameter `\(\phi\)` accounts for additional variance above what we’d expect from the Poisson. For the sake of practice, in this blog post we’ll analyze these data from both frequentist and Bayesian perspectives, and also with the Poisson and negative-binomial likelihoods.
 
 To complicate matters even further, we’ll also analyze the data with ANOVA- and ANCOVA-type frameworks. Butting all three binaries together, we’ll end up fitting and post-processing 6 models in total:
 
@@ -223,25 +216,12 @@ tibble(
   framework = rep(c("frequentist", "Bayesian"), times = c(4, 2)),
   model = rep(c("ANOVA", "ANCOVA", "ANOVA", "ANCOVA"), times = c(2, 2, 1, 1)),
   likelihood = c("Poisson", "negative-binomial", "Poisson", "negative-binomial", "negative-binomial", "Poisson")
-) 
+) %>%
+  flextable() %>%
+  autofit()
 ```
 
-    ## # A tibble: 6 × 4
-    ##   name  framework   model  likelihood       
-    ##   <chr> <chr>       <chr>  <chr>            
-    ## 1 fit1  frequentist ANOVA  Poisson          
-    ## 2 fit2  frequentist ANOVA  negative-binomial
-    ## 3 fit3  frequentist ANCOVA Poisson          
-    ## 4 fit4  frequentist ANCOVA negative-binomial
-    ## 5 brm1  Bayesian    ANOVA  negative-binomial
-    ## 6 brm2  Bayesian    ANCOVA Poisson
-
-``` r
-# temporarily commented out until flextable updates
-# %>% 
-#   flextable() %>% 
-#   autofit()
-```
+<div class="tabwid"><style>.cl-bf860a0e{}.cl-bf763d86{font-family:'Helvetica';font-size:11pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(0, 0, 0, 1.00);background-color:transparent;}.cl-bf7d3d66{margin:0;text-align:left;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:5pt;padding-right:5pt;line-height: 1;background-color:transparent;}.cl-bf7d88fc{width:0.667in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 1.5pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bf7d8910{width:0.999in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 1.5pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bf7d891a{width:0.93in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 1.5pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bf7d891b{width:1.483in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 1.5pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bf7d8924{width:0.667in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bf7d892e{width:0.999in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bf7d8938{width:0.93in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bf7d8939{width:1.483in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bf7d893a{width:0.667in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bf7d8942{width:0.999in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bf7d894c{width:0.93in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bf7d894d{width:1.483in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bf7d8956{width:0.667in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bf7d8960{width:0.999in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bf7d8961{width:0.93in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bf7d896a{width:1.483in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table data-quarto-disable-processing='true' class='cl-bf860a0e'><thead><tr style="overflow-wrap:break-word;"><th class="cl-bf7d88fc"><p class="cl-bf7d3d66"><span class="cl-bf763d86">name</span></p></th><th class="cl-bf7d8910"><p class="cl-bf7d3d66"><span class="cl-bf763d86">framework</span></p></th><th class="cl-bf7d891a"><p class="cl-bf7d3d66"><span class="cl-bf763d86">model</span></p></th><th class="cl-bf7d891b"><p class="cl-bf7d3d66"><span class="cl-bf763d86">likelihood</span></p></th></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-bf7d8924"><p class="cl-bf7d3d66"><span class="cl-bf763d86">fit1</span></p></td><td class="cl-bf7d892e"><p class="cl-bf7d3d66"><span class="cl-bf763d86">frequentist</span></p></td><td class="cl-bf7d8938"><p class="cl-bf7d3d66"><span class="cl-bf763d86">ANOVA</span></p></td><td class="cl-bf7d8939"><p class="cl-bf7d3d66"><span class="cl-bf763d86">Poisson</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bf7d893a"><p class="cl-bf7d3d66"><span class="cl-bf763d86">fit2</span></p></td><td class="cl-bf7d8942"><p class="cl-bf7d3d66"><span class="cl-bf763d86">frequentist</span></p></td><td class="cl-bf7d894c"><p class="cl-bf7d3d66"><span class="cl-bf763d86">ANOVA</span></p></td><td class="cl-bf7d894d"><p class="cl-bf7d3d66"><span class="cl-bf763d86">negative-binomial</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bf7d8924"><p class="cl-bf7d3d66"><span class="cl-bf763d86">fit3</span></p></td><td class="cl-bf7d892e"><p class="cl-bf7d3d66"><span class="cl-bf763d86">frequentist</span></p></td><td class="cl-bf7d8938"><p class="cl-bf7d3d66"><span class="cl-bf763d86">ANCOVA</span></p></td><td class="cl-bf7d8939"><p class="cl-bf7d3d66"><span class="cl-bf763d86">Poisson</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bf7d893a"><p class="cl-bf7d3d66"><span class="cl-bf763d86">fit4</span></p></td><td class="cl-bf7d8942"><p class="cl-bf7d3d66"><span class="cl-bf763d86">frequentist</span></p></td><td class="cl-bf7d894c"><p class="cl-bf7d3d66"><span class="cl-bf763d86">ANCOVA</span></p></td><td class="cl-bf7d894d"><p class="cl-bf7d3d66"><span class="cl-bf763d86">negative-binomial</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bf7d893a"><p class="cl-bf7d3d66"><span class="cl-bf763d86">brm1</span></p></td><td class="cl-bf7d8942"><p class="cl-bf7d3d66"><span class="cl-bf763d86">Bayesian</span></p></td><td class="cl-bf7d894c"><p class="cl-bf7d3d66"><span class="cl-bf763d86">ANOVA</span></p></td><td class="cl-bf7d894d"><p class="cl-bf7d3d66"><span class="cl-bf763d86">negative-binomial</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bf7d8956"><p class="cl-bf7d3d66"><span class="cl-bf763d86">brm2</span></p></td><td class="cl-bf7d8960"><p class="cl-bf7d3d66"><span class="cl-bf763d86">Bayesian</span></p></td><td class="cl-bf7d8961"><p class="cl-bf7d3d66"><span class="cl-bf763d86">ANCOVA</span></p></td><td class="cl-bf7d896a"><p class="cl-bf7d3d66"><span class="cl-bf763d86">Poisson</span></p></td></tr></tbody></table></div>
 
 For the sake of space, well only fit two Bayesian models. My hope is by the time we’re in that section, you’ll get the gist of what’s going on. For the frequentist models, we’ll also discuss the issue of *robust* standard errors, which won’t apply to our Bayesian models. We start as frequentists.
 
@@ -258,7 +238,7 @@ $$
 \end{align*}`
 $$
 
-where we use the conventional log link to ensure we only make positive predictions. The `\(\beta_0\)` parameter is the placebo mean, on the log scale, and `\(\beta_1\)` is the deviation from that mean on log-scale units, for those in the active treatment group. In a similar way, the negative-binomial version of our ANOVA model will be of the form
+where we use the conventional log link to ensure we only make positive predictions. The `\(\beta_0\)` parameter is the placebo mean on the log scale, and `\(\beta_1\)` is the deviation from that mean on log-scale units for those in the active treatment group. In a similar way, the negative-binomial version of our ANOVA model will be of the form
 
 $$
 `\begin{align*}
@@ -287,7 +267,7 @@ $$
 \end{align*}`
 $$
 
-We can fit the Poisson models with the good-old base **R** `glm()` function, provided we set `family = poisson`. The negative-binomial models require the `glm.nb()` function from the **MASS** package ([Ripley, 2022](#ref-R-MASS); [Venables & Ripley, 2002](#ref-MASS2002)). You’ll note that instead of opening **MASS** directly with `library()`, we’re instead using the focused `MASS::glm.nb()`. This is because **MASS** can create conflicts with some of the **tidyverse** functions, and I’d like to avoid those complications.
+We can fit the frequentist Poisson models with the good-old base **R** `glm()` function, provided we set `family = poisson`. The frequentist negative-binomial models require the `glm.nb()` function from the **MASS** package ([Ripley, 2022](#ref-R-MASS); [Venables & Ripley, 2002](#ref-MASS2002)). You’ll note that instead of opening **MASS** directly with `library()`, we’re instead using the focused `MASS::glm.nb()` syntax. This is because **MASS** can create conflicts with some of the **tidyverse** functions, and I’d like to avoid those complications.
 
 ``` r
 # Poisson ANOVA
@@ -319,31 +299,12 @@ For the sake of space, I’m not going to show all the `summary()` output for th
 bind_rows(tidy(fit1), tidy(fit2), tidy(fit3), tidy(fit4)) %>% 
   mutate(fit = rep(str_c("fit", 1:4), times = c(2, 2, 4, 4))) %>% 
   select(fit, everything()) %>% 
-  mutate_if(is.double, round, digits = 3)
+  mutate_if(is.double, round, digits = 3) %>%
+  as_grouped_data(groups = c("fit")) %>%
+  flextable()
 ```
 
-    ## # A tibble: 12 × 6
-    ##    fit   term        estimate std.error statistic p.value
-    ##    <chr> <chr>          <dbl>     <dbl>     <dbl>   <dbl>
-    ##  1 fit1  (Intercept)    2.08      0.067    31.0     0    
-    ##  2 fit1  Trt1          -0.171     0.096    -1.78    0.075
-    ##  3 fit2  (Intercept)    2.08      0.196    10.6     0    
-    ##  4 fit2  Trt1          -0.171     0.271    -0.632   0.527
-    ##  5 fit3  (Intercept)    1.68      0.083    20.1     0    
-    ##  6 fit3  Trt1          -0.145     0.102    -1.42    0.157
-    ##  7 fit3  lcBase         1.18      0.068    17.2     0    
-    ##  8 fit3  lcAge          0.37      0.234     1.58    0.113
-    ##  9 fit4  (Intercept)    1.80      0.117    15.3     0    
-    ## 10 fit4  Trt1          -0.308     0.162    -1.90    0.057
-    ## 11 fit4  lcBase         1.07      0.111     9.62    0    
-    ## 12 fit4  lcAge          0.275     0.367     0.749   0.454
-
-``` r
-# temporarily commented out until flextable updates
-# %>% 
-#   as_grouped_data(groups = c("fit")) %>% 
-#   flextable()
-```
+<div class="tabwid"><style>.cl-bfe2562e{}.cl-bfd7897e{font-family:'Helvetica';font-size:11pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(0, 0, 0, 1.00);background-color:transparent;}.cl-bfdc1020{margin:0;text-align:left;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:5pt;padding-right:5pt;line-height: 1;background-color:transparent;}.cl-bfdc1034{margin:0;text-align:right;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:5pt;padding-right:5pt;line-height: 1;background-color:transparent;}.cl-bfdc2b64{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 1.5pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bfdc2b6e{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 1.5pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bfdc2b78{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bfdc2b79{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bfdc2b82{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-bfdc2b83{width:0.75in;background-color:transparent;vertical-align: middle;border-bottom: 1.5pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table data-quarto-disable-processing='true' class='cl-bfe2562e'><thead><tr style="overflow-wrap:break-word;"><th class="cl-bfdc2b64"><p class="cl-bfdc1020"><span class="cl-bfd7897e">fit</span></p></th><th class="cl-bfdc2b64"><p class="cl-bfdc1020"><span class="cl-bfd7897e">term</span></p></th><th class="cl-bfdc2b6e"><p class="cl-bfdc1034"><span class="cl-bfd7897e">estimate</span></p></th><th class="cl-bfdc2b6e"><p class="cl-bfdc1034"><span class="cl-bfd7897e">std.error</span></p></th><th class="cl-bfdc2b6e"><p class="cl-bfdc1034"><span class="cl-bfd7897e">statistic</span></p></th><th class="cl-bfdc2b6e"><p class="cl-bfdc1034"><span class="cl-bfd7897e">p.value</span></p></th></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-bfdc2b78"><p class="cl-bfdc1020"><span class="cl-bfd7897e">fit1</span></p></td><td class="cl-bfdc2b78"><p class="cl-bfdc1020"><span class="cl-bfd7897e"></span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e"></span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e"></span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e"></span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e"></span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bfdc2b78"><p class="cl-bfdc1020"><span class="cl-bfd7897e"></span></p></td><td class="cl-bfdc2b78"><p class="cl-bfdc1020"><span class="cl-bfd7897e">(Intercept)</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">2.075</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">0.067</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">30.986</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">0.000</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bfdc2b78"><p class="cl-bfdc1020"><span class="cl-bfd7897e"></span></p></td><td class="cl-bfdc2b78"><p class="cl-bfdc1020"><span class="cl-bfd7897e">Trt1</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">-0.171</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">0.096</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">-1.778</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">0.075</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bfdc2b78"><p class="cl-bfdc1020"><span class="cl-bfd7897e">fit2</span></p></td><td class="cl-bfdc2b78"><p class="cl-bfdc1020"><span class="cl-bfd7897e"></span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e"></span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e"></span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e"></span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e"></span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bfdc2b78"><p class="cl-bfdc1020"><span class="cl-bfd7897e"></span></p></td><td class="cl-bfdc2b78"><p class="cl-bfdc1020"><span class="cl-bfd7897e">(Intercept)</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">2.075</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">0.196</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">10.607</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">0.000</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bfdc2b78"><p class="cl-bfdc1020"><span class="cl-bfd7897e"></span></p></td><td class="cl-bfdc2b78"><p class="cl-bfdc1020"><span class="cl-bfd7897e">Trt1</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">-0.171</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">0.271</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">-0.632</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">0.527</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bfdc2b78"><p class="cl-bfdc1020"><span class="cl-bfd7897e">fit3</span></p></td><td class="cl-bfdc2b78"><p class="cl-bfdc1020"><span class="cl-bfd7897e"></span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e"></span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e"></span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e"></span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e"></span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bfdc2b78"><p class="cl-bfdc1020"><span class="cl-bfd7897e"></span></p></td><td class="cl-bfdc2b78"><p class="cl-bfdc1020"><span class="cl-bfd7897e">(Intercept)</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">1.676</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">0.083</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">20.076</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">0.000</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bfdc2b78"><p class="cl-bfdc1020"><span class="cl-bfd7897e"></span></p></td><td class="cl-bfdc2b78"><p class="cl-bfdc1020"><span class="cl-bfd7897e">Trt1</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">-0.145</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">0.102</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">-1.415</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">0.157</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bfdc2b78"><p class="cl-bfdc1020"><span class="cl-bfd7897e"></span></p></td><td class="cl-bfdc2b78"><p class="cl-bfdc1020"><span class="cl-bfd7897e">lcBase</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">1.179</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">0.068</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">17.241</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">0.000</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bfdc2b78"><p class="cl-bfdc1020"><span class="cl-bfd7897e"></span></p></td><td class="cl-bfdc2b78"><p class="cl-bfdc1020"><span class="cl-bfd7897e">lcAge</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">0.370</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">0.234</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">1.584</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">0.113</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bfdc2b78"><p class="cl-bfdc1020"><span class="cl-bfd7897e">fit4</span></p></td><td class="cl-bfdc2b78"><p class="cl-bfdc1020"><span class="cl-bfd7897e"></span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e"></span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e"></span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e"></span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e"></span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bfdc2b78"><p class="cl-bfdc1020"><span class="cl-bfd7897e"></span></p></td><td class="cl-bfdc2b78"><p class="cl-bfdc1020"><span class="cl-bfd7897e">(Intercept)</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">1.795</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">0.117</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">15.342</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">0.000</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bfdc2b78"><p class="cl-bfdc1020"><span class="cl-bfd7897e"></span></p></td><td class="cl-bfdc2b78"><p class="cl-bfdc1020"><span class="cl-bfd7897e">Trt1</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">-0.308</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">0.162</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">-1.904</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">0.057</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bfdc2b78"><p class="cl-bfdc1020"><span class="cl-bfd7897e"></span></p></td><td class="cl-bfdc2b78"><p class="cl-bfdc1020"><span class="cl-bfd7897e">lcBase</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">1.068</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">0.111</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">9.617</span></p></td><td class="cl-bfdc2b79"><p class="cl-bfdc1034"><span class="cl-bfd7897e">0.000</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-bfdc2b82"><p class="cl-bfdc1020"><span class="cl-bfd7897e"></span></p></td><td class="cl-bfdc2b82"><p class="cl-bfdc1020"><span class="cl-bfd7897e">lcAge</span></p></td><td class="cl-bfdc2b83"><p class="cl-bfdc1034"><span class="cl-bfd7897e">0.275</span></p></td><td class="cl-bfdc2b83"><p class="cl-bfdc1034"><span class="cl-bfd7897e">0.367</span></p></td><td class="cl-bfdc2b83"><p class="cl-bfdc1034"><span class="cl-bfd7897e">0.749</span></p></td><td class="cl-bfdc2b83"><p class="cl-bfdc1034"><span class="cl-bfd7897e">0.454</span></p></td></tr></tbody></table></div>
 
 We should note that the standard errors in that table are all based on conventional maximum likelihood estimation, which are typically fine defaults, to my eye. However, that equidispersion assumption for the Poisson models can result in very small standard errors, relative to those from their negative-binomial alternatives. Sometimes researchers prefer using so-called *robust* standard errors, instead. We can compute those with help from the `coeftest()` function from the **lmtest** package ([Hothorn et al., 2022](#ref-R-lmtest); [Zeileis & Hothorn, 2002](#ref-lmtest2002)). By setting `vcov = vcovHC`, we are requesting the so-called HC3 *sandwich* standard errors, via the **sandwich** package ([Zeileis, 2004](#ref-zeileis2004econometric), [2006](#ref-zeileis2006object); [Zeileis et al., 2020](#ref-zeileis2020various); [Zeileis & Lumley, 2022](#ref-R-sandwich)). Here’s how all this works for our Poisson ANOVA model `fit1`, within the context of the `tidy()` function.
 
@@ -403,7 +364,7 @@ bind_rows(
 
 Overall, the sandwich standard errors resulted in narrower CI’s in the Poisson models, particularly for the Poisson ANOVA. But the sandwich standard errors did change the results for the negative-binomial models, too. As we will see in the next few sections, the choice of one’s likelihood and standard error method will influence causal inference. Sadly, I can’t tell you what the right choice is for your research program. All I can do, here, is let you know about some of your options.
 
-#### Can the `\(\beta\)` estimates give us the ATE?
+#### Can the `\(\beta\)` coefficients help us estimate the ATE?
 
 Much like with logistic regression models, the `\(\beta_1\)` parameter alone cannot give us the average treatment effect (ATE) for either the Poisson or negative-binomial likelihoods. However, we can use a combination of the `\(\beta_0\)` and `\(\beta_1\)` parameters to give us the ATE, when they are from the ANOVA models. The formula is
 
@@ -549,7 +510,7 @@ bind_rows(
 
 <img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-21-1.png" width="768" />
 
-Unsurprisingly, the ANOVA-based point estimates are the same for all patients. Yet the estimates for the ANCOVA model showed marked diversity among the patients. As to the 95% CI’s, they were markedly wider when based on the sandwich standard errors, suggesting the Poisson models did not adequately account for the overdispersion in the data. Now look at the negative-binomial versions of the figure.
+Unsurprisingly, the ANOVA-based point estimates are the same for all patients. Yet the estimates for the ANCOVA model showed great diversity among the patients. As to the 95% CI’s, they were markedly wider when based on the sandwich standard errors, suggesting the Poisson models did not adequately account for the overdispersion in the data. Now look at the negative-binomial versions of the figure.
 
 ``` r
 # compute and wrangle
@@ -594,10 +555,10 @@ Now we use the `marginaleffects::comparisons()` function to compute the patient-
 ``` r
 # Poisson
 p1 <- bind_rows(
-  comparisons(fit1, variables = "Trt"),
-  comparisons(fit1, variables = "Trt", vcov = "HC3"),
-  comparisons(fit3, variables = "Trt"),
-  comparisons(fit3, variables = "Trt", vcov = "HC3")
+  comparisons(fit1, variables = "Trt", by = "patient"),
+  comparisons(fit1, variables = "Trt", by = "patient", vcov = "HC3"),
+  comparisons(fit3, variables = "Trt", by = "patient"),
+  comparisons(fit3, variables = "Trt", by = "patient", vcov = "HC3")
 ) %>% 
   data.frame() %>% 
   mutate(model = rep(models, each = 2) %>% rep(., each = n() / 4) %>% factor(., levels = models),
@@ -615,10 +576,10 @@ p1 <- bind_rows(
 
 # Negative-binomial
 p2 <- bind_rows(
-  comparisons(fit2, variables = "Trt"),
-  comparisons(fit2, variables = "Trt", vcov = "HC3"),
-  comparisons(fit4, variables = "Trt"),
-  comparisons(fit4, variables = "Trt", vcov = "HC3")
+  comparisons(fit2, variables = "Trt", by = "patient"),
+  comparisons(fit2, variables = "Trt", by = "patient", vcov = "HC3"),
+  comparisons(fit4, variables = "Trt", by = "patient"),
+  comparisons(fit4, variables = "Trt", by = "patient", vcov = "HC3")
 ) %>% 
   data.frame() %>% 
   mutate(model = rep(models, each = 2) %>% rep(., each = n() / 4) %>% factor(., levels = models),
@@ -724,29 +685,28 @@ You can compute these predictions for either of the ANOVA models with base **R**
 # simplify the prediction grid
 nd <- tibble(Trt = factor(0:1))
 
+# compute
 predictions(fit1, newdata = nd, by = "Trt")
 ```
 
     ## 
-    ##  Trt Estimate Std. Error     z   Pr(>|z|) 2.5 % 97.5 %
-    ##    0    7.964     0.5334 14.93 < 2.22e-16 6.919  9.010
-    ##    1    6.710     0.4653 14.42 < 2.22e-16 5.798  7.622
+    ##  Trt Estimate Pr(>|z|) 2.5 % 97.5 %
+    ##    0     7.96   <0.001  6.98   9.08
+    ##    1     6.71   <0.001  5.86   7.69
     ## 
-    ## Prediction type:  response 
-    ## Columns: rowid, type, Trt, estimate, std.error, statistic, p.value, conf.low, conf.high
+    ## Columns: rowid, Trt, estimate, p.value, conf.low, conf.high, count
 
-The first row is for the Poisson ANOVA’s `\(\hat \lambda^0\)`, and the second row is for `\(\hat \lambda^1\)`. In this case we used the conventional ML standard errors. You could include `vcov = "HC3"` to use the sandwich standard errors, instead. To compute the predictions from the negative-binomial ANOVA, just switch out `fit1` for `fit2`. To take the final step to compute the estimate for `\(\tau_\text{ATE}\)`, just add `hypothesis = "revpairwise"`.
+The first row is for the `\(\hat \lambda^0\)` value from the Poisson ANOVA, and the second row is for `\(\hat \lambda^1\)`. In this case we used the conventional ML standard errors. One might also include `vcov = "HC3"` to use the sandwich standard errors, instead. To compute the predictions from the negative-binomial ANOVA, just switch out `fit1` for `fit2`. To take the final step to compute the estimate for `\(\tau_\text{ATE}\)`, just add `hypothesis = "revpairwise"`.
 
 ``` r
 predictions(fit1, newdata = nd, by = "Trt", hypothesis = "revpairwise")
 ```
 
     ## 
-    ##   Term Estimate Std. Error      z Pr(>|z|)  2.5 % 97.5 %
-    ##  1 - 0   -1.255     0.7078 -1.773 0.076289 -2.642 0.1326
+    ##   Term Estimate Std. Error     z Pr(>|z|) 2.5 % 97.5 %
+    ##  1 - 0    -1.25      0.708 -1.77   0.0763 -2.64  0.133
     ## 
-    ## Prediction type:  response 
-    ## Columns: type, term, estimate, std.error, statistic, p.value, conf.low, conf.high
+    ## Columns: term, estimate, std.error, statistic, p.value, conf.low, conf.high
 
 For kicks and giggles, here’s a coefficient plot of `\(\hat \tau_\text{ATE}\)` from both versions of the ANOVA, with both kinds of standard errors.
 
@@ -772,6 +732,8 @@ bind_rows(
 
 <img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-27-1.png" width="624" />
 
+The point estimates are all the same, but the 95% intervals vary widely.
+
 #### Do we compute `\(\lambda^1 - \lambda^0\)` or `\(\mu^1 - \mu^0\)` conditional on covariates?
 
 As with the logistic regression context, we cannot use our Poisson or negative-binomial ANCOVA models to estimate `\(\tau_\text{ATE}\)` via the method we just explored, above. This is because for the Poisson and negative-binomial ANCOVA models,
@@ -780,7 +742,7 @@ $$
 \tau_\text{CATE}  = \operatorname{\mathbb{E}} (y_i^1 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d) - \operatorname{\mathbb{E}}(y_i^0 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d).
 $$
 
-In words, when you subtract the counterfactual mean for the control condition from the counterfactual mean for the treatment condition, conditional on baseline covariate values, you get a *conditional* ATE (i.e., CATE), not the ATE. There’s no way around this.
+In words, when you subtract the counterfactual mean for the control condition from the counterfactual mean for the treatment condition, conditional on baseline covariate values, you get a *conditional* ATE (i.e., CATE), not the ATE. To my knowledge, there’s no way around this.
 
 To express this equation in terms of the Poisson ANCOVA
 
@@ -804,12 +766,11 @@ predictions(fit3, newdata = nd, by = "Trt", vcov = "HC3")
 ```
 
     ## 
-    ##  Trt Estimate Std. Error     z   Pr(>|z|) 2.5 % 97.5 %
-    ##    0    5.345      1.014 5.270 1.3611e-07 3.357  7.332
-    ##    1    4.624      0.648 7.136 9.6372e-13 3.354  5.894
+    ##  Trt Estimate Pr(>|z|) 2.5 % 97.5 % lcBase lcAge
+    ##    0     5.34   <0.001  3.68   7.75      0     0
+    ##    1     4.62   <0.001  3.51   6.09      0     0
     ## 
-    ## Prediction type:  response 
-    ## Columns: rowid, type, Trt, estimate, std.error, statistic, p.value, conf.low, conf.high
+    ## Columns: rowid, Trt, estimate, p.value, conf.low, conf.high, lcBase, lcAge, count
 
 ``` r
 # the CATE
@@ -817,11 +778,10 @@ predictions(fit3, newdata = nd, by = "Trt", vcov = "HC3", hypothesis = "revpairw
 ```
 
     ## 
-    ##   Term Estimate Std. Error       z Pr(>|z|)  2.5 % 97.5 %
-    ##  1 - 0  -0.7204      1.341 -0.5373  0.59108 -3.348  1.907
+    ##   Term Estimate Std. Error      z Pr(>|z|) 2.5 % 97.5 %
+    ##  1 - 0    -0.72       1.34 -0.537    0.591 -3.35   1.91
     ## 
-    ## Prediction type:  response 
-    ## Columns: type, term, estimate, std.error, statistic, p.value, conf.low, conf.high
+    ## Columns: term, estimate, std.error, statistic, p.value, conf.low, conf.high
 
 For a CATE based on different covariate values, update the `nd` predictor grid as desired. The framework will work the same for either likelihood and whether you want ML- or sandwich-based standard errors. Just bear in mind that with Poisson and negative-binomial ANCOVA models using the conventional log link,
 
@@ -831,7 +791,7 @@ You can compute the CATE if you want; just don’t confuse it with the ATE.
 
 ### Bayesian models.
 
-So save y’all from soul-crushing redundancy, I’m not going to repeat all the content from the frequentist models in the Bayesian section. Here we’ll explore some of the results with a Bayesian negative-binomial ANOVA and a Bayesian Poisson ANCOVA.
+To save y’all from soul-crushing redundancy, I’m not going to repeat all the content from the frequentist models in the Bayesian section. Here we’ll explore some of the results with a Bayesian negative-binomial ANOVA and a Bayesian Poisson ANCOVA.
 
 #### Define the equations and fit.
 
@@ -843,7 +803,7 @@ $$
 \log(\mu_i) & = \beta_0 + \beta_1 \text{Trt}_i \\
 \beta_0 & \sim \operatorname{Normal}(\log(14), 1)  \\
 \beta_1 & \sim \operatorname{Normal}(0, 0.5) \\
-\phi & \sim \operatorname{Gamma}(0.01, 0.01)
+\phi & \sim \operatorname{Gamma}(0.01, 0.01),
 \end{align*}`
 $$
 
@@ -856,7 +816,7 @@ c(prior(lognormal(2.639057, 0.5)),
   parse_dist() %>% 
   
   ggplot(aes(y = prior, dist = .dist, args = .args)) +
-  stat_dist_halfeye(.width = c(.5, .95)) +
+  stat_halfeye(.width = c(.5, .95)) +
   scale_y_discrete(NULL, labels = str_c("lognormal(log(14), ", c(0.5, 1), ")"),
                    expand = expansion(add = 0.1)) +
   xlab(expression(exp(italic(p)(beta[0])))) +
@@ -963,7 +923,7 @@ summary(brm2)
     ## and Tail_ESS are effective sample size measures, and Rhat is the potential
     ## scale reduction factor on split chains (at convergence, Rhat = 1).
 
-Both model summaries look fine, to me.
+Both model summaries look fine, to me. If it wasn’t clear to you, the `shape` line near the bottom of the `summary(brm1)` output is for the `\(\phi\)` parameter.
 
 #### Can the `\(\beta\)` posteriors give us the ATE?
 
@@ -1000,7 +960,8 @@ as_draws_df(brm1) %>%
   ggplot(aes(x = ate)) +
   stat_halfeye(.width = .95) +
   scale_y_continuous(NULL, breaks = NULL) +
-  xlab(expression(tau[ATE]))
+  labs(title = "Behold our causal posterior",
+       x = expression(hat(tau)[ATE]))
 ```
 
 <img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-32-1.png" width="384" />
@@ -1009,7 +970,7 @@ You cannot, however, compute the posterior for `\(\tau_\text{ATE}\)` based on th
 
 #### Posteriors for `\(\mathbb E (\lambda_i^1 - \lambda_i^0)\)` and `\(\mathbb E (\mu_i^1 - \mu_i^0)\)`.
 
-Even with Bayes, it’s still the case that
+With Bayes, it’s still the case that
 
 `$$\tau_\text{ATE} = \mathbb E (y_i^1 - y_i^0),$$`
 
@@ -1117,17 +1078,17 @@ Here’s the `marginaleffects::avg_comparisons()` approach.
 # change the **marginaleffects** default to use the mean
 options(marginaleffects_posterior_center = mean)
 
+# now summarize the ATE across the MCMC draws
 avg_comparisons(brm1, variables = list(Trt = 0:1))
 ```
 
     ## 
-    ##  Term Contrast Estimate  2.5 % 97.5 %
-    ##   Trt    1 - 0    -1.07 -4.926  2.641
+    ##  Term Contrast Estimate 2.5 % 97.5 %
+    ##   Trt    1 - 0    -1.07 -4.93   2.64
     ## 
-    ## Prediction type:  response 
-    ## Columns: type, term, contrast, estimate, conf.low, conf.high
+    ## Columns: term, contrast, estimate, conf.low, conf.high
 
-Whether you prefer a `fitted()`-, `as_draws_df()`-, or `avg_comparisons()`-based workflow, this is all just standardization/g-computation methodology ass applied to MCMC-based Bayesian models. This process works exactly that same if you’d like to instead use the standardization/g-computation approach for a Bayesian count ANCOVA model. As a quick example, here’s the `add_epred_draws()`-based code for our Bayesian Poisson ANCOVA `brm2`.
+Whether you prefer a `fitted()`-, `as_draws_df()`-, or `avg_comparisons()`-based workflow, this is all just standardization/g-computation methodology as applied to MCMC-based Bayesian models. This process works exactly that same if you’d like to instead use the standardization/g-computation approach for a Bayesian count ANCOVA model. As a quick example, here’s the `add_epred_draws()`-based code for our Bayesian Poisson ANCOVA `brm2`.
 
 ``` r
 nd %>% 
@@ -1211,11 +1172,10 @@ predictions(brm1, newdata = nd, by = "Trt")
 
     ## 
     ##  Trt Estimate 2.5 % 97.5 %
-    ##    0    8.149 5.670  11.58
-    ##    1    7.079 4.908  10.17
+    ##    0     8.15  5.67   11.6
+    ##    1     7.08  4.91   10.2
     ## 
-    ## Prediction type:  response 
-    ## Columns: rowid, type, Trt, estimate, conf.low, conf.high
+    ## Columns: rowid, Trt, estimate, conf.low, conf.high, count
 
 ``` r
 # ATE
@@ -1223,11 +1183,10 @@ predictions(brm1, newdata = nd, by = "Trt", hypothesis = "revpairwise")
 ```
 
     ## 
-    ##   Term Estimate  2.5 % 97.5 %
-    ##  1 - 0    -1.07 -4.926  2.641
+    ##   Term Estimate 2.5 % 97.5 %
+    ##  1 - 0    -1.07 -4.93   2.64
     ## 
-    ## Prediction type:  response 
-    ## Columns: type, term, estimate, conf.low, conf.high
+    ## Columns: term, estimate, conf.low, conf.high
 
 #### Do we compute the Bayesian `\(\lambda^1 - \lambda^0\)` or `\(\mu^1 - \mu^0\)` conditional on covariates?
 
@@ -1245,12 +1204,11 @@ predictions(brm2, newdata = nd, by = "Trt")
 ```
 
     ## 
-    ##  Trt Estimate 2.5 % 97.5 %
-    ##    0    5.397 4.569  6.310
-    ##    1    4.624 3.923  5.405
+    ##  Trt Estimate 2.5 % 97.5 % lcBase lcAge
+    ##    0     5.40  4.57   6.31      0     0
+    ##    1     4.62  3.92   5.40      0     0
     ## 
-    ## Prediction type:  response 
-    ## Columns: rowid, type, Trt, estimate, conf.low, conf.high
+    ## Columns: rowid, Trt, estimate, conf.low, conf.high, lcBase, lcAge, count
 
 ``` r
 # the CATE
@@ -1258,11 +1216,10 @@ predictions(brm2, newdata = nd, by = "Trt", hypothesis = "revpairwise")
 ```
 
     ## 
-    ##   Term Estimate  2.5 % 97.5 %
-    ##  1 - 0  -0.7724 -1.743 0.2264
+    ##   Term Estimate 2.5 % 97.5 %
+    ##  1 - 0   -0.772 -1.74  0.226
     ## 
-    ## Prediction type:  response 
-    ## Columns: type, term, estimate, conf.low, conf.high
+    ## Columns: term, estimate, conf.low, conf.high
 
 I’ll leave it up to the interested reader to practice the same with a `fitted()` or `add_epred_draws()` workflow. Though our code here used our Bayesian Poisson ANCOVA, it would have worked the same way with a Bayesian negative-binomial ANCOVA.
 
@@ -1290,7 +1247,17 @@ In this post, some of the main points we covered were:
 - For Poisson or negative-binomial ANCOVA models, there can be many different values for the conditional average treatment effect, `\(\tau_\text{CATE}\)`, depending which values one uses for the covariates.
 - Sometimes frequentists prefer sandwich standard errors over the conventional ML standard errors for their count models. For Bayesians, the posterior `\(\textit{SD}\)` is just the posterior `\(\textit{SD}\)`. If you don’t like it, think harder about your likelihood.
 
-In the [next post](https://timely-flan-2986f4.netlify.app/blog/2023-03-28-causal-inference-with-gamma-regression-or-the-problem-is-the-link-function-not-the-likelihood/), we’ll explore how our causal inference methods work with gamma regression models. Until then, happy modeling, friends!
+In the [next post](https://timely-flan-2986f4.netlify.app/blog/2023-03-28-causal-inference-with-gamma-regression-or-the-problem-is-the-link-function-not-the-likelihood/), we’ll explore how our causal inference methods work with gamma regression models.
+
+## Thank the reviewer
+
+I’d like to publicly acknowledge and thank
+
+- [Stephen J. Wild](https://sjwild.github.io/)
+
+for his kind efforts reviewing the draft of this post. Go team!
+
+Do note the final editorial decisions were my own, and I do not think it would be reasonable to assume my reviewer has given a blanket endorsement of the current version of this post.
 
 ## Session info
 
@@ -1313,40 +1280,52 @@ sessionInfo()
     ## [1] stats     graphics  grDevices utils     datasets  methods   base     
     ## 
     ## other attached packages:
-    ##  [1] patchwork_1.1.2            marginaleffects_0.9.0.9014 tidybayes_3.0.4           
-    ##  [4] sandwich_3.0-2             lmtest_0.9-40              zoo_1.8-10                
-    ##  [7] ggdist_3.2.1.9000          broom_1.0.4                GGally_2.1.2              
-    ## [10] brms_2.19.0                Rcpp_1.0.10                lubridate_1.9.2           
-    ## [13] forcats_1.0.0              stringr_1.5.0              dplyr_1.1.0               
-    ## [16] purrr_1.0.1                readr_2.1.4                tidyr_1.3.0               
-    ## [19] tibble_3.2.0               ggplot2_3.4.1              tidyverse_2.0.0           
+    ##  [1] patchwork_1.1.2             marginaleffects_0.11.1.9008 tidybayes_3.0.4            
+    ##  [4] sandwich_3.0-2              lmtest_0.9-40               zoo_1.8-10                 
+    ##  [7] ggdist_3.2.1.9000           broom_1.0.4                 GGally_2.1.2               
+    ## [10] flextable_0.9.1             brms_2.19.0                 Rcpp_1.0.10                
+    ## [13] lubridate_1.9.2             forcats_1.0.0               stringr_1.5.0              
+    ## [16] dplyr_1.1.2                 purrr_1.0.1                 readr_2.1.4                
+    ## [19] tidyr_1.3.0                 tibble_3.2.1                ggplot2_3.4.2              
+    ## [22] tidyverse_2.0.0            
     ## 
     ## loaded via a namespace (and not attached):
-    ##   [1] backports_1.4.1      plyr_1.8.7           igraph_1.3.4         svUnit_1.0.6         splines_4.2.3       
-    ##   [6] crosstalk_1.2.0      TH.data_1.1-1        rstantools_2.2.0     inline_0.3.19        digest_0.6.31       
-    ##  [11] htmltools_0.5.3      fansi_1.0.4          magrittr_2.0.3       checkmate_2.1.0      tzdb_0.3.0          
-    ##  [16] RcppParallel_5.1.5   matrixStats_0.63.0   xts_0.12.1           timechange_0.2.0     prettyunits_1.1.1   
-    ##  [21] colorspace_2.1-0     xfun_0.37            callr_3.7.3          crayon_1.5.2         jsonlite_1.8.4      
-    ##  [26] lme4_1.1-31          survival_3.5-3       glue_1.6.2           gtable_0.3.2         emmeans_1.8.0       
-    ##  [31] distributional_0.3.1 pkgbuild_1.3.1       rstan_2.21.8         abind_1.4-5          scales_1.2.1        
-    ##  [36] mvtnorm_1.1-3        DBI_1.1.3            miniUI_0.1.1.1       viridisLite_0.4.1    xtable_1.8-4        
-    ##  [41] stats4_4.2.3         StanHeaders_2.21.0-7 DT_0.24              collapse_1.9.2       htmlwidgets_1.5.4   
-    ##  [46] threejs_0.3.3        arrayhelpers_1.1-0   RColorBrewer_1.1-3   posterior_1.4.1      ellipsis_0.3.2      
-    ##  [51] pkgconfig_2.0.3      reshape_0.8.9        loo_2.5.1            farver_2.1.1         sass_0.4.2          
-    ##  [56] utf8_1.2.3           labeling_0.4.2       tidyselect_1.2.0     rlang_1.1.0          reshape2_1.4.4      
-    ##  [61] later_1.3.0          munsell_0.5.0        tools_4.2.3          cachem_1.0.6         cli_3.6.0           
-    ##  [66] generics_0.1.3       evaluate_0.18        fastmap_1.1.0        yaml_2.3.5           processx_3.8.0      
-    ##  [71] knitr_1.42           nlme_3.1-162         mime_0.12            projpred_2.2.1       compiler_4.2.3      
-    ##  [76] bayesplot_1.10.0     shinythemes_1.2.0    rstudioapi_0.14      gamm4_0.2-6          bslib_0.4.0         
-    ##  [81] stringi_1.7.8        highr_0.9            ps_1.7.2             blogdown_1.16        Brobdingnag_1.2-8   
-    ##  [86] lattice_0.20-45      Matrix_1.5-3         nloptr_2.0.3         markdown_1.1         shinyjs_2.1.0       
-    ##  [91] tensorA_0.36.2       vctrs_0.6.0          pillar_1.8.1         lifecycle_1.0.3      jquerylib_0.1.4     
-    ##  [96] bridgesampling_1.1-2 estimability_1.4.1   insight_0.19.0       data.table_1.14.8    httpuv_1.6.5        
-    ## [101] R6_2.5.1             bookdown_0.28        promises_1.2.0.1     gridExtra_2.3        codetools_0.2-19    
-    ## [106] boot_1.3-28.1        colourpicker_1.1.1   MASS_7.3-58.2        gtools_3.9.4         withr_2.5.0         
-    ## [111] shinystan_2.6.0      multcomp_1.4-20      mgcv_1.8-42          parallel_4.2.3       hms_1.1.2           
-    ## [116] grid_4.2.3           coda_0.19-4          minqa_1.2.5          rmarkdown_2.20       shiny_1.7.2         
-    ## [121] base64enc_0.1-3      dygraphs_1.1.1.6
+    ##   [1] uuid_1.1-0              backports_1.4.1         systemfonts_1.0.4       plyr_1.8.7             
+    ##   [5] igraph_1.3.4            svUnit_1.0.6            splines_4.2.3           crosstalk_1.2.0        
+    ##   [9] katex_1.4.0             TH.data_1.1-1           rstantools_2.2.0        inline_0.3.19          
+    ##  [13] digest_0.6.31           htmltools_0.5.5         fansi_1.0.4             magrittr_2.0.3         
+    ##  [17] checkmate_2.1.0         tzdb_0.3.0              RcppParallel_5.1.5      matrixStats_0.63.0     
+    ##  [21] xslt_1.4.3              officer_0.6.2           xts_0.12.1              askpass_1.1            
+    ##  [25] timechange_0.2.0        gfonts_0.2.0            prettyunits_1.1.1       colorspace_2.1-0       
+    ##  [29] textshaping_0.3.6       xfun_0.39               callr_3.7.3             crayon_1.5.2           
+    ##  [33] jsonlite_1.8.4          lme4_1.1-31             survival_3.5-3          glue_1.6.2             
+    ##  [37] gtable_0.3.3            emmeans_1.8.0           V8_4.2.1                distributional_0.3.1   
+    ##  [41] pkgbuild_1.3.1          rstan_2.21.8            abind_1.4-5             scales_1.2.1           
+    ##  [45] fontquiver_0.2.1        mvtnorm_1.1-3           DBI_1.1.3               miniUI_0.1.1.1         
+    ##  [49] viridisLite_0.4.1       xtable_1.8-4            stats4_4.2.3            StanHeaders_2.21.0-7   
+    ##  [53] fontLiberation_0.1.0    DT_0.24                 collapse_1.9.2          htmlwidgets_1.5.4      
+    ##  [57] threejs_0.3.3           arrayhelpers_1.1-0      RColorBrewer_1.1-3      posterior_1.4.1        
+    ##  [61] ellipsis_0.3.2          reshape_0.8.9           pkgconfig_2.0.3         loo_2.5.1              
+    ##  [65] farver_2.1.1            sass_0.4.5              crul_1.2.0              utf8_1.2.3             
+    ##  [69] labeling_0.4.2          tidyselect_1.2.0        rlang_1.1.0             reshape2_1.4.4         
+    ##  [73] later_1.3.0             munsell_0.5.0           tools_4.2.3             cachem_1.0.7           
+    ##  [77] cli_3.6.1               generics_0.1.3          evaluate_0.20           fastmap_1.1.1          
+    ##  [81] ragg_1.2.5              yaml_2.3.7              processx_3.8.1          knitr_1.42             
+    ##  [85] zip_2.2.0               nlme_3.1-162            equatags_0.2.0          mime_0.12              
+    ##  [89] projpred_2.2.1          xml2_1.3.3              compiler_4.2.3          bayesplot_1.10.0       
+    ##  [93] shinythemes_1.2.0       rstudioapi_0.14         gamm4_0.2-6             curl_5.0.0             
+    ##  [97] bslib_0.4.2             stringi_1.7.12          highr_0.10              ps_1.7.5               
+    ## [101] blogdown_1.16           Brobdingnag_1.2-8       gdtools_0.3.3           lattice_0.20-45        
+    ## [105] Matrix_1.5-3            fontBitstreamVera_0.1.1 nloptr_2.0.3            markdown_1.1           
+    ## [109] shinyjs_2.1.0           tensorA_0.36.2          vctrs_0.6.2             pillar_1.9.0           
+    ## [113] lifecycle_1.0.3         jquerylib_0.1.4         bridgesampling_1.1-2    estimability_1.4.1     
+    ## [117] insight_0.19.1.6        data.table_1.14.8       httpuv_1.6.5            R6_2.5.1               
+    ## [121] bookdown_0.28           promises_1.2.0.1        gridExtra_2.3           codetools_0.2-19       
+    ## [125] boot_1.3-28.1           colourpicker_1.1.1      MASS_7.3-58.2           gtools_3.9.4           
+    ## [129] openssl_2.0.6           httpcode_0.3.0          withr_2.5.0             shinystan_2.6.0        
+    ## [133] multcomp_1.4-20         mgcv_1.8-42             parallel_4.2.3          hms_1.1.3              
+    ## [137] grid_4.2.3              coda_0.19-4             minqa_1.2.5             rmarkdown_2.21         
+    ## [141] shiny_1.7.2             base64enc_0.1-3         dygraphs_1.1.1.6
 
 ## References
 

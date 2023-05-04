@@ -48,13 +48,13 @@ In the [third post](https://timely-flan-2986f4.netlify.app/blog/2023-02-13-causa
 
 ## We need data
 
-In this post, we'll be working with a subset of the `epilepsy` data from the **brms** package. Based on the **brms** documentation (execute `?epilepsy`), the data have their proximal origins in an [-@thall1990some] *Biometrics* paper by Thall and Vail. However, Thall and Vail cited an earlier paper by @leppik1985double as the ultimate origin[^1]. Here we load our primary packages, adjust the global plotting theme, load the `epilepsy` data, and take a peek.
+We'll be working with a subset of the `epilepsy` data from the **brms** package. Based on the **brms** documentation (execute `?epilepsy`), the data have their proximal origins in an [-@thall1990some] *Biometrics* paper by Thall and Vail. However, Thall and Vail cited an earlier paper by @leppik1985double as the ultimate origin.[^1] Here we load our primary packages, adjust the global plotting theme, load the `epilepsy` data, and take a peek.
 
 ```{r, warning = F, message = F}
 # packages
 library(tidyverse)
 library(brms)
-# library(flextable)
+library(flextable)
 library(GGally)
 library(broom)
 library(ggdist)
@@ -75,7 +75,7 @@ data(package = "brms", epilepsy)
 glimpse(epilepsy)
 ```
 
-The primary outcome variable in the data is `count`, which is the number of epileptic seizures each person had had since their last visit. After their initial baseline assessment, participants came back every two weeks for our visits, which are denoted by the factor variable `visit`. After baseline assessment, participants were randomized into either the anti-convulsant drub [progabide](https://en.wikipedia.org/wiki/Progabide) (`Trt == 1`) or placebo (`Trt == 0`). To get a sense of the data, here are the seizures counts over the four assessment points, by condition.
+The primary outcome variable in the data is `count`, which is the number of epileptic seizures each person had had since their last visit. After their initial baseline assessment, participants came back every two weeks for assessments, which are denoted by the factor variable `visit`. After baseline assessment, participants were randomized into either the anti-convulsant drug [progabide](https://en.wikipedia.org/wiki/Progabide) (`Trt == 1`) or placebo (`Trt == 0`). To get a sense of the data, here are the seizures counts over the four assessment points, by treatment group.
 
 ```{r, fig.width = 6, fig.height = 3.25}
 epilepsy %>% 
@@ -97,7 +97,7 @@ epilepsy %>%
   facet_wrap(~ Trt, labeller = label_both)
 ```
 
-Here are some of the sample statistics, by `Trt` and `visit`.
+Here are some of the sample statistics, by `Trt` and `visit`, in a Table 1 type format.
 
 ```{r, message = F}
 epilepsy %>% 
@@ -106,16 +106,16 @@ epilepsy %>%
             variance = var(count),
             min = min(count),
             max = max(count)) %>% 
-  mutate_if(is.double, round, digits = 1)
-# temporarily commented out until flextable updates
-# %>% 
-#   as_grouped_data(groups = c("Trt")) %>% 
-#   flextable()
+  mutate_if(is.double, round, digits = 1) %>%
+  as_grouped_data(groups = c("Trt")) %>%
+  flextable()
 ```
+
+It'll become apparent why we computed variances instead of standard deviations in a little bit.
 
 ### Subset, wrangle, inspect.
 
-It'd be cool to play around modeling the data from all four time points[^2], but that would be too much of a distraction from our central goal. So we're going to subset the data to only include the rows for the fourth assessment period (i.e., `visit == 4`). We'll call the reduced data set `ep4`.
+It'd be cool to play around modeling the data from all four time points,[^2] but that would be too much of a distraction from our central goal. So we're going to subset the data to only include the rows for the fourth assessment period (i.e., `visit == 4`). We'll call the reduced data set `ep4`.
 
 ```{r}
 ep4 <- epilepsy %>% 
@@ -132,9 +132,9 @@ ep4 %>%
   count(Trt)
 ```
 
-The `glimpse()` output helps clarify there were 59 unique participants in this study. If you use the `count()` function, you'll find $n = 28$ are in the placebo condition, and the remaining $n = 31$ got the active treatment. The data, both `epilepsy` and `ep4`, also contain information from the baseline assessment. The `Base` column has the epileptic seizure counts during the 8-week period before the baseline assessment. Bear in mind the counts in the `count` column were for a 2-week period, which means we'd expect the values in `Base` to be at least 4 times larger than those in `count`. But since they're all seizure counts, we'd still expect the two variables to have a strong positive correlation. The other baseline covariate in the data, and considered by @thall1990some, is age measured in years (`Age`). The **brms** package also includes standardized version of these variables in the `zBase` and `zAge` columns. Thall and Vail, however, used log-transformed versions of these variables, which is what we'll do in this blog post. Thus, our new variable `lcBase` is the log-transformed and mean-centered version of `Base`, and `lcAge` is the log-transformed and mean-centered version of `Age`.
+The `glimpse()` output helps clarify there were 59 unique participants in this study. If you use the `count()` function, you'll find $n = 28$ are in the placebo condition, and the remaining $n = 31$ got the active treatment. The data, both `epilepsy` and `ep4`, also contain information from the baseline assessment. The `Base` column has the epileptic seizure counts during the 8-week period before the baseline assessment. Bear in mind the counts in the `count` column were for a 2-week period, which means we'd expect the values in `Base` to be at least 4 times larger than those in `count`. But since they're all seizure counts, we'd still expect the two variables to have a strong positive correlation. The other baseline covariate in the data, which was also considered by @thall1990some, is age measured in years (`Age`). The **brms** package also includes standardized version of these variables in the `zBase` and `zAge` columns. Thall and Vail, however, used log-transformed versions of these variables, which is what we'll do in this blog post. Thus, our new variable `lcBase` is the log-transformed and mean-centered version of `Base`, and `lcAge` is the log-transformed and mean-centered version of `Age`.
 
-Since it can be difficult to think in terms of the mean values of log-transformed variables, here are what the means of those log-transformed values are, when exponentiated back into their original metric[^3].
+Since it can be difficult to think in terms of the mean values of log-transformed variables, here are what the means of those log-transformed values are, when exponentiated back into their original metric.[^3]
 
 ```{r}
 ep4 %>% 
@@ -142,7 +142,7 @@ ep4 %>%
             `exponentiated_mean_of_log(Age)` = mean(log(Age)) %>% exp()) 
 ```
 
-We might want to get a further sense of the outcome variable and the two baseline covariates with a couple pairs plot with help from the [**GGally** package](https://CRAN.R-project.org/package=GGally) [@R-GGally]. We'll look at them in both their natural metrics, and on the log scale.
+We might want to get a further sense of the outcome variable and the two baseline covariates with a couple pairs plot with help from the **GGally** package [@R-GGally]. We'll look at them in both their natural metrics, and on the log scale.
 
 ```{r, fig.width = 5.5, fig.height = 5, warning = F}
 # natural metric
@@ -173,7 +173,7 @@ ep4 %>%
 
 ## Model framework
 
-Our focal variable `count` is an unbounded count. Technically all count variables are bounded in that their lower limit is always zero[^4]. By unbounded count, I mean there is no clearly-defined upper limit, the way there is with binomial data. When you have unbounded counts, the two most popular likelihoods are the Poisson and the negative-binomial. The Poisson likelihood is parsimonious in that it contains a single parameter $\lambda$, which is both the mean and the variance. As such, the Poisson likelihood assumes the variance scales perfectly with the mean, which is often called the *equidispersion* assumption. If you look back above at the sample statistics, you'll notice the variances for `count` were a lot larger than the means at all time points and for both conditions, which doesn't bode well for that equidispersion assumption[^5]. Happily, the negative-binomial likelihood provides an alternative where its second parameter, $\phi$, accounts for additional variance above what we'd expect from the Poisson. Thus in this blog post, we'll analyze these data from both frequentist and Bayesian perspectives, and also with the Poisson and negative-binomial likelihoods. 
+Our focal variable `count` is an unbounded count. Technically all count variables are bounded in that their lower limit is always zero.[^4] By *unbounded* count, I mean there is no clearly-defined upper limit such as with binomial data. When you have unbounded counts, the two most popular likelihoods are the Poisson and the negative-binomial. The Poisson likelihood is parsimonious in that it contains a single parameter $\lambda$, which is both the mean and the variance. As such, the Poisson likelihood assumes the variance scales perfectly with the mean, which is often called the *equidispersion* assumption. If you look back above at the sample statistics, you'll notice the variances for `count` were a lot larger than the means at all time points and for both conditions, which doesn't bode well for that equidispersion assumption.[^5] Happily, the negative-binomial likelihood provides an alternative where its second parameter $\phi$ accounts for additional variance above what we'd expect from the Poisson. For the sake of practice, in this blog post we'll analyze these data from both frequentist and Bayesian perspectives, and also with the Poisson and negative-binomial likelihoods.
 
 To complicate matters even further, we'll also analyze the data with ANOVA- and ANCOVA-type frameworks. Butting all three binaries together, we'll end up fitting and post-processing 6 models in total:
 
@@ -183,11 +183,9 @@ tibble(
   framework = rep(c("frequentist", "Bayesian"), times = c(4, 2)),
   model = rep(c("ANOVA", "ANCOVA", "ANOVA", "ANCOVA"), times = c(2, 2, 1, 1)),
   likelihood = c("Poisson", "negative-binomial", "Poisson", "negative-binomial", "negative-binomial", "Poisson")
-) 
-# temporarily commented out until flextable updates
-# %>% 
-#   flextable() %>% 
-#   autofit()
+) %>%
+  flextable() %>%
+  autofit()
 ```
 
 For the sake of space, well only fit two Bayesian models. My hope is by the time we're in that section, you'll get the gist of what's going on. For the frequentist models, we'll also discuss the issue of *robust* standard errors, which won't apply to our Bayesian models. We start as frequentists.
@@ -205,7 +203,7 @@ $$
 \end{align*}
 $$
 
-where we use the conventional log link to ensure we only make positive predictions. The $\beta_0$ parameter is the placebo mean, on the log scale, and $\beta_1$ is the deviation from that mean on log-scale units, for those in the active treatment group. In a similar way, the negative-binomial version of our ANOVA model will be of the form
+where we use the conventional log link to ensure we only make positive predictions. The $\beta_0$ parameter is the placebo mean on the log scale, and $\beta_1$ is the deviation from that mean on log-scale units for those in the active treatment group. In a similar way, the negative-binomial version of our ANOVA model will be of the form
 
 $$
 \begin{align*}
@@ -234,7 +232,7 @@ $$
 \end{align*}
 $$
 
-We can fit the Poisson models with the good-old base **R** `glm()` function, provided we set `family = poisson`. The negative-binomial models require the `glm.nb()` function from the **MASS** package [@R-MASS; @MASS2002]. You'll note that instead of opening **MASS** directly with `library()`, we're instead using the focused `MASS::glm.nb()`. This is because **MASS** can create conflicts with some of the **tidyverse** functions, and I'd like to avoid those complications.
+We can fit the frequentist Poisson models with the good-old base **R** `glm()` function, provided we set `family = poisson`. The frequentist negative-binomial models require the `glm.nb()` function from the **MASS** package [@R-MASS; @MASS2002]. You'll note that instead of opening **MASS** directly with `library()`, we're instead using the focused `MASS::glm.nb()` syntax. This is because **MASS** can create conflicts with some of the **tidyverse** functions, and I'd like to avoid those complications.
 
 ```{r}
 # Poisson ANOVA
@@ -266,11 +264,9 @@ For the sake of space, I'm not going to show all the `summary()` output for thes
 bind_rows(tidy(fit1), tidy(fit2), tidy(fit3), tidy(fit4)) %>% 
   mutate(fit = rep(str_c("fit", 1:4), times = c(2, 2, 4, 4))) %>% 
   select(fit, everything()) %>% 
-  mutate_if(is.double, round, digits = 3)
-# temporarily commented out until flextable updates
-# %>% 
-#   as_grouped_data(groups = c("fit")) %>% 
-#   flextable()
+  mutate_if(is.double, round, digits = 3) %>%
+  as_grouped_data(groups = c("fit")) %>%
+  flextable()
 ```
 
 We should note that the standard errors in that table are all based on conventional maximum likelihood estimation, which are typically fine defaults, to my eye. However, that equidispersion assumption for the Poisson models can result in very small standard errors, relative to those from their negative-binomial alternatives. Sometimes researchers prefer using so-called *robust* standard errors, instead. We can compute those with help from the `coeftest()` function from the **lmtest** package [@R-lmtest; @lmtest2002]. By setting `vcov = vcovHC`, we are requesting the so-called HC3 *sandwich* standard errors, via the **sandwich** package [@R-sandwich; @zeileis2020various; @zeileis2004econometric; @zeileis2006object]. Here's how all this works for our Poisson ANOVA model `fit1`, within the context of the `tidy()` function.
@@ -323,7 +319,7 @@ bind_rows(
 
 Overall, the sandwich standard errors resulted in narrower CI's in the Poisson models, particularly for the Poisson ANOVA. But the sandwich standard errors did change the results for the negative-binomial models, too. As we will see in the next few sections, the choice of one's likelihood and standard error method will influence causal inference. Sadly, I can't tell you what the right choice is for your research program. All I can do, here, is let you know about some of your options.
 
-#### Can the $\beta$ estimates give us the ATE?
+#### Can the $\beta$ coefficients help us estimate the ATE?
 
 Much like with logistic regression models, the $\beta_1$ parameter alone cannot give us the average treatment effect (ATE) for either the Poisson or negative-binomial likelihoods. However, we can use a combination of the $\beta_0$ and $\beta_1$ parameters to give us the ATE, when they are from the ANOVA models. The formula is
 
@@ -447,7 +443,7 @@ bind_rows(
   facet_grid(se ~ model)
 ```
 
-Unsurprisingly, the ANOVA-based point estimates are the same for all patients. Yet the estimates for the ANCOVA model showed marked diversity among the patients. As to the 95% CI's, they were markedly wider when based on the sandwich standard errors, suggesting the Poisson models did not adequately account for the overdispersion in the data. Now look at the negative-binomial versions of the figure.
+Unsurprisingly, the ANOVA-based point estimates are the same for all patients. Yet the estimates for the ANCOVA model showed great diversity among the patients. As to the 95% CI's, they were markedly wider when based on the sandwich standard errors, suggesting the Poisson models did not adequately account for the overdispersion in the data. Now look at the negative-binomial versions of the figure.
 
 ```{r, fig.width = 8, fig.height = 6.5}
 # compute and wrangle
@@ -490,10 +486,10 @@ Now we use the `marginaleffects::comparisons()` function to compute the patient-
 ```{r, fig.width = 8, fig.height = 13}
 # Poisson
 p1 <- bind_rows(
-  comparisons(fit1, variables = "Trt"),
-  comparisons(fit1, variables = "Trt", vcov = "HC3"),
-  comparisons(fit3, variables = "Trt"),
-  comparisons(fit3, variables = "Trt", vcov = "HC3")
+  comparisons(fit1, variables = "Trt", by = "patient"),
+  comparisons(fit1, variables = "Trt", by = "patient", vcov = "HC3"),
+  comparisons(fit3, variables = "Trt", by = "patient"),
+  comparisons(fit3, variables = "Trt", by = "patient", vcov = "HC3")
 ) %>% 
   data.frame() %>% 
   mutate(model = rep(models, each = 2) %>% rep(., each = n() / 4) %>% factor(., levels = models),
@@ -511,10 +507,10 @@ p1 <- bind_rows(
 
 # Negative-binomial
 p2 <- bind_rows(
-  comparisons(fit2, variables = "Trt"),
-  comparisons(fit2, variables = "Trt", vcov = "HC3"),
-  comparisons(fit4, variables = "Trt"),
-  comparisons(fit4, variables = "Trt", vcov = "HC3")
+  comparisons(fit2, variables = "Trt", by = "patient"),
+  comparisons(fit2, variables = "Trt", by = "patient", vcov = "HC3"),
+  comparisons(fit4, variables = "Trt", by = "patient"),
+  comparisons(fit4, variables = "Trt", by = "patient", vcov = "HC3")
 ) %>% 
   data.frame() %>% 
   mutate(model = rep(models, each = 2) %>% rep(., each = n() / 4) %>% factor(., levels = models),
@@ -616,10 +612,11 @@ You can compute these predictions for either of the ANOVA models with base **R**
 # simplify the prediction grid
 nd <- tibble(Trt = factor(0:1))
 
+# compute
 predictions(fit1, newdata = nd, by = "Trt")
 ```
 
-The first row is for the Poisson ANOVA's $\hat \lambda^0$, and the second row is for $\hat \lambda^1$. In this case we used the conventional ML standard errors. You could include `vcov = "HC3"` to use the sandwich standard errors, instead. To compute the predictions from the negative-binomial ANOVA, just switch out `fit1` for `fit2`. To take the final step to compute the estimate for $\tau_\text{ATE}$, just add `hypothesis = "revpairwise"`.
+The first row is for the $\hat \lambda^0$ value from the Poisson ANOVA, and the second row is for $\hat \lambda^1$. In this case we used the conventional ML standard errors. One might also include `vcov = "HC3"` to use the sandwich standard errors, instead. To compute the predictions from the negative-binomial ANOVA, just switch out `fit1` for `fit2`. To take the final step to compute the estimate for $\tau_\text{ATE}$, just add `hypothesis = "revpairwise"`.
 
 ```{r}
 predictions(fit1, newdata = nd, by = "Trt", hypothesis = "revpairwise")
@@ -647,6 +644,8 @@ bind_rows(
   theme(axis.text.y = element_text(hjust = 0))
 ```
 
+The point estimates are all the same, but the 95% intervals vary widely.
+
 #### Do we compute $\lambda^1 - \lambda^0$ or $\mu^1 - \mu^0$ conditional on covariates?
 
 As with the logistic regression context, we cannot use our Poisson or negative-binomial ANCOVA models to estimate $\tau_\text{ATE}$ via the method we just explored, above. This is because for the Poisson and negative-binomial ANCOVA models,
@@ -655,7 +654,7 @@ $$
 \tau_\text{CATE}  = \operatorname{\mathbb{E}} (y_i^1 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d) - \operatorname{\mathbb{E}}(y_i^0 \mid \mathbf C = \mathbf c, \mathbf D = \mathbf d).
 $$
 
-In words, when you subtract the counterfactual mean for the control condition from the counterfactual mean for the treatment condition, conditional on baseline covariate values, you get a *conditional* ATE (i.e., CATE), not the ATE. There's no way around this.
+In words, when you subtract the counterfactual mean for the control condition from the counterfactual mean for the treatment condition, conditional on baseline covariate values, you get a *conditional* ATE (i.e., CATE), not the ATE. To my knowledge, there's no way around this.
 
 To express this equation in terms of the Poisson ANCOVA
 
@@ -688,7 +687,7 @@ You can compute the CATE if you want; just don't confuse it with the ATE.
 
 ### Bayesian models.
 
-So save y'all from soul-crushing redundancy, I'm not going to repeat all the content from the frequentist models in the Bayesian section. Here we'll explore some of the results with a Bayesian negative-binomial ANOVA and a Bayesian Poisson ANCOVA.
+To save y'all from soul-crushing redundancy, I'm not going to repeat all the content from the frequentist models in the Bayesian section. Here we'll explore some of the results with a Bayesian negative-binomial ANOVA and a Bayesian Poisson ANCOVA.
 
 #### Define the equations and fit.
 
@@ -700,7 +699,7 @@ $$
 \log(\mu_i) & = \beta_0 + \beta_1 \text{Trt}_i \\
 \beta_0 & \sim \operatorname{Normal}(\log(14), 1)  \\
 \beta_1 & \sim \operatorname{Normal}(0, 0.5) \\
-\phi & \sim \operatorname{Gamma}(0.01, 0.01)
+\phi & \sim \operatorname{Gamma}(0.01, 0.01),
 \end{align*}
 $$
 
@@ -713,7 +712,7 @@ c(prior(lognormal(2.639057, 0.5)),
   parse_dist() %>% 
   
   ggplot(aes(y = prior, dist = .dist, args = .args)) +
-  stat_dist_halfeye(.width = c(.5, .95)) +
+  stat_halfeye(.width = c(.5, .95)) +
   scale_y_discrete(NULL, labels = str_c("lognormal(log(14), ", c(0.5, 1), ")"),
                    expand = expansion(add = 0.1)) +
   xlab(expression(exp(italic(p)(beta[0])))) +
@@ -777,7 +776,7 @@ summary(brm1)
 summary(brm2)
 ```
 
-Both model summaries look fine, to me.
+Both model summaries look fine, to me. If it wasn't clear to you, the `shape` line near the bottom of the `summary(brm1)` output is for the $\phi$ parameter.
 
 #### Can the $\beta$ posteriors give us the ATE?
 
@@ -809,14 +808,15 @@ as_draws_df(brm1) %>%
   ggplot(aes(x = ate)) +
   stat_halfeye(.width = .95) +
   scale_y_continuous(NULL, breaks = NULL) +
-  xlab(expression(tau[ATE]))
+  labs(title = "Behold our causal posterior",
+       x = expression(hat(tau)[ATE]))
 ```
 
 You cannot, however, compute the posterior for $\tau_\text{ATE}$ based on the $\beta$ posteriors from an ANCOVA version of this model. You need the standardization/g-computation method for that. Speaking of which...
 
 #### Posteriors for $\mathbb E (\lambda_i^1 - \lambda_i^0)$ and $\mathbb E (\mu_i^1 - \mu_i^0)$.
 
-Even with Bayes, it's still the case that
+With Bayes, it's still the case that
 
 $$\tau_\text{ATE} = \mathbb E (y_i^1 - y_i^0),$$
 
@@ -906,10 +906,11 @@ Here's the `marginaleffects::avg_comparisons()` approach.
 # change the **marginaleffects** default to use the mean
 options(marginaleffects_posterior_center = mean)
 
+# now summarize the ATE across the MCMC draws
 avg_comparisons(brm1, variables = list(Trt = 0:1))
 ```
 
-Whether you prefer a `fitted()`-, `as_draws_df()`-, or `avg_comparisons()`-based workflow, this is all just standardization/g-computation methodology ass applied to MCMC-based Bayesian models. This process works exactly that same if you'd like to instead use the standardization/g-computation approach for a Bayesian count ANCOVA model. As a quick example, here's the `add_epred_draws()`-based code for our Bayesian Poisson ANCOVA `brm2`.
+Whether you prefer a `fitted()`-, `as_draws_df()`-, or `avg_comparisons()`-based workflow, this is all just standardization/g-computation methodology as applied to MCMC-based Bayesian models. This process works exactly that same if you'd like to instead use the standardization/g-computation approach for a Bayesian count ANCOVA model. As a quick example, here's the `add_epred_draws()`-based code for our Bayesian Poisson ANCOVA `brm2`.
 
 ```{r}
 nd %>% 
@@ -1017,7 +1018,17 @@ In this post, some of the main points we covered were:
 * For Poisson or negative-binomial ANCOVA models, there can be many different values for the conditional average treatment effect, $\tau_\text{CATE}$, depending which values one uses for the covariates.
 * Sometimes frequentists prefer sandwich standard errors over the conventional ML standard errors for their count models. For Bayesians, the posterior $\textit{SD}$ is just the posterior $\textit{SD}$. If you don't like it, think harder about your likelihood.
 
-In the [next post](https://timely-flan-2986f4.netlify.app/blog/2023-03-28-causal-inference-with-gamma-regression-or-the-problem-is-the-link-function-not-the-likelihood/), we'll explore how our causal inference methods work with gamma regression models. Until then, happy modeling, friends!
+In the [next post](https://timely-flan-2986f4.netlify.app/blog/2023-03-28-causal-inference-with-gamma-regression-or-the-problem-is-the-link-function-not-the-likelihood/), we'll explore how our causal inference methods work with gamma regression models.
+
+## Thank the reviewer
+
+I'd like to publicly acknowledge and thank
+
+* [Stephen J. Wild](https://sjwild.github.io/)
+
+for his kind efforts reviewing the draft of this post. Go team!
+
+Do note the final editorial decisions were my own, and I do not think it would be reasonable to assume my reviewer has given a blanket endorsement of the current version of this post.
 
 ## Session info
 
