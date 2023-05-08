@@ -13,10 +13,10 @@ tags:
   - gamma
   - g-computation
   - GLM
-  - marginal standardization
   - potential outcomes
   - R
   - RCT
+  - standardization
   - tidyverse
   - tutorial
 draft: false
@@ -28,7 +28,7 @@ csl: /Users/solomonkurz/Dropbox/blogdown5/content/blog/apa.csl
 link-citations: yes
 ---
 
-So far we’ve seen the difficulties with covaraites, causal inference, and the GLM all seem restricted to discrete models (e.g., binomial, Poisson, negative binomial). In this sixth post of the series, we’ll see this issue can extend to models for continuous data, too. As it turns out, it may have less to do with the likelihood function, and more to do with the choice of link function. To highlight the point, we’ll compare Gaussian and gamma models, with both the identity and log links.
+So far the difficulties we have seen with covaraites, causal inference, and the GLM have all been restricted to discrete models (e.g., binomial, Poisson, negative binomial). In this sixth post of the series, we’ll see this issue can extend to models for continuous data, too. As it turns out, it may have less to do with the likelihood function, and more to do with the choice of link function. To highlight the point, we’ll compare Gaussian and gamma models, with both the identity and log links.
 
 ## We need data
 
@@ -46,8 +46,8 @@ library(brms)
 theme_set(theme_gray(base_size = 12) +
             theme(panel.grid = element_blank()))
 
-# load the data
-load(file = "data/horan1971.rda")
+# load the data from GitHub
+load(url("https://github.com/ASKurz/blogdown/raw/main/content/blog/2023-04-12-boost-your-power-with-baseline-covariates/data/horan1971.rda?raw=true"))
 
 # wrangle a bit
 horan1971 <- horan1971 %>% 
@@ -60,18 +60,19 @@ glimpse(horan1971)
 ```
 
     ## Rows: 41
-    ## Columns: 7
+    ## Columns: 8
     ## $ sl           <chr> "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r…
     ## $ sn           <int> 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 62, 63, …
     ## $ treatment    <fct> delayed, delayed, delayed, delayed, delayed, delayed, delayed, delayed, delayed, delaye…
     ## $ pre          <dbl> 149.50, 131.25, 146.50, 133.25, 131.00, 141.00, 145.75, 146.75, 172.50, 156.50, 153.00,…
     ## $ post         <dbl> 149.00, 130.00, 147.75, 139.00, 134.00, 145.25, 142.25, 147.00, 158.25, 155.25, 151.50,…
     ## $ prec         <dbl> -5.335366, -23.585366, -8.335366, -21.585366, -23.835366, -13.835366, -9.085366, -8.085…
+    ## $ delayed      <dbl> 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, …
     ## $ experimental <dbl> 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, …
 
 ## Model framework
 
-To my eye, gamma regression is one of the more under-used frameworks in the broader GLM framework. Recall the dependent variable in the `horan1971` data, `post`, is post-intervention weights, measured in pounds. Whether in humans or other animals, body weights are positive continuous values, and their distributions can often show a right skew, particularly whey their means are close to zero. Even though researchers often model data of this kind with the Gaussian likelihood, the gamma distribution can be a great alternative that easily accounts for the lower zero limit and the right skew. To accommodate the lower limit, the inverse link is the canonical link function for gamma regression models ([Nelder & Wedderburn, 1972](#ref-nelder1972generalized)). To give you a sense, the inverse link works like so:
+To my eye, gamma regression is one of the more under-used frameworks within the broader GLM framework. Recall the dependent variable in the `horan1971` data, `post`, is post-intervention weights, measured in pounds. Whether in humans or other animals, body weights are positive continuous values, and their distributions can often show a right skew, particularly whey their means are close to zero. Even though researchers often model data of this kind with the Gaussian likelihood, the gamma distribution can be a great alternative that easily accounts for the lower zero limit and any right skew. The inverse link is the canonical link function for gamma regression models ([Nelder & Wedderburn, 1972](#ref-nelder1972generalized)). To give you a sense, the inverse link works like so:
 
 ``` r
 tibble(lbs = seq(from = 0.1, to = 10, by = 0.01)) %>% 
@@ -88,7 +89,7 @@ tibble(lbs = seq(from = 0.1, to = 10, by = 0.01)) %>%
 
 <img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-4-1.png" width="481.2" />
 
-The inverse link has an inflection point a 1, and it asymptotes at zero. However, I and others (e.g., [Agresti, 2015](#ref-agrestiFoundationsLinearGeneralized2015); [McCullagh & Nelder, 1989](#ref-mccullagh1989generalized)) have noticed the inverse link has its quirks[^1] for gamma regression, and the identity and log links are often fine alternatives. In this blog post, we’ll explore gamma models with both identity and log links. Feel free to explore with the inverse link on your own. The overall results should be similar.
+The inverse link has an inflection point a 1, and it asymptotes at zero. However, I and others (e.g., [Agresti, 2015](#ref-agrestiFoundationsLinearGeneralized2015); [McCullagh & Nelder, 1989](#ref-mccullagh1989generalized)) have noticed the inverse link has its quirks[^1] for gamma regression, and the identity and log links make for good alternatives. In this blog post, we’ll explore gamma models with both identity and log links. Feel free to explore with the inverse link on your own. The overall results should be similar.
 
 We will fit 8 models in total. To warm up, we will start by fitting 4 ANOVA models:
 
@@ -97,7 +98,7 @@ We will fit 8 models in total. To warm up, we will start by fitting 4 ANOVA mode
 - gamma with the identity link, and
 - gamma with the log link.
 
-We will get to the heart of the post by fitting 4 ANCOVA models:
+Then we will get to the heart of the post by fitting 4 ANCOVA models:
 
 - Gaussian with the identity link,
 - Gaussian with the log link,
@@ -263,7 +264,7 @@ With both Gaussian and gamma likelihoods, the `\(\beta_1\)` parameter is the sam
 
 `$$\hat{\tau}_\text{ATE} = \exp(\hat \beta_0 + \hat \beta_1) - \exp(\hat \beta_0).$$`
 
-Here’s how to compute the `\(\hat{\tau}_\text{ATE}\)`’s all by hand with `coef()`.
+Here’s how to compute the `\(\hat{\tau}_\text{ATE}\)` values all by hand with the `coef()` function.
 
 ``` r
 likelihoods <- c("Gaussian", "Gamma")
@@ -287,9 +288,9 @@ tibble(likelihood = rep(likelihoods, each = 2),
     ## 3 Gamma      identity -2.49
     ## 4 Gamma      log      -2.49
 
-At the level of the point estimates, the results are not technically identical, but they’re the same up to many decimal points.
+At the level of the point estimates, the results are not *technically* identical, but they’re the same up to many decimal points.
 
-If we’d like to use the `\(\mathbb E (y_i^1) - \mathbb E (y_i^0)\)` method for computing the ATE and its measures of uncertainty, like standard errors and 95% intervals, we’re better off using the `predictions()` function from the **marginaleffects** package. Here we’ll do so for all four models, and wrangle the format a little.
+If we’d like to use the `\(\mathbb E (y_i^1) - \mathbb E (y_i^0)\)` method for computing our estimate for the ATE, and its measures of uncertainty, like standard errors and 95% intervals, we’re better off using the `predictions()` function from the **marginaleffects** package. Here we’ll do so for all four models, and wrangle the format a little.
 
 ``` r
 bind_rows(
@@ -306,9 +307,9 @@ bind_rows(
 
     ##   likelihood     link  estimate std.error  conf.low conf.high
     ## 1   Gaussian identity -2.489234  5.397404 -13.06795  8.089482
-    ## 2   Gaussian      log -2.489234  5.397674 -13.06848  8.090011
+    ## 2   Gaussian      log -2.489234  5.397408 -13.06796  8.089491
     ## 3      Gamma identity -2.489234  5.396532 -13.06624  8.087774
-    ## 4      Gamma      log -2.489234  5.396802 -13.06677  8.088303
+    ## 4      Gamma      log -2.489234  5.396537 -13.06625  8.087783
 
 The results are very similar across all summary measures, but they’re most notably different for the standard errors and 95% intervals. I don’t know that there’s an easy way to decide which model is the *best*. The models differ in their underlying assumptions. To my eye, the gamma model with the log link seems pretty attractive; the gamma likelihood naturally accounts for any right skew in the data (there is indeed a little right skew[^2]), and the log link insures the model will never predict non-positive weights. Your preferences may vary.
 
@@ -329,9 +330,9 @@ bind_rows(
 
     ##   likelihood     link  estimate std.error  conf.low conf.high
     ## 1   Gaussian identity -2.489234  5.397404 -13.06795  8.089482
-    ## 2   Gaussian      log -2.489234  5.397674 -13.06848  8.090011
+    ## 2   Gaussian      log -2.489234  5.397408 -13.06796  8.089491
     ## 3      Gamma identity -2.489234  5.396532 -13.06624  8.087774
-    ## 4      Gamma      log -2.489234  5.396802 -13.06677  8.088303
+    ## 4      Gamma      log -2.489234  5.396537 -13.06625  8.087783
 
 By now, hopefully it’s no surprise that the results are the same as above when we used the `\(\mathbb E (y_i^1) - \mathbb E (y_i^0)\)` method, above. This is expected behavior when working with ANOVA-type models. This will not be the case, though, with the ANCOVA-type models in the next section. But before we go there, here’s a coefficient plot visualization of those `\(\tau_\text{ATE}\)` estimates, and their 95% intervals.
 
@@ -357,7 +358,7 @@ bind_rows(
 
 <img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-13-1.png" width="576" />
 
-When you look at the results in the context of a plot like this, the subtle differences in their point estimates and 95% intervals seem trivial, don’t they?
+When you look at the results in the context of a plot like this, the subtle differences in their point estimates and 95% intervals seem trivial, don’t they? I don’t know that I can promise this will always be the case.
 
 ### ANCOVA makes it hard.
 
@@ -542,7 +543,7 @@ summary(glm2d)
     ## 
     ## Number of Fisher Scoring iterations: 3
 
-The way we interpret our `\(\beta_1\)` coefficients vary by model. For the Gaussian and gamma likelihoods, `\(\beta_1\)` is still an estimator of the ATE, but only when using the identity link function. Here they are:
+The way we interpret our `\(\beta_1\)` coefficients varies by model. For the Gaussian and gamma likelihoods, `\(\beta_1\)` is still an estimator of the ATE, *but only when using the identity link function*. Here they are:
 
 ``` r
 bind_rows(
@@ -598,11 +599,11 @@ bind_rows(
 
     ##   likelihood     link estimand estimate std.error conf.low conf.high
     ## 1   Gaussian identity      ATE   -4.572     2.002   -8.497    -0.648
-    ## 2   Gaussian      log     CATE   -4.616     1.978   -8.493    -0.740
+    ## 2   Gaussian      log     CATE   -4.616     1.978   -8.492    -0.741
     ## 3      Gamma identity      ATE   -4.315     1.946   -8.128    -0.502
     ## 4      Gamma      log     CATE   -4.437     1.963   -8.284    -0.589
 
-This can be hard to catch because the estimates are all so similar, but slightly different. The results in the first and third rows are for the ATE. However, the results in the second and fourth rows are for different versions of the CATE. The second row is the CATE for cases with a mean value for `pre`. The fourth row is the CATE for cases with a mean value for log-transformed `pre`. Here are what those mean values are on the `pre` scale.
+This can be hard to catch because the differences among the estimates are all so subtle, but the results in the first and third rows are for the ATE, and the results in the second and fourth rows are for different versions of the *C*ATE. The second row is the CATE for cases with a mean value for `pre`. The fourth row is the CATE for cases with a mean value for log-transformed `pre`. Here are what those mean values are on the `pre` scale.
 
 ``` r
 horan1971 %>% 
@@ -716,7 +717,7 @@ bind_rows(
     ## 1   Gaussian identity      ATE   -4.572     2.002   -8.497    -0.648
     ## 2   Gaussian      log      ATE   -4.641     1.988   -8.538    -0.744
     ## 3      Gamma identity      ATE   -4.315     1.946   -8.128    -0.502
-    ## 4      Gamma      log      ATE   -4.460     1.974   -8.328    -0.592
+    ## 4      Gamma      log      ATE   -4.460     1.973   -8.328    -0.592
 
 Even though the point estimates and their measures of uncertainty differ a bit, these are all estimators of the `\(\tau_\text{ATE}\)`, each based on slightly different model assumptions. Here’s what they all look like in a coefficient plot.
 
@@ -746,7 +747,7 @@ bind_rows(
 
 ## Causal inference with Bayesian gamma regression
 
-I’m not going to repeat all of our frequentist analyses as a Bayesian because that would make for an overly ponderous post. But I do think it’s reasonable to give a brief walk-through with a single ANCOVA model of the form
+I’m not going to repeat all of our frequentist analyses as a Bayesian because that would make for an overly ponderous post. But I do think it’s reasonable to give a brief walk-through with a single Bayesian gamma ANCOVA model of the form
 
 $$
 `\begin{align*}
@@ -765,7 +766,7 @@ Note that with **brms**, the gamma likelihood is parameterized in terms of the m
 
 Anyway, my priors may look oddly specific. Let me walk them out.
 
-Recall that in the [fourth post](https://timely-flan-2986f4.netlify.app/blog/2023-02-15-causal-inference-with-bayesian-models/), we used `\(\operatorname{Normal}(156.5, 15)\)` as the prior for the `\(\beta_0\)` intercept in the Gaussian model with the conventional identity link. Since we’re now using the log link, we need to set our priors with the conditional mean on the log scale. Did you know that if you take the log of a normal distribution, you end up with a lognormal distribution? The lognormal is a 2-parameter distribution over the positive real values, which has a nice right skew. The lognormal is odd in that its two parameters, `\(\mu\)` and `\(\sigma\)`, are the population mean and standard deviation of the normal distribution you’d get after log-transforming the lognormal distribution. The math gets a little hairy, but if you wanted a lognormal distribution with a given mean and standard deviation on its own scale, you’d need to use the equations
+Recall that in the [fourth post](https://timely-flan-2986f4.netlify.app/blog/2023-02-15-causal-inference-with-bayesian-models/), we used `\(\operatorname{Normal}(156.5, 15)\)` as the prior for the `\(\beta_0\)` intercept in the Gaussian model with the conventional identity link. Since we’re now using the log link, we need to set our priors with the conditional mean on the log scale. Did you know that if you take the log of a normal distribution, you end up with a lognormal distribution? The lognormal is a 2-parameter distribution over the positive real values, which has a nice right skew. The lognormal is odd in that its two parameters, `\(\mu\)` and `\(\sigma\)`, are the population mean and standard deviation of the normal distribution you’d get *after* log-transforming the lognormal distribution. The math gets a little hairy, but if you wanted a lognormal distribution with a given mean and standard deviation on its own scale, you’d need to use the equations
 
 $$
 `\begin{align*}
@@ -774,7 +775,7 @@ $$
 \end{align*}`
 $$
 
-where `\(\bar y\)` is our desired mean and `\(s\)` is our desired SD. So what if we wanted a lognormal distribution that had a mean of 156.5 and a standard deviation of 15, to resemble the prior we used back in post \#4? We could use those equations with the following code:
+where `\(\bar y\)` is your desired mean and `\(s\)` is your desired SD. So what if we wanted a lognormal distribution that had a mean of 156.5 and a standard deviation of 15, to resemble the prior we used back in post \#4? We could use those equations with the following code:
 
 ``` r
 m <- 156.5  # desired mean
@@ -819,11 +820,11 @@ exp(5.053056 + c(-0.5, 0.5))
 
     ## [1]  94.92205 258.02488
 
-That’s a wide spread, and frankly it suggests we could easily justify an even more conservative prior.
+That’s a wide spread, and frankly it suggests we could easily justify an even more conservative prior with a smaller value for the `\(\sigma\)` hyperparameter.
 
 As to our `\(\operatorname{Normal}(0.75, 0.25)\)` prior for `\(\beta_2\)`, this is suggesting the pre- and post-intervention weights scale close together, even when they’re on the log scale. In my experience, this is a good rule of thumb for behavioral data. If you’re not as confident as I am, adjust your prior accordingly.
 
-The `\(\operatorname{Gamma}(0.01, 0.01)\)` prior for the shape parameter `\(\alpha\)` is the `brm()` default. You might use the `get_prior()` function to check this for yourself. If you’re going to be fitting a lot of Bayesian gamma regression models, you’re going to want to learn how to go beyond the default prior for your `\(\alpha\)` parameters. Since this is just a small point in a much larger story, I’m not going to dive much deeper into the topic, here. But if you wanted to start somewhere, keep in mind that when a gamma distribution’s `\(\mu = \alpha\)`, the population mean and variance are the same[^3]; and with `\(\mu\)` held constant, larger values of `\(\alpha\)` make for *smaller* variances[^4].
+The `\(\operatorname{Gamma}(0.01, 0.01)\)` prior for the shape parameter `\(\alpha\)` is the `brm()` default. You might use the `get_prior()` function to check this for yourself. If you’re going to be fitting a lot of Bayesian gamma regression models, you’re going to want to learn how to go beyond the default prior for your `\(\alpha\)` parameters. Since this is just a small point in a much larger story, I’m not going to dive much deeper into the topic, here. But if you wanted to start somewhere, keep in mind that when a gamma distribution’s `\(\mu = \alpha\)`, the population mean and variance are the same;[^3] and with `\(\mu\)` held constant, larger values of `\(\alpha\)` make for *smaller* variances.[^4]
 
 Okay, here’s how to fit the model with `brm()`.
 
@@ -931,18 +932,17 @@ pp_check(brm1, type = "stat_grouped", group = "experimental", stat = "sd") +
 
 Our model did a great job.
 
-With our Bayesian gamma ANCOVA, with the log link, the easiest way to compute our posterior for the ATE is with the `avg_comparisons()` function from **marginaleffects**.
+With our Bayesian gamma ANCOVA with the log link, the easiest way to compute our posterior for the ATE is with the `avg_comparisons()` function from **marginaleffects**.
 
 ``` r
 avg_comparisons(brm1, variables = "experimental")
 ```
 
     ## 
-    ##          Term Contrast Estimate  2.5 % 97.5 %
-    ##  experimental    1 - 0   -4.476 -8.931 0.1557
+    ##          Term Contrast Estimate 2.5 % 97.5 %
+    ##  experimental    1 - 0    -4.48 -8.93  0.156
     ## 
-    ## Prediction type:  response 
-    ## Columns: type, term, contrast, estimate, conf.low, conf.high
+    ## Columns: term, contrast, estimate, conf.low, conf.high
 
 Recall that by default, the measure of central tendency in the `Estimate` column is the median for Bayesian models. If we wanted to get a look at the full posterior distribution for `\(\tau_\text{ATE}\)`, we could tack on the `posterior_draws()` function from **marginaleffects**, and then plot or summarize as desired. Here’s what looks like for making a half-eye plot.
 
@@ -954,7 +954,7 @@ avg_comparisons(brm1, variables = "experimental") %>%
   stat_halfeye(point_interval = mean_qi, .width = c(.5, .95)) +
   scale_y_continuous(NULL, breaks = NULL) +
   labs(title = "Bayesians like to show their posteriors.",
-       x = expression(tau[ATE]))
+       x = expression(hat(tau)[ATE]))
 ```
 
 <img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-35-1.png" width="480" />
@@ -972,7 +972,7 @@ In this post, some of the main points we covered were:
 - When you use the identity link for either the Gaussian or the gamma ANCOVA, the `\(\beta_1\)` parameter, the `\(\mathbb E (y_i^1 - y_i^0 \mid c_i)\)` method, and the `\(\mathbb E (y_i^1 \mid \bar c) - \mathbb E (y_i^0 \mid \bar c)\)` method are all valid estimators of `\(\tau_\text{ATE}\)`.
 - When you use the log link for either the Gaussian or the gamma ANCOVA, only the `\(\mathbb E (y_i^1 - y_i^0 \mid c_i)\)` method can return a valid estimate for `\(\tau_\text{ATE}\)`.
 
-Until next time, happy modeling, friends!
+In the next post, we’ll explore how our causal inference methods work with ordinal regression models.
 
 ## Session info
 
@@ -995,37 +995,37 @@ sessionInfo()
     ## [1] stats     graphics  grDevices utils     datasets  methods   base     
     ## 
     ## other attached packages:
-    ##  [1] brms_2.19.0                Rcpp_1.0.10                ggdist_3.2.1.9000         
-    ##  [4] marginaleffects_0.9.0.9014 broom_1.0.4                lubridate_1.9.2           
-    ##  [7] forcats_1.0.0              stringr_1.5.0              dplyr_1.1.0               
-    ## [10] purrr_1.0.1                readr_2.1.4                tidyr_1.3.0               
-    ## [13] tibble_3.2.0               ggplot2_3.4.1              tidyverse_2.0.0           
+    ##  [1] brms_2.19.0                 Rcpp_1.0.10                 ggdist_3.2.1.9000          
+    ##  [4] marginaleffects_0.11.1.9008 broom_1.0.4                 lubridate_1.9.2            
+    ##  [7] forcats_1.0.0               stringr_1.5.0               dplyr_1.1.2                
+    ## [10] purrr_1.0.1                 readr_2.1.4                 tidyr_1.3.0                
+    ## [13] tibble_3.2.1                ggplot2_3.4.2               tidyverse_2.0.0            
     ## 
     ## loaded via a namespace (and not attached):
     ##   [1] backports_1.4.1      plyr_1.8.7           igraph_1.3.4         splines_4.2.3        crosstalk_1.2.0     
-    ##   [6] TH.data_1.1-1        rstantools_2.2.0     inline_0.3.19        digest_0.6.31        htmltools_0.5.3     
+    ##   [6] TH.data_1.1-1        rstantools_2.2.0     inline_0.3.19        digest_0.6.31        htmltools_0.5.5     
     ##  [11] fansi_1.0.4          magrittr_2.0.3       checkmate_2.1.0      tzdb_0.3.0           RcppParallel_5.1.5  
     ##  [16] matrixStats_0.63.0   xts_0.12.1           sandwich_3.0-2       timechange_0.2.0     prettyunits_1.1.1   
-    ##  [21] colorspace_2.1-0     xfun_0.37            callr_3.7.3          crayon_1.5.2         jsonlite_1.8.4      
-    ##  [26] lme4_1.1-31          survival_3.5-3       zoo_1.8-10           glue_1.6.2           gtable_0.3.2        
+    ##  [21] colorspace_2.1-0     xfun_0.39            callr_3.7.3          crayon_1.5.2         jsonlite_1.8.4      
+    ##  [26] lme4_1.1-31          survival_3.5-3       zoo_1.8-10           glue_1.6.2           gtable_0.3.3        
     ##  [31] emmeans_1.8.0        distributional_0.3.1 pkgbuild_1.3.1       rstan_2.21.8         abind_1.4-5         
     ##  [36] scales_1.2.1         mvtnorm_1.1-3        DBI_1.1.3            miniUI_0.1.1.1       viridisLite_0.4.1   
     ##  [41] xtable_1.8-4         stats4_4.2.3         StanHeaders_2.21.0-7 DT_0.24              collapse_1.9.2      
     ##  [46] htmlwidgets_1.5.4    threejs_0.3.3        posterior_1.4.1      ellipsis_0.3.2       pkgconfig_2.0.3     
-    ##  [51] loo_2.5.1            farver_2.1.1         sass_0.4.2           utf8_1.2.3           tidyselect_1.2.0    
+    ##  [51] loo_2.5.1            farver_2.1.1         sass_0.4.5           utf8_1.2.3           tidyselect_1.2.0    
     ##  [56] labeling_0.4.2       rlang_1.1.0          reshape2_1.4.4       later_1.3.0          munsell_0.5.0       
-    ##  [61] tools_4.2.3          cachem_1.0.6         cli_3.6.0            generics_0.1.3       evaluate_0.18       
-    ##  [66] fastmap_1.1.0        yaml_2.3.5           processx_3.8.0       knitr_1.42           nlme_3.1-162        
+    ##  [61] tools_4.2.3          cachem_1.0.7         cli_3.6.1            generics_0.1.3       evaluate_0.20       
+    ##  [66] fastmap_1.1.1        yaml_2.3.7           processx_3.8.1       knitr_1.42           nlme_3.1-162        
     ##  [71] mime_0.12            projpred_2.2.1       compiler_4.2.3       bayesplot_1.10.0     shinythemes_1.2.0   
-    ##  [76] rstudioapi_0.14      gamm4_0.2-6          bslib_0.4.0          stringi_1.7.8        highr_0.9           
-    ##  [81] ps_1.7.2             blogdown_1.16        Brobdingnag_1.2-8    lattice_0.20-45      Matrix_1.5-3        
-    ##  [86] nloptr_2.0.3         markdown_1.1         shinyjs_2.1.0        tensorA_0.36.2       vctrs_0.6.0         
-    ##  [91] pillar_1.8.1         lifecycle_1.0.3      jquerylib_0.1.4      bridgesampling_1.1-2 estimability_1.4.1  
-    ##  [96] data.table_1.14.8    insight_0.19.0       httpuv_1.6.5         R6_2.5.1             bookdown_0.28       
+    ##  [76] rstudioapi_0.14      gamm4_0.2-6          bslib_0.4.2          stringi_1.7.12       highr_0.10          
+    ##  [81] ps_1.7.5             blogdown_1.16        Brobdingnag_1.2-8    lattice_0.20-45      Matrix_1.5-3        
+    ##  [86] nloptr_2.0.3         markdown_1.1         shinyjs_2.1.0        tensorA_0.36.2       vctrs_0.6.2         
+    ##  [91] pillar_1.9.0         lifecycle_1.0.3      jquerylib_0.1.4      bridgesampling_1.1-2 estimability_1.4.1  
+    ##  [96] data.table_1.14.8    insight_0.19.1.6     httpuv_1.6.5         R6_2.5.1             bookdown_0.28       
     ## [101] promises_1.2.0.1     gridExtra_2.3        codetools_0.2-19     boot_1.3-28.1        colourpicker_1.1.1  
     ## [106] MASS_7.3-58.2        gtools_3.9.4         withr_2.5.0          shinystan_2.6.0      multcomp_1.4-20     
-    ## [111] mgcv_1.8-42          parallel_4.2.3       hms_1.1.2            grid_4.2.3           coda_0.19-4         
-    ## [116] minqa_1.2.5          rmarkdown_2.20       shiny_1.7.2          base64enc_0.1-3      dygraphs_1.1.1.6
+    ## [111] mgcv_1.8-42          parallel_4.2.3       hms_1.1.3            grid_4.2.3           coda_0.19-4         
+    ## [116] minqa_1.2.5          rmarkdown_2.21       shiny_1.7.2          base64enc_0.1-3      dygraphs_1.1.1.6
 
 ## References
 
