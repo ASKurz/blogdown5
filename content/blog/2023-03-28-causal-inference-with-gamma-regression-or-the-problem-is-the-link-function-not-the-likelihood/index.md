@@ -41,6 +41,8 @@ library(broom)
 library(marginaleffects)
 library(ggdist)
 library(brms)
+library(moments)
+library(patchwork)
 
 # adjust the global theme
 theme_set(theme_gray(base_size = 12) +
@@ -910,27 +912,34 @@ pp_check(brm1, type = "dens_overlay_grouped", group = "experimental", ndraws = 1
 
 <img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-32-1.png" width="672" />
 
-On the whole, the model did a pretty okay job capturing the skewed distributions of the original sample data. How’d we do capturing the conditional means and standard deviations, by experimental group?
+On the whole, the model did a pretty okay job capturing the skewed distributions of the original sample data. How’d we do capturing the conditional means, standard deviations and skewness, by experimental group?
 
 ``` r
 set.seed(6)
-pp_check(brm1, type = "stat_grouped", group = "experimental", stat = "mean") +
-  ggtitle("Posterior-predictive check (conditional means)") +
+p1 <- pp_check(brm1, type = "stat_grouped", group = "experimental", stat = "mean") +
+  labs(subtitle = "Means") +
   coord_cartesian(xlim = c(143, 162))
+
+set.seed(6)
+p2 <- pp_check(brm1, type = "stat_grouped", group = "experimental", stat = "sd") +
+  labs(subtitle = "SD's") +
+  coord_cartesian(xlim = c(9, 26))
+
+set.seed(6)
+p3 <- pp_check(brm1, type = "stat_grouped", group = "experimental", stat = "skewness") +
+  labs(subtitle = "Skews") +
+  coord_cartesian(xlim = c(-1, 2))
+
+# combine 
+(p1 / p2 / p3) &
+  theme(legend.position = "none") &
+  plot_annotation(title = "Posterior-predictive statistical checks, by group",
+                  subtitle = expression("The dark blue lines are "*italic(T(y))*", and the light blue bars are for "*italic(T)(italic(y)[rep])*"."))
 ```
 
 <img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-33-1.png" width="576" />
 
-``` r
-set.seed(6)
-pp_check(brm1, type = "stat_grouped", group = "experimental", stat = "sd") +
-  ggtitle("Posterior-predictive check (conditional SD's)") +
-  coord_cartesian(xlim = c(9, 26))
-```
-
-<img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-33-2.png" width="576" />
-
-Our model did a great job.
+Our model did a great job with the means and SD’s, and a decent job with the skew.[^5]
 
 With our Bayesian gamma ANCOVA with the log link, the easiest way to compute our posterior for the ATE is with the `avg_comparisons()` function from **marginaleffects**.
 
@@ -957,7 +966,7 @@ avg_comparisons(brm1, variables = "experimental") %>%
        x = expression(hat(tau)[ATE]))
 ```
 
-<img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-35-1.png" width="480" />
+<img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-36-1.png" width="480" />
 
 It’s a thing of beauty, isn’t it? For more details on how to use **marginaleffects** functions to work with `brm()` models, check out Arel-Bundock’s ([2023](#ref-arelBundock2023BayesianAnalysis)) vignette, *Bayesian analysis with brms*. To see how to make the same computation with a `fitted()`- or `add_epred_draws()`-based workflow, go back to the [fourth post](https://timely-flan-2986f4.netlify.app/blog/2023-02-15-causal-inference-with-bayesian-models/) in this series.
 
@@ -995,11 +1004,12 @@ sessionInfo()
     ## [1] stats     graphics  grDevices utils     datasets  methods   base     
     ## 
     ## other attached packages:
-    ##  [1] brms_2.19.0                 Rcpp_1.0.10                 ggdist_3.2.1.9000          
-    ##  [4] marginaleffects_0.11.1.9008 broom_1.0.4                 lubridate_1.9.2            
-    ##  [7] forcats_1.0.0               stringr_1.5.0               dplyr_1.1.2                
-    ## [10] purrr_1.0.1                 readr_2.1.4                 tidyr_1.3.0                
-    ## [13] tibble_3.2.1                ggplot2_3.4.2               tidyverse_2.0.0            
+    ##  [1] patchwork_1.1.2             moments_0.14.1              brms_2.19.0                
+    ##  [4] Rcpp_1.0.10                 ggdist_3.2.1.9000           marginaleffects_0.11.1.9008
+    ##  [7] broom_1.0.4                 lubridate_1.9.2             forcats_1.0.0              
+    ## [10] stringr_1.5.0               dplyr_1.1.2                 purrr_1.0.1                
+    ## [13] readr_2.1.4                 tidyr_1.3.0                 tibble_3.2.1               
+    ## [16] ggplot2_3.4.2               tidyverse_2.0.0            
     ## 
     ## loaded via a namespace (and not attached):
     ##   [1] backports_1.4.1      plyr_1.8.7           igraph_1.3.4         splines_4.2.3        crosstalk_1.2.0     
@@ -1012,8 +1022,8 @@ sessionInfo()
     ##  [36] scales_1.2.1         mvtnorm_1.1-3        DBI_1.1.3            miniUI_0.1.1.1       viridisLite_0.4.1   
     ##  [41] xtable_1.8-4         stats4_4.2.3         StanHeaders_2.21.0-7 DT_0.24              collapse_1.9.2      
     ##  [46] htmlwidgets_1.5.4    threejs_0.3.3        posterior_1.4.1      ellipsis_0.3.2       pkgconfig_2.0.3     
-    ##  [51] loo_2.5.1            farver_2.1.1         sass_0.4.5           utf8_1.2.3           tidyselect_1.2.0    
-    ##  [56] labeling_0.4.2       rlang_1.1.0          reshape2_1.4.4       later_1.3.0          munsell_0.5.0       
+    ##  [51] loo_2.5.1            farver_2.1.1         sass_0.4.5           utf8_1.2.3           labeling_0.4.2      
+    ##  [56] tidyselect_1.2.0     rlang_1.1.0          reshape2_1.4.4       later_1.3.0          munsell_0.5.0       
     ##  [61] tools_4.2.3          cachem_1.0.7         cli_3.6.1            generics_0.1.3       evaluate_0.20       
     ##  [66] fastmap_1.1.1        yaml_2.3.7           processx_3.8.1       knitr_1.42           nlme_3.1-162        
     ##  [71] mime_0.12            projpred_2.2.1       compiler_4.2.3       bayesplot_1.10.0     shinythemes_1.2.0   
@@ -1040,6 +1050,12 @@ Agresti, A. (2015). *Foundations of linear and generalized linear models*. John 
 <div id="ref-arelBundock2023BayesianAnalysis" class="csl-entry">
 
 Arel-Bundock, V. (2023). *Bayesian analysis with brms*. <https://vincentarelbundock.github.io/marginaleffects/articles/brms.html>
+
+</div>
+
+<div id="ref-Bürkner2023Distributional" class="csl-entry">
+
+Bürkner, P.-C. (2023). *Estimating distributional models with brms*. <https://CRAN.R-project.org/package=brms/vignettes/brms_distreg.html>
 
 </div>
 
@@ -1076,3 +1092,5 @@ Revelle, W. (2022). *<span class="nocase">psych</span>: Procedures for psycholog
 [^3]: *Why would I assume the mean and variance would be the same?* you ask. Well, you might not. But bear in mind that the popular likelihood for unbounded counts, the Poisson, assumes the mean and variance are the same. Granted, the Poisson likelihood often underestimates the variance in real-world sample data, and we might not expect our positive-real skewed continuous data will behave like unbounded counts. But you have to start somewhere, friends. Why not appeal to one of the devils you already know?
 
 [^4]: Within the context of a fixed `\(\mu\)`, you might think of `\(\alpha\)` as a *concentration* parameter. The higher the `\(\alpha\)`, the more concentrated the distribution gets around the mean.
+
+[^5]: I’ll admit, we did *okay* with the skew, but it seems like there’s room for improvement, particularly for the control condition. If you’re curious, try fitting a second Bayesian gamma model where you allow the log of the shape parameter `\((\log \alpha_i)\)` to vary by `experimental` and `prelc`. I think you’ll see that fuller version of the model does a better job capturing the skew. We’re not quite ready for distributional models in this blog series, but check out Bürkner’s ([2023](#ref-Bürkner2023Distributional)) vignette, *Estimating distributional models with brms*, if you’re ready to skip ahead.

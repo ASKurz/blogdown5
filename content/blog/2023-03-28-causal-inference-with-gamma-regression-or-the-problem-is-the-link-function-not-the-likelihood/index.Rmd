@@ -52,6 +52,8 @@ library(broom)
 library(marginaleffects)
 library(ggdist)
 library(brms)
+library(moments)
+library(patchwork)
 
 # adjust the global theme
 theme_set(theme_gray(base_size = 12) +
@@ -662,21 +664,69 @@ pp_check(brm1, type = "dens_overlay_grouped", group = "experimental", ndraws = 1
   ggtitle("Posterior-predictive check (overlaid densities)")
 ```
 
-On the whole, the model did a pretty okay job capturing the skewed distributions of the original sample data. How'd we do capturing the conditional means and standard deviations, by experimental group?
+On the whole, the model did a pretty okay job capturing the skewed distributions of the original sample data. How'd we do capturing the conditional means, standard deviations and skewness, by experimental group?
 
-```{r, fig.width = 6, fig.height = 3, message = F}
+```{r, fig.width = 6, fig.height = 6, message = F}
 set.seed(6)
-pp_check(brm1, type = "stat_grouped", group = "experimental", stat = "mean") +
-  ggtitle("Posterior-predictive check (conditional means)") +
+p1 <- pp_check(brm1, type = "stat_grouped", group = "experimental", stat = "mean") +
+  labs(subtitle = "Means") +
   coord_cartesian(xlim = c(143, 162))
 
 set.seed(6)
-pp_check(brm1, type = "stat_grouped", group = "experimental", stat = "sd") +
-  ggtitle("Posterior-predictive check (conditional SD's)") +
+p2 <- pp_check(brm1, type = "stat_grouped", group = "experimental", stat = "sd") +
+  labs(subtitle = "SD's") +
   coord_cartesian(xlim = c(9, 26))
+
+set.seed(6)
+p3 <- pp_check(brm1, type = "stat_grouped", group = "experimental", stat = "skewness") +
+  labs(subtitle = "Skews") +
+  coord_cartesian(xlim = c(-1, 2))
+
+# combine 
+(p1 / p2 / p3) &
+  theme(legend.position = "none") &
+  plot_annotation(title = "Posterior-predictive statistical checks, by group",
+                  subtitle = expression("The dark blue lines are "*italic(T(y))*", and the light blue bars are for "*italic(T)(italic(y)[rep])*"."))
 ```
 
-Our model did a great job.
+Our model did a great job with the means and SD's, and a decent job with the skew.[^5]
+
+```{r, eval = F, echo = F}
+# fit
+brm2 <- brm(
+  data = horan1971,
+  family = Gamma(link = "log"),
+  bf(post ~ 0 + Intercept + experimental + prelc,
+     shape ~ 0 + Intercept + experimental + prelc),
+  prior = prior(normal(5.053056, 0.09562761), class = b, coef = Intercept) +
+    prior(normal(0, 0.25), class = b, coef = experimental) +
+    prior(normal(0.75, 0.25), class = b, coef = prelc),  # the brms default
+  cores = 4, seed = 6
+)
+
+# pp-check
+set.seed(6)
+p4 <- pp_check(brm2, type = "stat_grouped", group = "experimental", stat = "mean") +
+  labs(subtitle = "means") +
+  coord_cartesian(xlim = c(143, 162))
+
+set.seed(6)
+p5 <- pp_check(brm2, type = "stat_grouped", group = "experimental", stat = "sd") +
+  labs(subtitle = "SD's") +
+  coord_cartesian(xlim = c(9, 26))
+
+set.seed(6)
+p6 <- pp_check(brm2, type = "stat_grouped", group = "experimental", stat = "skewness") +
+  labs(subtitle = "skews") +
+  coord_cartesian(xlim = c(-1, 2))
+
+# compare
+(p1 / p2 / p3) &
+  theme(legend.position = "none")
+
+(p4 / p5 / p6) &
+  theme(legend.position = "none")
+```
 
 With our Bayesian gamma ANCOVA with the log link, the easiest way to compute our posterior for the ATE is with the `avg_comparisons()` function from **marginaleffects**.
 
@@ -727,6 +777,9 @@ sessionInfo()
 [^3]: *Why would I assume the mean and variance would be the same?* you ask. Well, you might not. But bear in mind that the popular likelihood for unbounded counts, the Poisson, assumes the mean and variance are the same. Granted, the Poisson likelihood often underestimates the variance in real-world sample data, and we might not expect our positive-real skewed continuous data will behave like unbounded counts. But you have to start somewhere, friends. Why not appeal to one of the devils you already know?
 
 [^4]: Within the context of a fixed $\mu$, you might think of $\alpha$ as a *concentration* parameter. The higher the $\alpha$, the more concentrated the distribution gets around the mean.
+
+[^5]: I'll admit, we did *okay* with the skew, but it seems like there's room for improvement, particularly for the control condition. If you're curious, try fitting a second Bayesian gamma model where you allow the log of the shape parameter $(\log \alpha_i)$ to vary by `experimental` and `prelc`. I think you'll see that fuller version of the model does a better job capturing the skew. We're not quite ready for distributional models in this blog series, but check out Bürkner's [-@Bürkner2023Distributional] vignette, *Estimating distributional models with brms*, if you're ready to skip ahead.
+
 
 ```{r, eval = F, echo = F}
 text <- bind_rows(
