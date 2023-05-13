@@ -1099,7 +1099,7 @@ Revelle, W. (2022). *<span class="nocase">psych</span>: Procedures for psycholog
 
 [^1]: It isn’t totally under-used, though. Some researchers have found gamma regression (with the log link) useful for modeling healthcare cost data ([Basu et al., 2004](#ref-basu2004comparing); [Malehi et al., 2015](#ref-malehi2015statistical)).
 
-[^2]: We won’t entertain them all here, but gamma isn’t the only distribution in town that can describe non-negative, right-skewed, continuous data. Some of the alternatives include the exponential, inverse Gaussian, lognormal, and Weibull distributions.
+[^2]: We won’t entertain them all here, but gamma isn’t the only distribution in town that can describe non-negative, right-skewed, continuous data. Some of the alternatives include the exponential, inverse Gaussian, lognormal, and Weibull distributions. Fun fact: the exponential distribution can be thought of as a special case of the gamma distribution when the shape parameter of the gamma distribution `\((\alpha)\)` is fixed to 1. Try it out and see.
 
 [^3]: The language of “quirks” is my own. The inverse link has the technical limitation that it will not insure on its own that the model will not return negative predictions, which is an insight you can find in the technical literature (e.g., [McCullagh & Nelder, 1989](#ref-mccullagh1989generalized)). In addition, I have personally found the inverse link can cause estimation difficulties with both frequentist (`glm()`) and Bayesian (`brm()`) software. The log link *just works*, friends. Use the log link for gamma.
 
