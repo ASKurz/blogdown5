@@ -74,7 +74,7 @@ glimpse(horan1971)
 
 ## Model framework
 
-To my eye, gamma regression is one of the more under-used frameworks within the broader GLM framework. Recall the dependent variable in the `horan1971` data, `post`, is post-intervention weights, measured in pounds. Whether in humans or other animals, body weights are positive continuous values, and their distributions can often show a right skew, particularly whey their means are close to zero. Even though researchers often model data of this kind with the Gaussian likelihood, the gamma distribution can be a great alternative that easily accounts for the lower zero limit and any right skew. The inverse link is the canonical link function for gamma regression models ([Nelder & Wedderburn, 1972](#ref-nelder1972generalized)). To give you a sense, the inverse link works like so:
+To my eye, gamma regression is one of the more under-used frameworks within the broader GLM framework.[^1] Recall the dependent variable in the `horan1971` data, `post`, is post-intervention weights, measured in pounds. Whether in humans or other animals, body weights are positive continuous values, and their distributions can often show a right skew, particularly whey their means are close to zero. Even though researchers often model data of this kind with the Gaussian likelihood, the gamma distribution can be a great alternative that easily accounts for the lower zero limit and any right skew.[^2] The inverse link is the canonical link function for gamma regression models ([Nelder & Wedderburn, 1972](#ref-nelder1972generalized)). To give you a sense, the inverse link works like so:
 
 ``` r
 tibble(lbs = seq(from = 0.1, to = 10, by = 0.01)) %>% 
@@ -91,7 +91,7 @@ tibble(lbs = seq(from = 0.1, to = 10, by = 0.01)) %>%
 
 <img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-4-1.png" width="481.2" />
 
-The inverse link has an inflection point a 1, and it asymptotes at zero. However, I and others (e.g., [Agresti, 2015](#ref-agrestiFoundationsLinearGeneralized2015); [McCullagh & Nelder, 1989](#ref-mccullagh1989generalized)) have noticed the inverse link has its quirks[^1] for gamma regression, and the identity and log links make for good alternatives. In this blog post, we’ll explore gamma models with both identity and log links. Feel free to explore with the inverse link on your own. The overall results should be similar.
+The inverse link has an elbow at 1, and it asymptotes at zero. However, I and others (e.g., [Agresti, 2015](#ref-agrestiFoundationsLinearGeneralized2015); [McCullagh & Nelder, 1989](#ref-mccullagh1989generalized)) have noticed the inverse link has its quirks[^3] for gamma regression, and the identity and log links make for good alternatives. In this blog post, we’ll explore gamma models with both identity and log links. Feel free to explore with the inverse link on your own. The overall results should be similar.
 
 We will fit 8 models in total. To warm up, we will start by fitting 4 ANOVA models:
 
@@ -313,7 +313,7 @@ bind_rows(
     ## 3      Gamma identity -2.489234  5.396532 -13.06624  8.087774
     ## 4      Gamma      log -2.489234  5.396537 -13.06625  8.087783
 
-The results are very similar across all summary measures, but they’re most notably different for the standard errors and 95% intervals. I don’t know that there’s an easy way to decide which model is the *best*. The models differ in their underlying assumptions. To my eye, the gamma model with the log link seems pretty attractive; the gamma likelihood naturally accounts for any right skew in the data (there is indeed a little right skew[^2]), and the log link insures the model will never predict non-positive weights. Your preferences may vary.
+The results are very similar across all summary measures, but they’re most notably different for the standard errors and 95% intervals. I don’t know that there’s an easy way to decide which model is the *best*. The models differ in their underlying assumptions. To my eye, the gamma model with the log link seems pretty attractive; the gamma likelihood naturally accounts for any right skew in the data (there is indeed a little right skew[^4]), and the log link insures the model will never predict non-positive weights. Your preferences may vary.
 
 Given how these are all ANOVA-type models (i.e., they have no covariates beyond the experimental grouping variable), we know the case-wise predictions will all be identical when using the `\(\mathbb E (y_i^1 - y_i^0)\)` method for computing our estimates for `\(\tau_\text{ATE}\)`. Thus, we might jump directly to the `avg_comparisons()` function, which will automatically average all the case-wise results.
 
@@ -826,7 +826,7 @@ That’s a wide spread, and frankly it suggests we could easily justify an even 
 
 As to our `\(\operatorname{Normal}(0.75, 0.25)\)` prior for `\(\beta_2\)`, this is suggesting the pre- and post-intervention weights scale close together, even when they’re on the log scale. In my experience, this is a good rule of thumb for behavioral data. If you’re not as confident as I am, adjust your prior accordingly.
 
-The `\(\operatorname{Gamma}(0.01, 0.01)\)` prior for the shape parameter `\(\alpha\)` is the `brm()` default. You might use the `get_prior()` function to check this for yourself. If you’re going to be fitting a lot of Bayesian gamma regression models, you’re going to want to learn how to go beyond the default prior for your `\(\alpha\)` parameters. Since this is just a small point in a much larger story, I’m not going to dive much deeper into the topic, here. But if you wanted to start somewhere, keep in mind that when a gamma distribution’s `\(\mu = \alpha\)`, the population mean and variance are the same;[^3] and with `\(\mu\)` held constant, larger values of `\(\alpha\)` make for *smaller* variances.[^4]
+The `\(\operatorname{Gamma}(0.01, 0.01)\)` prior for the shape parameter `\(\alpha\)` is the `brm()` default. You might use the `get_prior()` function to check this for yourself. If you’re going to be fitting a lot of Bayesian gamma regression models, you’re going to want to learn how to go beyond the default prior for your `\(\alpha\)` parameters. Since this is just a small point in a much larger story, I’m not going to dive much deeper into the topic, here. But if you wanted to start somewhere, keep in mind that when a gamma distribution’s `\(\mu = \alpha\)`, the population mean and variance are the same;[^5] and with `\(\mu\)` held constant, larger values of `\(\alpha\)` make for *smaller* variances.[^6]
 
 Okay, here’s how to fit the model with `brm()`.
 
@@ -939,7 +939,7 @@ p3 <- pp_check(brm1, type = "stat_grouped", group = "experimental", stat = "skew
 
 <img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-33-1.png" width="576" />
 
-Our model did a great job with the means and SD’s, and a decent job with the skew.[^5]
+Our model did a great job with the means and SD’s, and a decent job with the skew.[^7]
 
 With our Bayesian gamma ANCOVA with the log link, the easiest way to compute our posterior for the ATE is with the `avg_comparisons()` function from **marginaleffects**.
 
@@ -1053,6 +1053,12 @@ Arel-Bundock, V. (2023). *Bayesian analysis with brms*. <https://vincentarelbund
 
 </div>
 
+<div id="ref-basu2004comparing" class="csl-entry">
+
+Basu, A., Manning, W. G., & Mullahy, J. (2004). Comparing alternative models: Log vs Cox proportional hazard? *Health Economics*, *13*(8), 749–765. <https://doi.org/10.1002/hec.852>
+
+</div>
+
 <div id="ref-Bürkner2023Distributional" class="csl-entry">
 
 Bürkner, P.-C. (2023). *Estimating distributional models with brms*. <https://CRAN.R-project.org/package=brms/vignettes/brms_distreg.html>
@@ -1062,6 +1068,12 @@ Bürkner, P.-C. (2023). *Estimating distributional models with brms*. <https://C
 <div id="ref-horan1971coverant" class="csl-entry">
 
 Horan, J. J., & Johnson, R. G. (1971). Coverant conditioning through a self-management application of the Premack principle: Its effect on weight reduction. *Journal of Behavior Therapy and Experimental Psychiatry*, *2*(4), 243–249. <https://doi.org/10.1016/0005-7916(71)90040-1>
+
+</div>
+
+<div id="ref-malehi2015statistical" class="csl-entry">
+
+Malehi, A. S., Pourmotahari, F., & Angali, K. A. (2015). Statistical models for the analysis of skewed healthcare cost data: A simulation study. *Health Economics Review*, *5*(1), 1–16. <https://doi.org/10.1186/s13561-015-0045-7>
 
 </div>
 
@@ -1085,12 +1097,16 @@ Revelle, W. (2022). *<span class="nocase">psych</span>: Procedures for psycholog
 
 </div>
 
-[^1]: The language of “quirks” is my own. The inverse link has the technical limitation that it will not insure on its own that the model will not return negative predictions, which is an insight you can find in the technical literature (e.g., [McCullagh & Nelder, 1989](#ref-mccullagh1989generalized)). In addition, I have personally found the inverse link can cause estimation difficulties with both frequentist (`glm()`) and Bayesian (`brm()`) software. The log link *just works*, friends. Use the log link for gamma.
+[^1]: It isn’t totally under-used, though. Some researchers have found gamma regression (with the log link) useful for modeling healthcare cost data ([Basu et al., 2004](#ref-basu2004comparing); [Malehi et al., 2015](#ref-malehi2015statistical)).
 
-[^2]: You don’t have to believe me. Check it for yourself. You might do a visual check with a histogram or density plot. Or you could compute the sample skewness statistic with the `skew()` function from the **psych** package ([Revelle, 2022](#ref-R-psych)).
+[^2]: We won’t entertain them all here, but gamma isn’t the only distribution in town that can describe non-negative, right-skewed, continuous data. Some of the alternatives include the exponential, inverse Gaussian, lognormal, and Weibull distributions.
 
-[^3]: *Why would I assume the mean and variance would be the same?* you ask. Well, you might not. But bear in mind that the popular likelihood for unbounded counts, the Poisson, assumes the mean and variance are the same. Granted, the Poisson likelihood often underestimates the variance in real-world sample data, and we might not expect our positive-real skewed continuous data will behave like unbounded counts. But you have to start somewhere, friends. Why not appeal to one of the devils you already know?
+[^3]: The language of “quirks” is my own. The inverse link has the technical limitation that it will not insure on its own that the model will not return negative predictions, which is an insight you can find in the technical literature (e.g., [McCullagh & Nelder, 1989](#ref-mccullagh1989generalized)). In addition, I have personally found the inverse link can cause estimation difficulties with both frequentist (`glm()`) and Bayesian (`brm()`) software. The log link *just works*, friends. Use the log link for gamma.
 
-[^4]: Within the context of a fixed `\(\mu\)`, you might think of `\(\alpha\)` as a *concentration* parameter. The higher the `\(\alpha\)`, the more concentrated the distribution gets around the mean.
+[^4]: You don’t have to believe me. Check it for yourself. You might do a visual check with a histogram or density plot. Or you could compute the sample skewness statistic with the `skew()` function from the **psych** package ([Revelle, 2022](#ref-R-psych)).
 
-[^5]: I’ll admit, we did *okay* with the skew, but it seems like there’s room for improvement, particularly for the control condition. If you’re curious, try fitting a second Bayesian gamma model where you allow the log of the shape parameter `\((\log \alpha_i)\)` to vary by `experimental` and `prelc`. I think you’ll see that fuller version of the model does a better job capturing the skew. We’re not quite ready for distributional models in this blog series, but check out Bürkner’s ([2023](#ref-Bürkner2023Distributional)) vignette, *Estimating distributional models with brms*, if you’re ready to skip ahead.
+[^5]: *Why would I assume the mean and variance would be the same?* you ask. Well, you might not. But bear in mind that the popular likelihood for unbounded counts, the Poisson, assumes the mean and variance are the same. Granted, the Poisson likelihood often underestimates the variance in real-world sample data, and we might not expect our positive-real skewed continuous data will behave like unbounded counts. But you have to start somewhere, friends. Why not appeal to one of the devils you already know?
+
+[^6]: Within the context of a fixed `\(\mu\)`, you might think of `\(\alpha\)` as a *concentration* parameter. The higher the `\(\alpha\)`, the more concentrated the distribution gets around the mean.
+
+[^7]: I’ll admit, we did *okay* with the skew, but it seems like there’s room for improvement, particularly for the control condition. If you’re curious, try fitting a second Bayesian gamma model where you allow the log of the shape parameter `\((\log \alpha_i)\)` to vary by `experimental` and `prelc`. I think you’ll see that fuller version of the model does a better job capturing the skew. We’re not quite ready for distributional models in this blog series, but check out Bürkner’s ([2023](#ref-Bürkner2023Distributional)) vignette, *Estimating distributional models with brms*, if you’re ready to skip ahead.
