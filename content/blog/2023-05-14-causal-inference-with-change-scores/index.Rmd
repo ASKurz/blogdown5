@@ -636,7 +636,9 @@ In this post, some of the main points we covered were:
 
 As to next steps, some of my eagle-eyed readers may have noticed the primary outcome variable in the `hoorelbeke2021` data is bounded between 0 and 1, which makes our use of OLS--and thus the Gaussian likelihood by mathematical equivalence--dubious. In the next post, we'll address this shortcoming by exploring causal inference with beta regression.
 
-Until next time, happy modeling, friends!
+## No more pre-release peer review
+
+The first seven posts in this blog series have enjoyed pre-release peer review from a group of kind and helpful experts in statistical methods. I originally asked for peer review because some of this material was very new to me, and I was not confident my interpretations were sound. At this point, I'm more familiar with the material, and I have benefited from many helpful comments from the review team and from other interested readers. From this post onward, I am no longer asking for pre-release peer review. But if you, dear reader, have any comments or questions, you are most welcome to post them down below in the comments section, or raise a discussion on social media. I've seen this kind of engagement described as *post-publication peer review*, and I think it's a great option for the scientific discourse.
 
 ## Session info
 
