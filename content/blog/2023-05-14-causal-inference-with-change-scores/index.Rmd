@@ -3,7 +3,7 @@ title: Causal inference with change scores
 subtitle: 'Part 8 of the GLM and causal inference series.'
 author: A. Solomon Kurz
 date: '2023-05-14'
-excerpt: "Change is hard."
+excerpt: "In this post, we explore how we can frame our causal inferences in terms of change from baseline, and how this may or may not involve change scores."
 tags:
   - ANCOVA
   - ANOVA
@@ -33,7 +33,7 @@ link-citations: yes
 options(width = 110)
 ```
 
-So far in this series, we have used the posttreatment scores as the dependent variables in our analyses. However, it's not uncommon for researchers to frame their questions in terms of change from baseline with a change-score (aka gain score) analysis. The goal of this post is to investigate whether and when we can use change scores to make causal inferences. Spoiler: Yes, sometimes we can (with caveats).
+So far in this series, we have used the posttreatment scores as the dependent variables in our analyses. However, it's not uncommon for researchers to frame their questions in terms of change from baseline with a change-score (aka gain score) analysis. The goal of this post is to investigate whether and when we can use change scores or change from baseline to make causal inferences. Spoiler: Yes, sometimes we can (with caveats).
 
 ## We need (new) data
 
