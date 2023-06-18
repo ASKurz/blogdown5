@@ -686,7 +686,7 @@ tibble(model = rep(c("ANOVA", "ANCOVA"), each = 2),
             alpha = 0.75,
             linewidth = 0) +
   geom_text() +
-  scale_fill_viridis_d(begin = .4) +
+  scale_fill_viridis_d(option = "C", begin = .3, end = .9) +
   scale_x_discrete("outcome variable", position = "top", expand = c(0, 0)) +
   scale_y_discrete("model type", expand = c(0, 0)) +
   ggtitle("\n\n\nYes friends, you can analyze change\nscores with ANCOVA's") +
