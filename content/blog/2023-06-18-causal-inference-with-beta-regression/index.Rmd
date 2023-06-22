@@ -876,24 +876,52 @@ sqrt((u - l)^2 / 4)  # maximum standard deviation
 
 
 ```{r, eval = F, echo = F}
-tibble(model = rep(c("ANOVA", "ANCOVA"), each = 2),
-       dv = rep(c("post", "change"), times = 2),
-       formula = c("post ~ tx", "change ~ tx", "post ~ tx + pre", "change ~ tx + pre")) %>% 
+# save a character vector to streamline the code below
+likelihoods <- c("Gaussian", "beta")
+
+# define the predictor grid
+nd <- crossing(txf = factor(0:1),
+               pre = seq(from = 0.001, to = 0.999, length.out = 400)) %>% 
+  mutate(prec  = pre - mean(hoorelbeke2021$pre),
+         prelo = qlogis(pre))
+
+
+bind_rows(
+  # compute the Gaussian fitted line
+  fitted(fit2g, newdata = nd) %>% 
+    data.frame() %>% 
+    bind_cols(nd),
+  # compute the beta fitted line
+  fitted(fit2b, newdata = nd) %>% 
+    data.frame() %>% 
+    bind_cols(nd)
+) %>% 
+  # wrangle
+  mutate(likelihood = rep(likelihoods, each = n() / 2) %>% factor(levels = likelihoods),
+         tx         = ifelse(txf == "0", "control", "treatment")) %>% 
   
-  ggplot(aes(x = dv, y = model, label = formula)) +
-  geom_tile(aes(fill = formula),
-            show.legend = F,
-            alpha = 0.75,
-            linewidth = 0) +
-  geom_text() +
-  scale_fill_viridis_d(option = "C", begin = .3, end = .9) +
-  scale_x_discrete("outcome variable", position = "top", expand = c(0, 0)) +
-  scale_y_discrete("model type", expand = c(0, 0)) +
-  ggtitle("\n\n\nYes friends, you can analyze change\nscores with ANCOVA's") +
-  theme(axis.text.y = element_text(hjust = 0),
-        axis.ticks = element_blank(),
+  # plot!
+  ggplot(aes(x = pre)) +
+  geom_hline(yintercept = 0:1, color = "white") +
+  geom_vline(xintercept = 0:1, color = "white") +
+  geom_ribbon(aes(ymin = Q2.5, ymax = Q97.5, fill = likelihood),
+              linewidth = 0, alpha = 1/2) +
+  geom_point(data = hoorelbeke2021 %>% 
+               mutate(tx = ifelse(txf == "0", "control", "treatment")),
+             aes(y = post),
+             size = 1) +
+  scale_fill_viridis_d(option = "H", begin = .2, end = .8) +
+  scale_x_continuous(breaks = 0:2 / 2) +
+  scale_y_continuous(breaks = 0:2 / 2) +
+  coord_equal(xlim = 0:1,
+              ylim = 0:1) +
+  ggtitle("\n\nFitted 95% CI's for the ANCOVA's",
+          subtitle = "Gaussian likelihood shown in blue, and beta\nlikelihood shown in red.") +
+  facet_wrap(~ tx) +
+  theme(legend.position = "none",
+        panel.spacing.x = unit(0.75, "lines"),
         plot.title.position = "plot")
 
-# ggsave("ANCOVA-change-featured.jpg", width = 3.6, height = 3.5, units = "in")
+# ggsave("beta-and-gauss-featured.jpg", width = 3.6, height = 3.5, units = "in")
 ```
 
