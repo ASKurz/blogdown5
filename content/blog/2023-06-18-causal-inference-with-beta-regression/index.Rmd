@@ -925,7 +925,6 @@ nd <- crossing(txf = factor(0:1),
   mutate(prec  = pre - mean(hoorelbeke2021$pre),
          prelo = qlogis(pre))
 
-
 bind_rows(
   # compute the Gaussian fitted line
   fitted(fit2g, newdata = nd) %>% 
@@ -942,8 +941,8 @@ bind_rows(
   
   # plot!
   ggplot(aes(x = pre)) +
-  geom_hline(yintercept = 0:1, color = "white") +
-  geom_vline(xintercept = 0:1, color = "white") +
+  geom_hline(yintercept = 0:1, color = "gray92") +
+  geom_vline(xintercept = 0:1, color = "gray92") +
   geom_ribbon(aes(ymin = Q2.5, ymax = Q97.5, fill = likelihood),
               linewidth = 0, alpha = 1/2) +
   geom_point(data = hoorelbeke2021 %>% 
@@ -955,13 +954,18 @@ bind_rows(
   scale_y_continuous(breaks = 0:2 / 2) +
   coord_equal(xlim = 0:1,
               ylim = 0:1) +
-  ggtitle("\n\nFitted 95% CI's for the ANCOVA's",
-          subtitle = "Gaussian likelihood shown in blue, and beta\nlikelihood shown in red.") +
+  labs(title = "\nFitted 95% CI's for the ANCOVA's",
+       subtitle = "Gaussian likelihood shown in blue, and beta\nlikelihood shown in red.",
+       x = "pre\n") +
   facet_wrap(~ tx) +
   theme(legend.position = "none",
         panel.spacing.x = unit(0.75, "lines"),
-        plot.title.position = "plot")
+        plot.title.position = "plot") +
+  # flip the grey/white lines/backgrounds
+  theme(panel.background = element_rect(fill = "white"),
+        plot.background = element_rect(fill = "gray94", color = "gray94"),
+        strip.background = element_rect(fill = "gray97"))
 
-# ggsave("beta-and-gauss-featured.jpg", width = 3.6, height = 3.5, units = "in")
+ggsave("beta-and-gauss-featured.jpg", width = 3.6, height = 3.5, units = "in")
 ```
 
