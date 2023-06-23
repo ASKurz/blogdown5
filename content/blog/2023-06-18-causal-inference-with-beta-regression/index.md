@@ -949,7 +949,7 @@ bind_rows(
 
 Yep, look at that. The beta ANCOVA gave us a more precise estimate of the ATE by the 95% interval width and the posterior SD. I’d want to see a simulation study or something before I made any broad claims about greater precision with the beta ANCOVA versus the Gaussian ANCOVA. Regardless of the magnitude of the posterior SD, I’d much rather use the beta ANCOVA for computing my `\(\hat{\tau}_\text{ATE}\)` because it’s just silly to presume `\((0, 1)\)` interval data will follow a Gaussian distribution. The beta likelihood is a much better conceptual fit, and I’d love to see my fellow scientists using the beta ANCOVA more frequently in their work.
 
-As a final comparison, we should see whether the beta ANCOVA did indeed return a more precise estimate for the ATE than the beta ANOVA.
+We should investigate whether the beta ANCOVA did indeed return a more precise estimate for the ATE than the beta ANOVA.
 
 ``` r
 bind_rows(
@@ -971,7 +971,30 @@ bind_rows(
     ## 1 beta ANOVA  ate      0.178 0.031  0.118   0.239
     ## 2 beta ANCOVA ate      0.207 0.02   0.166   0.246
 
-Yep, adding the `pre` score to the beta ANCOVA returned a smaller posterior SD and a narrower 95% interval. If you can add a high-quality baseline covariate or two to your beta model, you probably should.
+Yep, adding the `pre` score to the beta ANCOVA returned a smaller posterior SD and a narrower 95% interval. If you can add a high-quality baseline covariate or two to your beta model, you probably should. For kicks and giggles, let’s finish this section out with a coefficient plot of the `\(\hat{\tau}_\text{ATE}\)` from all 4 models.
+
+``` r
+bind_rows(
+  avg_comparisons(fit1g, variables = "txf"),
+  avg_comparisons(fit1b, variables = "txf"),
+  avg_comparisons(fit2g, variables = "txf"),
+  avg_comparisons(fit2b, variables = "txf")
+) %>% 
+  data.frame() %>%
+  mutate(likelihood = rep(likelihoods, times = 2) %>% factor(levels = likelihoods),
+         model      = rep(c("ANOVA", "ANCOVA"), each = 2) %>% factor(levels = c("ANOVA", "ANCOVA"))) %>% 
+  
+  ggplot(aes(x = estimate, xmin = conf.low, xmax = conf.high, y = fct_rev(likelihood))) +
+  geom_pointrange(aes(color = likelihood),
+                  show.legend = F) +
+  scale_x_continuous(expression(hat(tau)[ATE]), expand = expansion(mult = 0.3)) +
+  scale_color_viridis_d(option = "H", begin = .2, end = .8, direction = 1) +
+  ylab(NULL) +
+  facet_wrap(~ model, nrow = 2) +
+  theme(axis.text.y = element_text(hjust = 0))
+```
+
+<img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-34-1.png" width="576" />
 
 ## What about 0 and 1?
 
