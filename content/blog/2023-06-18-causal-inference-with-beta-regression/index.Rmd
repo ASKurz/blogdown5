@@ -826,6 +826,23 @@ bind_rows(
 
 Yep, look at that. The beta ANCOVA gave us a more precise estimate of the ATE by the 95% interval width and the posterior SD. I'd want to see a simulation study or something before I made any broad claims about greater precision with the beta ANCOVA versus the Gaussian ANCOVA. Regardless of the magnitude of the posterior SD, I'd much rather use the beta ANCOVA for computing my $\hat{\tau}_\text{ATE}$ because it's just silly to presume $(0, 1)$ interval data will follow a Gaussian distribution. The beta likelihood is a much better conceptual fit, and I'd love to see my fellow scientists using the beta ANCOVA more frequently in their work.
 
+As a final comparison, we should see whether the beta ANCOVA did indeed return a more precise estimate for the ATE than the beta ANOVA.
+
+```{r, message = F}
+bind_rows(
+  avg_comparisons(fit1b, variables = "txf") %>% posterior_draws(),
+  avg_comparisons(fit2b, variables = "txf") %>% posterior_draws()
+) %>% 
+  rename(ate = draw) %>% 
+  mutate(model = rep(c("beta ANOVA", "beta ANCOVA"), each = n() / 2) %>% factor(levels = c("beta ANOVA", "beta ANCOVA"))) %>% 
+  select(model, ate) %>% 
+  group_by(model) %>% 
+  brms_summary() %>%
+  mutate_if(is.double, round, digits = 3)
+```
+
+Yep, adding the `pre` score to the beta ANCOVA returned a smaller posterior SD and a narrower 95% interval. If you can add a high-quality baseline covariate or two to your beta model, you probably should.
+
 ## What about 0 and 1?
 
 So far in this post, we've largely described the `pre` and `post` variables in the `hoorelbeke2021` data as if they're bound within the $(0, 1)$ interval. I'm no aPASAT expert, but I suspect those aPASAT scores can technically take on values of 0 and 1, too. Even if I'm wrong in this special case, sometimes researchers have $[0, 1]$ data, and in this cases the simple beta likelihood just won't work. Happily for us, our friends the statisticians and methodologists have already proposed zero-or-one-inflated beta models [@ospina2012general], zero-and-one inflated beta models [@swearingen2012inflated] and ordered beta models [@kubinec2022ordered]. Zero-, one-, and zero-and-one inflated beta models are available with **brms** [@Bürkner2023Parameterization]. To my knowledge, ordered beta models are only indirectly available with **brms** through the **ordbetareg** package [@R-ordbetareg].
@@ -842,6 +859,7 @@ In this post, some of the main points we covered were:
 * I'm not aware there is a canonical link for beta models, but I recommend the logit link, which is the default for **brms**.
 * For the beta ANOVA, the $\mathbb E (y_i^1 - y_i^0)$ method and the $\mathbb E (y_i^1) - \mathbb E (y_i^0)$ method are both valid estimators of $\tau_\text{ATE}$.
 * For the beta ANCOVA, the only valid estimator of $\tau_\text{ATE}$ is the $\mathbb E (y_i^1 - y_i^0)$ method, which we typically refer to as *standardization* in this blog series.
+* Finally, it does appear that the beta ANCOVA will return more precise estimates of the ATE than the simple beta ANOVA.
 
 In the next post, we'll introduce the analysis of heterogeneous covariance (ANHECOVA) for causal inference.
 
